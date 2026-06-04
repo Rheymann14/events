@@ -11,13 +11,13 @@ export default function RegisterLayout({ children }: RegisterLayoutProps) {
         <div className="relative isolate min-h-[100svh] w-full overflow-hidden bg-slate-50">
             {/* Full-page background cover (always visible) */}
             <div aria-hidden className="pointer-events-none fixed inset-0 z-0">
-                <img
+                {/* <img
                     src="/img/bg.png"
                     alt=""
                     draggable={false}
                     loading="lazy"
                     className={cn('h-full w-full object-cover object-center')}
-                />
+                /> */}
 
                 {/* overlays for readability (keep these subtle) */}
                 <div className="absolute inset-0 bg-white/35" />

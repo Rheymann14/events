@@ -224,194 +224,163 @@ function FlyingFlag({
 
 
 
-function HeroStickyParallax() {
-    const targetRef = React.useRef<HTMLDivElement>(null);
-    const shouldReduceMotion = useReducedMotion();
-
-
-
-    const isMobile = useMediaQuery('(max-width: 640px)');
-
-
-
-
-    function useMediaQuery(query: string) {
-        const [matches, setMatches] = React.useState(false);
-
-        React.useEffect(() => {
-            const mq = window.matchMedia(query);
-            const onChange = () => setMatches(mq.matches);
-
-            onChange();
-            mq.addEventListener?.('change', onChange);
-            return () => mq.removeEventListener?.('change', onChange);
-        }, [query]);
-
-        return matches;
-    }
-
-
-
-
-    const { scrollYProgress } = useScroll({
-        target: targetRef,
-        offset: ['start start', 'end end'],
-    });
-
-    const taglineP = useTransform(scrollYProgress, (v) => {
-        const start = 0.38;
-        const end = 0.72;
-        const t = (v - start) / (end - start);
-        return Math.min(1, Math.max(0, t));
-    });
-
-    const textOpacity = useTransform(taglineP, [0, 0.25], [0, 1]);
-    const textY = useTransform(taglineP, [0, 1], [28, 0]);
-    const textScale = useTransform(taglineP, [0, 1], [0.86, 1.06]);
-
-    // keep your logoScale here too
-    const logoScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.85]);
-    const timor = React.useMemo(() => ASEAN_FLAGS.find((f) => f.name === 'Timor-Leste'), []);
-    const top5 = React.useMemo(() => {
-        const others = ASEAN_FLAGS.filter((f) => f.name !== 'Timor-Leste');
-        return [others[0], others[1], timor!, others[2], others[3]].filter(Boolean) as FlagItem[];
-    }, [timor]);
-
-    const bottom6 = React.useMemo(() => {
-        const others = ASEAN_FLAGS.filter((f) => f.name !== 'Timor-Leste');
-        return others.slice(4, 10) as FlagItem[]; // 6 flags
-    }, []);
-
-    // ✅ MOBILE positions (tweak numbers if you want tighter/wider)
-    const mobileTopSlots: FlagTarget[] = [
-        { x: -130, y: -130, r: -10 },
-        { x: -65, y: -140, r: -6 },
-        { x: 0, y: -150, r: 0 },
-        { x: 65, y: -140, r: 6 },
-        { x: 130, y: -130, r: 10 },
-    ];
-
-    const mobileBottomSlots: FlagTarget[] = [
-        { x: -150, y: 140, r: -8 },
-        { x: -90, y: 155, r: -4 },
-        { x: -30, y: 145, r: 0 },
-        { x: 30, y: 145, r: 0 },
-        { x: 90, y: 155, r: 4 },
-        { x: 150, y: 140, r: 8 },
-    ];
-
+function HeroSection() {
     return (
-        // ✅ clip only X to avoid horizontal scrollbar; allow Y to be visible
-        <section ref={targetRef} className="relative h-[250vh] overflow-x-clip">
+        <section className="relative flex min-h-[90vh] items-center justify-center px-6">
+            {/* Background (soft gradient like screenshot) */}
+            <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#f8fafc] via-white to-[#eef4ff]" />
 
+            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-16">
 
+                {/* ================= LEFT SIDE ================= */}
+                <div className="text-center lg:text-left">
 
-            {/* ✅ remove overflow-hidden here so flags/logo won't be cut */}
-            <div className="sticky top-0 relative flex min-h-[100svh] flex-col items-center justify-center px-4 pt-24 pb-12 overflow-visible">
-                {/* ✅ stays visible while HERO is sticky (won’t scroll away) */}
-            
-                <div className="relative flex w-full max-w-7xl flex-col items-center justify-center">
-                    {/* ✅ give more vertical room for flags that move up/down */}
-                    <div className="relative flex h-[300px] w-full items-center justify-center sm:h-[520px]">
-                        {isMobile ? (
-                            <>
-                                {/* 5 ABOVE */}
-                                {top5.map((flag, i) => (
-                                    <FlyingFlag
-                                        key={`top-${flag.name}`}
-                                        flag={flag}
-                                        index={i}
-                                        side="center"
-                                        progress={scrollYProgress}
-                                        target={mobileTopSlots[i]}
-                                        size="sm"
-                                    />
-                                ))}
-
-                                {/* 6 BELOW */}
-                                {bottom6.map((flag, i) => (
-                                    <FlyingFlag
-                                        key={`bottom-${flag.name}`}
-                                        flag={flag}
-                                        index={i}
-                                        side="center"
-                                        progress={scrollYProgress}
-                                        target={mobileBottomSlots[i]}
-                                        size="sm"
-                                    />
-                                ))}
-                            </>
-                        ) : (
-                            <>
-                                {/* DESKTOP: keep your original left/right + center Timor */}
-                                {LEFT_FLAGS.map((flag, i) => (
-                                    <FlyingFlag key={flag.name} flag={flag} index={i} side="left" progress={scrollYProgress} />
-                                ))}
-
-                                {RIGHT_FLAGS.map((flag, i) => (
-                                    <FlyingFlag key={flag.name} flag={flag} index={i} side="right" progress={scrollYProgress} />
-                                ))}
-
-                                {TIMOR_FLAG && (
-                                    <FlyingFlag key={TIMOR_FLAG.name} flag={TIMOR_FLAG} index={0} side="center" progress={scrollYProgress} />
-                                )}
-                            </>
-                        )}
-
-
-
-                        {/* CENTER LOGO */}
-                        <motion.div style={{ scale: logoScale }} className="z-[60] w-full max-w-3xl px-4">
-                            <img
-                                src="/img/asean_banner_logo.png"
-                                alt="Banner"
-                                className="mx-auto w-full drop-shadow-2xl"
-                                draggable={false}
-                            />
-                        </motion.div>
+                    {/* Logos row */}
+                    <div className="mb-6 flex items-center justify-center gap-3 lg:justify-start">
+                        <img
+                            src="/img/ched_logo.png"
+                            className="h-13 w-auto"
+                            alt="CHED"
+                        />
+                        <img
+                            src="/img/bagong_pilipinas.png"
+                            className="h-18 w-auto"
+                            alt="Bagong Pilipinas"
+                        />
+                        <img
+                            src="/img/achieve.png"
+                            className="h-18 w-auto"
+                            alt="ACHIEVE"
+                        />
                     </div>
 
-                    {/* <div className="scrolldown">
-                        <div className="chevrons">
-                            <div className="chevrondown"></div>
-                            <div className="chevrondown"></div>
-                        </div>
-                    </div> */}
+                    {/* Main Title */}
+                    <h1 className="text-[52px] font-extrabold leading-[1.05] tracking-tight text-[#0b1220]">
+                        CHED Events
+                        <br />
+                        Registration System
+                    </h1>
 
-                    {/* Tagline + CTA */}
-                    <motion.div
-                        style={{
-                            opacity: textOpacity,
-                            y: textY,
-                            scale: shouldReduceMotion ? 1 : textScale,
-                            transformOrigin: 'center',
-                        }}
-                        className="relative z-30 mt-2 origin-center text-center will-change-transform sm:mt-6"
-                    >
-                        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-4 py-2 text-[11px] font-semibold tracking-[0.22em] text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/30 dark:text-slate-200">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]" />
-                            OFFICIAL PARTICIPANT REGISTRATION PORTAL
-                        </div>
+                    {/* Subtitle */}
+                    <p className="mt-4 max-w-xl text-[16px] leading-[1.7] text-slate-600 lg:mx-0 mx-auto">
+                        A centralized platform for managing event registration, participant attendance,
+                        and event-related records for CHED activities.
+                    </p>
 
-                        <h2 className="mt-4 text-3xl font-bold tracking-tight text-blue-600 sm:text-4xl">
-                            “Navigating Our Future, Together”
-                        </h2>
-                        <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                            Register to receive your official event profile and QR-enabled access for attendance verification and venue entry.
-                        </p>
-
-                        <motion.div
-                            className="mx-auto mt-8 w-full max-w-md px-4 sm:px-0"
-                            animate={shouldReduceMotion ? undefined : { y: [0, -3, 0] }}
-                            transition={shouldReduceMotion ? undefined : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                    {/* CTA */}
+                    <div className="mt-10">
+                        <Link
+                            href={register()}
+                            className="group inline-flex items-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85]"
                         >
-                     
+                            Register Now
 
-                            <p className="mt-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                Secure registration • Verified access • Fast check-in via QR
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 transition group-hover:bg-white/25">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    className="text-white"
+                                >
+                                    <path
+                                        d="M12 5v14M5 12l7 7 7-7"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    />
+                                </svg>
+                            </span>
+                        </Link>
+                    </div>
+                </div>
+
+                {/* ================= RIGHT SIDE ================= */}
+                <div className="flex justify-center lg:justify-end">
+                    <div className="w-full max-w-[600px] rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.25)]">
+
+                        {/* HEADER */}
+                        <div className="mb-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[18px] font-bold text-slate-900">
+                                    Featured Event
+                                </h3>
+
+                                <span className="rounded-full bg-[#0033A0]/10 px-3 py-1 text-[11px] font-semibold text-[#0033A0]">
+                                    CHED
+                                </span>
+                            </div>
+
+                            <p className="text-[12px] text-slate-500">
+                                Upcoming official CHED activity highlight
                             </p>
-                        </motion.div>
-                    </motion.div>
+                        </div>
+
+                        {/* EVENT CARD */}
+                        <div className="rounded-2xl overflow-hidden border border-slate-100 bg-gradient-to-br from-[#0033A0]/5 via-white to-amber-50/40">
+
+                            {/* IMAGE */}
+                            <div className="relative h-32 w-full">
+                                <img
+                                    src="/img/ched_co.jpg"
+                                    alt="CHED Featured Event"
+                                    className="h-full w-full object-cover"
+                                />
+
+                                {/* overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-transparent" />
+
+                                {/* badge */}
+                                <div className="absolute left-3 top-3">
+                                    <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-white backdrop-blur">
+                                        FEATURED
+                                    </span>
+                                </div>
+
+                                {/* date */}
+                                <div className="absolute bottom-3 left-3">
+                                    <p className="text-[10px] text-white/70 uppercase tracking-wider">
+                                        Date
+                                    </p>
+                                    <p className="text-sm font-semibold text-white">
+                                        July 15–17, 2026
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* CONTENT */}
+                            <div className="p-4">
+
+                                <h4 className="text-sm font-bold text-slate-900">
+                                    Higher Education Leaders Summit
+                                </h4>
+
+                                <p className="mt-1 text-[12px] text-slate-600 leading-relaxed">
+                                    A national CHED-led gathering of higher education leaders focused on innovation,
+                                    collaboration, and ASEAN integration.
+                                </p>
+
+                                {/* META */}
+                                <div className="mt-4 grid grid-cols-1 gap-2 text-[11px]">
+                                    <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
+                                        <p className="text-slate-400 uppercase">Venue</p>
+                                        <p className="font-semibold text-slate-800">Manila</p>
+                                    </div>
+
+
+
+
+
+
+                                </div>
+
+
+                            </div>
+                        </div>
+
+
+                    </div>
                 </div>
             </div>
         </section>
@@ -984,27 +953,37 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
             </Head>
 
-            <PublicLayout
-                canRegister={canRegister}
-                navActive={activeHref}
-                onNavActiveChange={setActiveHref}
-                background={
-                    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-                        <div
-                            className="absolute inset-0 scale-[1.03] bg-cover bg-center bg-no-repeat opacity-70 blur-[7px]"
-                            style={{
-                                backgroundImage: `url(${resolveUrl('/img/background.jpg')})`,
-                            }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#9c6700]/15" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/50 to-slate-50" />
-                    </div>
-                }
-            >
+      <PublicLayout
+    canRegister={canRegister}
+    navActive={activeHref}
+    onNavActiveChange={setActiveHref}
+    background={
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+
+            {/* Base gradient */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white via-[#f7f9ff] to-[#eef4ff]" />
+
+            {/* Top-left blob */}
+            <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-[#0033A0]/10 blur-[120px]" />
+
+            {/* Top-right blob */}
+            <div className="absolute -top-32 -right-40 h-[520px] w-[520px] rounded-full bg-amber-300/10 blur-[140px]" />
+
+            {/* Center soft glow */}
+            <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-200/10 blur-[160px]" />
+
+            {/* Bottom accent */}
+            <div className="absolute -bottom-40 left-1/3 h-[500px] w-[500px] rounded-full bg-indigo-300/10 blur-[140px]" />
+
+            {/* Light overlay for readability */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/60 to-white/80" />
+        </div>
+    }
+>
 
 
                 {/* 1. HERO */}
-                <HeroStickyParallax />
+                <HeroSection />
 
                 {/* 2. 3D RING LEADERSHIP */}
                 {/* 2. 3D RING LEADERSHIP (fade-in on reach) */}

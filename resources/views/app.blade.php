@@ -31,15 +31,15 @@
             }
         </style>
 
-        <title inertia>{{ config('app.name', 'ASEAN') }}</title>
+        <title inertia>{{ config('app.name', 'CHED') }}</title>
 
         @php
   
             $meta = $page['props']['meta'] ?? [];
 
-            $ogTitle = $meta['title'] ?? config('app.name', 'ASEAN');
+            $ogTitle = $meta['title'] ?? config('app.name', 'CHED');
             $ogDescription = $meta['description'] ?? 'Official registration system.';
-            $ogImage = $meta['image'] ?? asset('img/asean_logo_he.png'); // <-- put your default thumbnail here
+            $ogImage = $meta['image'] ?? asset('img/ched_logo.png'); // <-- put your default thumbnail here
             $ogUrl = $meta['url'] ?? url()->current();
         @endphp
 
@@ -59,8 +59,8 @@
         <meta name="twitter:image" content="{{ $ogImage }}">
 
 
-        <link rel="icon" href="/img/asean_logo.png" type="image/png">
-        <link rel="apple-touch-icon" href="/img/asean_logo.png">
+        <link rel="icon" href="/img/ched_logo.png" type="image/png">
+        <link rel="apple-touch-icon" href="/img/ched_logo.png">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />

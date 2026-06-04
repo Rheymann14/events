@@ -50,7 +50,7 @@ export default function ContactUs(props: PageProps) {
                             </h2>
 
                             <p className="mt-4 text-slate-600">
-                                For inquiries and assistance regarding the ASEAN PH 2026 Participant Registration.
+                                For inquiries and assistance regarding the Events Registration.
                             </p>
 
                             <div className="mx-auto mt-6 flex items-center justify-center gap-3">
@@ -118,16 +118,7 @@ export default function ContactUs(props: PageProps) {
                             ))}
                         </div>
                         
-                            {/* ✅ BIG + centered logo (break out of container) */}
-                            <div className="relative left-1/2 right-1/2 mt-12 w-screen -ml-[50vw] -mr-[50vw] px-4 sm:px-6 lg:px-8">
-                                <img
-                                    src="/img/the_logo.png"
-                                    alt="ASEAN PH 2026 logo"
-                                    className="mx-auto h-auto w-full max-w-[1000px] object-contain"
-                                    draggable={false}
-                                    loading="lazy"
-                                />
-                            </div>
+                      
                     </div>
                 </section>
             </PublicLayout>

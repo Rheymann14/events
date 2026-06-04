@@ -83,7 +83,7 @@
     </head>
     <body>
         <main>
-            <img class="logo" src="{{ asset('img/asean_banner_logo.png') }}" alt="ASEAN Philippines 2026 logo">
+            <img class="logo" src="{{ asset('img/ched_banner.png') }}" alt="CHED Events logo">
             <h1>403</h1>
             <p>Access forbidden.</p>
             <a class="btn" href="javascript:history.back()">Go back</a>

@@ -96,7 +96,10 @@ export default function PublicLayout({
     }, []);
 
     return (
-        <div id="home" className="relative isolate min-h-screen w-full bg-slate-50 text-slate-900">
+        <div
+            id="home"
+            className="relative isolate min-h-screen w-full text-slate-900 bg-gradient-to-b from-white via-slate-50 to-slate-100"
+        >
             {/* ✅ Background comes only from pages that pass it (Welcome) */}
             {background}
 
@@ -116,7 +119,7 @@ export default function PublicLayout({
                     <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
                         <Link href="/" className="flex items-center gap-3">
                             <img
-                                src="/img/asean_banner_logo.png"
+                                src="/img/ched_banner.png"
                                 alt="ASEAN Philippines 2026"
                                 className="h-10 w-auto drop-shadow-sm sm:h-11"
                                 draggable={false}
@@ -290,7 +293,7 @@ export default function PublicLayout({
             <main className="relative z-10">{children}</main>
 
             {/* Footer top strip */}
-            <div aria-hidden className="relative z-10 -mb-px">
+            {/* <div aria-hidden className="relative z-10 -mb-px">
                 <div className="relative overflow-hidden rounded-t-[2.5rem]">
                     <img
                         src="/img/bg.png"
@@ -306,14 +309,14 @@ export default function PublicLayout({
                     <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0b1426]/70 to-transparent sm:h-20 lg:h-28" />
                     <div className="absolute left-6 top-1/2 -translate-y-1/2 sm:left-10">
                         <img
-                            src="/img/asean_banner_logo.png"
-                            alt="ASEAN Philippines 2026"
+                            src="/img/ched_banner.png"
+                            alt="CHED Events"
                             className="h-10 w-auto drop-shadow-md sm:h-12 lg:h-14"
                             draggable={false}
                         />
                     </div>
                 </div>
-            </div>
+            </div> */}
 
             {/* Footer */}
             <footer className="relative z-10 bg-[#0b1426] text-slate-200">
@@ -328,8 +331,8 @@ export default function PublicLayout({
                                     <div className="flex items-center gap-2">
                                         <div className="p-2">
                                             <img
-                                                src="/img/asean_logo.png"
-                                                alt="ASEAN Logo"
+                                                src="/img/ched_white.png"
+                                                alt="CHED Logo"
                                                 className="h-20 w-20 object-contain"
                                                 draggable={false}
                                                 loading="lazy"
@@ -338,7 +341,7 @@ export default function PublicLayout({
                                     </div>
 
                                     <div>
-                                        <p className="text-base font-semibold tracking-wide text-white">ASEAN PH 2026</p>
+                                        <p className="text-base font-semibold tracking-wide text-white">CHED Events</p>
                                         <p className="text-xs text-slate-400">Participant Registration</p>
                                     </div>
                                 </div>

@@ -2349,8 +2349,8 @@ export default function Register({
                     aria-label="Go to home"
                 >
                     <img
-                        src="/img/asean_banner_logo.png"
-                        alt="ASEAN Philippines 2026"
+                        src="/img/ched_banner.png"
+                        alt="CHED Events"
                         className="h-10 w-auto object-contain transition-opacity hover:opacity-90 sm:h-12 md:h-14"
                         draggable={false}
                         loading="lazy"

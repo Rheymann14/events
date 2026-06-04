@@ -40,7 +40,7 @@ export default function EventKitEntry() {
                             Enter your participant ID to access the event kit
                         </h1>
                         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                            Use your ASEAN participant ID (e.g., ASEAN-XXXX-XXXX) or registered email address.
+                            Use your CHED participant ID (e.g., CHED-XXXX-XXXX) or registered email address.
                         </p>
                     </div>
 
@@ -81,7 +81,7 @@ export default function EventKitEntry() {
                                     <div>
                                         <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Need your ID?</h2>
                                         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                                            Check the email confirmation sent after registration. Your ASEAN ID appears on your
+                                            Check the email confirmation sent after registration. Your Virtual ID appears on your
                                             QR badge.
                                         </p>
                                     </div>
