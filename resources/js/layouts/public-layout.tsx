@@ -209,7 +209,7 @@ export default function PublicLayout({
                                     <div className="border-b px-5 py-4">
                                         <div className="flex items-center gap-3">
                                             <img
-                                                src="/img/asean_banner_logo.png"
+                                                src="/img/ched_banner.png"
                                                 alt="ASEAN Philippines 2026"
                                                 className="h-10 w-auto"
                                                 draggable={false}
