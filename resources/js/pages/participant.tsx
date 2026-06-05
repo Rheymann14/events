@@ -83,7 +83,6 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronsUpDown,
-    Globe2,
     ImageUp,
     KeyRound,
     MapPin,
@@ -433,13 +432,6 @@ const ENDPOINTS = {
 const PRIMARY_BTN =
     'bg-[#00359c] text-white hover:bg-[#00359c]/90 focus-visible:ring-[#00359c]/30 dark:bg-[#00359c] dark:hover:bg-[#00359c]/90';
 
-const DIETARY_PREFERENCE_OPTIONS = [
-    { value: 'vegetarian', label: 'Vegetarian' },
-    { value: 'halal', label: 'Halal' },
-    { value: 'allergies', label: 'Allergies (please specify)' },
-    { value: 'other', label: 'Other (please specify)' },
-] as const;
-
 const HONORIFIC_OPTIONS = [
     { value: 'mr', label: 'Mr.' },
     { value: 'mrs', label: 'Mrs.' },
@@ -498,11 +490,10 @@ const PHONE_CODE_OPTIONS = [
 const PARTICIPANT_FORM_STEPS = [
     { id: 1, label: 'Personal Information' },
     { id: 2, label: 'Contact & Organization' },
-    { id: 3, label: 'Dietary & Accessibility' },
-    { id: 4, label: 'Additional Info' },
+    { id: 3, label: 'Additional Info' },
 ] as const;
 
-type ParticipantFormStep = 1 | 2 | 3 | 4;
+type ParticipantFormStep = 1 | 2 | 3;
 
 const STEP_FIELDS: Record<ParticipantFormStep, string[]> = {
     1: [
@@ -524,13 +515,6 @@ const STEP_FIELDS: Record<ParticipantFormStep, string[]> = {
         'other_user_type',
     ],
     3: [
-        'food_restrictions',
-        'dietary_allergies',
-        'dietary_other',
-        'accessibility_needs',
-        'accessibility_other',
-    ],
-    4: [
         'ip_affiliation',
         'ip_group_name',
         'emergency_contact_name',
@@ -544,16 +528,6 @@ const STEP_FIELDS: Record<ParticipantFormStep, string[]> = {
 };
 
 const ENTRIES_PER_PAGE_OPTIONS = [10, 20, 50, 100, 1000] as const;
-
-const ACCESSIBILITY_NEEDS_OPTIONS = [
-    { value: 'wheelchair_access', label: 'Wheelchair access' },
-    { value: 'sign_language_interpreter', label: 'Sign language interpreter' },
-    {
-        value: 'assistive_technology_support',
-        label: 'Assistive technology support',
-    },
-    { value: 'other', label: 'Other accommodations' },
-] as const;
 
 function formatDateSafe(value?: string | null) {
     if (!value) return '—';
@@ -1493,7 +1467,7 @@ export default function ParticipantPage(props: PageProps) {
     // UI state
     // ---------------------------------------
     const [activeTab, setActiveTab] = React.useState<
-        'participants' | 'countries' | 'userTypes'
+        'participants' | 'userTypes'
     >('participants');
 
     const [participantQuery, setParticipantQuery] = React.useState(
@@ -1515,8 +1489,6 @@ export default function ParticipantPage(props: PageProps) {
     const [participantStatusOpen, setParticipantStatusOpen] =
         React.useState(false);
     const [participantEventOpen, setParticipantEventOpen] =
-        React.useState(false);
-    const [participantFormCountryOpen, setParticipantFormCountryOpen] =
         React.useState(false);
     const [asemme10CountryOpen, setAsemme10CountryOpen] = React.useState(false);
     const [participantFormTypeOpen, setParticipantFormTypeOpen] =
@@ -1614,7 +1586,7 @@ export default function ParticipantPage(props: PageProps) {
     // delete confirm
     const [deleteOpen, setDeleteOpen] = React.useState(false);
     const [deleteTarget, setDeleteTarget] = React.useState<{
-        kind: 'participant' | 'country' | 'userType';
+        kind: 'participant' | 'userType';
         id: number;
         label: string;
     } | null>(null);
@@ -1640,7 +1612,6 @@ export default function ParticipantPage(props: PageProps) {
         await ensureQrForParticipants([participant]);
     }
 
-    // ✅ Country flag preview
     const [countryFlagPreview, setCountryFlagPreview] = React.useState<
         string | null
     >(null);
@@ -1652,6 +1623,7 @@ export default function ParticipantPage(props: PageProps) {
         };
     }, [countryFlagPreview]);
 
+    // ✅ Country flag preview
     React.useEffect(() => {
         return () => {
             if (participantProfilePreview?.startsWith('blob:')) {
@@ -1940,16 +1912,6 @@ export default function ParticipantPage(props: PageProps) {
     const totalPages = Math.max(1, participantPagination.last_page);
     const paginatedParticipants = resolvedParticipants;
 
-    const filteredCountries = React.useMemo(() => {
-        const q = countryQuery.trim().toLowerCase();
-        return countries.filter((c) =>
-            !q
-                ? true
-                : c.name.toLowerCase().includes(q) ||
-                  c.code.toLowerCase().includes(q),
-        );
-    }, [countries, countryQuery]);
-
     const groupedCountries = React.useMemo(
         () => splitCountriesByAsean(countries),
         [countries],
@@ -2020,8 +1982,6 @@ export default function ParticipantPage(props: PageProps) {
 
         return null;
     }, [participantForm.data.user_type_id, userTypeById, editingParticipant]);
-
-    const showFoodRestrictionsField = true;
 
     const stepWithErrors = React.useMemo(() => {
         const result = new Set<ParticipantFormStep>();
@@ -2569,7 +2529,7 @@ export default function ParticipantPage(props: PageProps) {
     function submitParticipant(e: React.FormEvent) {
         e.preventDefault();
 
-        if (participantFormStep < 4) {
+        if (participantFormStep < 3) {
             setParticipantFormStep((s) => (s + 1) as ParticipantFormStep);
             return;
         }
@@ -2784,7 +2744,7 @@ export default function ParticipantPage(props: PageProps) {
     }
 
     function requestDelete(
-        kind: 'participant' | 'country' | 'userType',
+        kind: 'participant' | 'userType',
         id: number,
         label: string,
     ) {
@@ -2800,9 +2760,7 @@ export default function ParticipantPage(props: PageProps) {
         const destroyUrl =
             kind === 'participant'
                 ? ENDPOINTS.participants.destroy(id)
-                : kind === 'country'
-                  ? ENDPOINTS.countries.destroy(id)
-                  : ENDPOINTS.userTypes.destroy(id);
+                : ENDPOINTS.userTypes.destroy(id);
 
         router.delete(destroyUrl, {
             preserveScroll: true,
@@ -3132,31 +3090,66 @@ export default function ParticipantPage(props: PageProps) {
         );
     }
 
-    function renderPreferenceBadges(
-        values: string[] | undefined,
-        options: readonly { value: string; label: string }[],
+    function renderDesktopDetailItem(
+        label: string,
+        value: React.ReactNode,
+        emptyText = 'None specified',
     ) {
-        if (!values?.length) return null;
+        const isEmpty =
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim() === '');
 
         return (
-            <div className="flex flex-wrap gap-1">
-                {values.map((value) => {
-                    const label =
-                        options.find((option) => option.value === value)
-                            ?.label ?? value;
-
-                    return (
-                        <Badge
-                            key={value}
-                            variant="secondary"
-                            className="text-[11px]"
-                        >
-                            {label}
-                        </Badge>
-                    );
-                })}
+            <div>
+                <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    {label}
+                </div>
+                <div
+                    className={cn(
+                        'text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-300',
+                        isEmpty && 'text-xs text-slate-400',
+                    )}
+                >
+                    {isEmpty ? emptyText : value}
+                </div>
             </div>
         );
+    }
+
+    function registrationProgrammeForParticipant(p: ParticipantRow) {
+        const candidateIds = [
+            participantEventFilter !== 'all' ? participantEventFilter : '',
+            ...(p.joined_programme_ids ?? []).map(String),
+            ...Object.keys(p.registration_responses ?? {}),
+        ].filter((id) => id && id !== 'all');
+
+        for (const id of Array.from(new Set(candidateIds))) {
+            const programme = programmeRowById.get(id);
+            if ((programme?.registration_fields ?? []).length > 0) {
+                return programme;
+            }
+        }
+
+        return null;
+    }
+
+    function registrationDetailEntries(p: ParticipantRow) {
+        const programme = registrationProgrammeForParticipant(p);
+        if (!programme) return [];
+
+        const responses =
+            p.registration_responses?.[String(programme.id)] ?? {};
+
+        return (programme.registration_fields ?? [])
+            .filter((field) => field.field_type !== 'section')
+            .map((field) => ({
+                id: field.id,
+                label: field.label,
+                value: formatAsemme10RegistrationValue(
+                    responses[String(field.id)],
+                ),
+            }));
     }
 
     function renderMobileParticipantCard(p: ParticipantRow) {
@@ -3167,6 +3160,8 @@ export default function ParticipantPage(props: PageProps) {
         const asemme10DelegationDetails =
             asemme10Registration?.delegation_details ?? {};
         const asemme10Consents = asemme10Registration?.consents ?? {};
+        const registrationProgramme = registrationProgrammeForParticipant(p);
+        const registrationDetails = registrationDetailEntries(p);
 
         return (
             <div
@@ -3326,38 +3321,31 @@ export default function ParticipantPage(props: PageProps) {
                                 p.position_title,
                             )}
                             {renderMobileDetailItem(
-                                'Dietary preferences',
-                                renderPreferenceBadges(
-                                    p.food_restrictions,
-                                    DIETARY_PREFERENCE_OPTIONS,
-                                ),
+                                'Contact number',
+                                p.contact_number,
                             )}
-                            {p.dietary_allergies
-                                ? renderMobileDetailItem(
-                                      'Allergies',
-                                      p.dietary_allergies,
-                                  )
-                                : null}
-                            {p.dietary_other
-                                ? renderMobileDetailItem(
-                                      'Other dietary notes',
-                                      p.dietary_other,
-                                  )
-                                : null}
                             {renderMobileDetailItem(
-                                'Accessibility needs',
-                                renderPreferenceBadges(
-                                    p.accessibility_needs,
-                                    ACCESSIBILITY_NEEDS_OPTIONS,
-                                ),
+                                'Registration event',
+                                registrationProgramme?.title,
                             )}
-                            {p.accessibility_other
-                                ? renderMobileDetailItem(
-                                      'Other accessibility notes',
-                                      p.accessibility_other,
-                                  )
-                                : null}
                         </div>
+
+                        {registrationDetails.length > 0 ? (
+                            <div className="mt-3 grid gap-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+                                <div className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                                    Registration Details
+                                </div>
+                                {registrationDetails.map((field) => (
+                                    <React.Fragment key={field.id}>
+                                        {renderMobileDetailItem(
+                                            field.label,
+                                            field.value,
+                                            '-',
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        ) : null}
 
                         {isAsemme10RegistrationView && asemme10Registration && (
                             <div className="mt-3 grid gap-3 border-t border-slate-200 pt-3 dark:border-slate-800">
@@ -3629,8 +3617,7 @@ export default function ParticipantPage(props: PageProps) {
                                 </h1>
                             </div>
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Manage participants, ASEAN countries, and user
-                                types.
+                                Manage participants and user types.
                             </p>
                         </div>
 
@@ -3660,17 +3647,6 @@ export default function ParticipantPage(props: PageProps) {
                                         </Button>
                                     ) : null}
                                 </>
-                            ) : activeTab === 'countries' ? (
-                                <Button
-                                    onClick={openAddCountry}
-                                    className={cn(
-                                        'w-full sm:w-auto',
-                                        PRIMARY_BTN,
-                                    )}
-                                >
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add Country
-                                </Button>
                             ) : (
                                 <Button
                                     onClick={openAddUserType}
@@ -3697,7 +3673,6 @@ export default function ParticipantPage(props: PageProps) {
                         <TabsTrigger value="participants">
                             Participants
                         </TabsTrigger>
-                        <TabsTrigger value="countries">Countries</TabsTrigger>
                         <TabsTrigger value="userTypes">User Types</TabsTrigger>
                     </TabsList>
 
@@ -4402,6 +4377,14 @@ export default function ParticipantPage(props: PageProps) {
                                                             const asemme10Consents =
                                                                 asemme10Registration?.consents ??
                                                                 {};
+                                                            const registrationProgramme =
+                                                                registrationProgrammeForParticipant(
+                                                                    p,
+                                                                );
+                                                            const registrationDetails =
+                                                                registrationDetailEntries(
+                                                                    p,
+                                                                );
 
                                                             return (
                                                                 <React.Fragment
@@ -4593,188 +4576,51 @@ export default function ParticipantPage(props: PageProps) {
                                                                                 className="px-6 py-3"
                                                                             >
                                                                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                                                                    <div>
-                                                                                        <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                                                                            Agency
-                                                                                            /
-                                                                                            Organization
-                                                                                            /
-                                                                                            Institution
-                                                                                        </div>
-                                                                                        {p.organization_name ? (
-                                                                                            <div className="text-sm text-slate-700 dark:text-slate-300">
-                                                                                                {
-                                                                                                    p.organization_name
-                                                                                                }
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            <div className="text-xs text-slate-400">
-                                                                                                None
-                                                                                                specified
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    <div>
-                                                                                        <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                                                                            Position
-                                                                                            /
-                                                                                            Designation
-                                                                                        </div>
-                                                                                        {p.position_title ? (
-                                                                                            <div className="text-sm text-slate-700 dark:text-slate-300">
-                                                                                                {
-                                                                                                    p.position_title
-                                                                                                }
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            <div className="text-xs text-slate-400">
-                                                                                                None
-                                                                                                specified
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    <div>
-                                                                                        <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                                                                            Dietary
-                                                                                            Preferences
-                                                                                        </div>
-                                                                                        {(
-                                                                                            p.food_restrictions ??
-                                                                                            []
-                                                                                        )
-                                                                                            .length >
-                                                                                        0 ? (
-                                                                                            <div className="space-y-1">
-                                                                                                <div className="flex flex-wrap gap-1">
-                                                                                                    {(
-                                                                                                        p.food_restrictions ??
-                                                                                                        []
-                                                                                                    ).map(
-                                                                                                        (
-                                                                                                            r,
-                                                                                                        ) => {
-                                                                                                            const label =
-                                                                                                                DIETARY_PREFERENCE_OPTIONS.find(
-                                                                                                                    (
-                                                                                                                        o,
-                                                                                                                    ) =>
-                                                                                                                        o.value ===
-                                                                                                                        r,
-                                                                                                                )
-                                                                                                                    ?.label ??
-                                                                                                                r;
-                                                                                                            return (
-                                                                                                                <Badge
-                                                                                                                    key={
-                                                                                                                        r
-                                                                                                                    }
-                                                                                                                    variant="secondary"
-                                                                                                                    className="text-xs"
-                                                                                                                >
-                                                                                                                    {
-                                                                                                                        label
-                                                                                                                    }
-                                                                                                                </Badge>
-                                                                                                            );
-                                                                                                        },
-                                                                                                    )}
-                                                                                                </div>
-                                                                                                {p.dietary_allergies && (
-                                                                                                    <div className="text-xs text-slate-600 dark:text-slate-400">
-                                                                                                        <span className="font-medium">
-                                                                                                            Allergies:
-                                                                                                        </span>{' '}
-                                                                                                        {
-                                                                                                            p.dietary_allergies
-                                                                                                        }
-                                                                                                    </div>
-                                                                                                )}
-                                                                                                {p.dietary_other && (
-                                                                                                    <div className="text-xs text-slate-600 dark:text-slate-400">
-                                                                                                        <span className="font-medium">
-                                                                                                            Other:
-                                                                                                        </span>{' '}
-                                                                                                        {
-                                                                                                            p.dietary_other
-                                                                                                        }
-                                                                                                    </div>
-                                                                                                )}
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            <div className="text-xs text-slate-400">
-                                                                                                None
-                                                                                                specified
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    <div>
-                                                                                        <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                                                                            Accessibility
-                                                                                            Needs
-                                                                                        </div>
-                                                                                        {(
-                                                                                            p.accessibility_needs ??
-                                                                                            []
-                                                                                        )
-                                                                                            .length >
-                                                                                        0 ? (
-                                                                                            <div className="space-y-1">
-                                                                                                <div className="flex flex-wrap gap-1">
-                                                                                                    {(
-                                                                                                        p.accessibility_needs ??
-                                                                                                        []
-                                                                                                    ).map(
-                                                                                                        (
-                                                                                                            n,
-                                                                                                        ) => {
-                                                                                                            const label =
-                                                                                                                ACCESSIBILITY_NEEDS_OPTIONS.find(
-                                                                                                                    (
-                                                                                                                        o,
-                                                                                                                    ) =>
-                                                                                                                        o.value ===
-                                                                                                                        n,
-                                                                                                                )
-                                                                                                                    ?.label ??
-                                                                                                                n;
-                                                                                                            return (
-                                                                                                                <Badge
-                                                                                                                    key={
-                                                                                                                        n
-                                                                                                                    }
-                                                                                                                    variant="secondary"
-                                                                                                                    className="text-xs"
-                                                                                                                >
-                                                                                                                    {
-                                                                                                                        label
-                                                                                                                    }
-                                                                                                                </Badge>
-                                                                                                            );
-                                                                                                        },
-                                                                                                    )}
-                                                                                                </div>
-                                                                                                {p.accessibility_other && (
-                                                                                                    <div className="text-xs text-slate-600 dark:text-slate-400">
-                                                                                                        <span className="font-medium">
-                                                                                                            Other:
-                                                                                                        </span>{' '}
-                                                                                                        {
-                                                                                                            p.accessibility_other
-                                                                                                        }
-                                                                                                    </div>
-                                                                                                )}
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            <div className="text-xs text-slate-400">
-                                                                                                None
-                                                                                                specified
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
+                                                                                    {renderDesktopDetailItem(
+                                                                                        'Agency / Organization / Institution',
+                                                                                        p.organization_name,
+                                                                                    )}
+                                                                                    {renderDesktopDetailItem(
+                                                                                        'Position / Designation',
+                                                                                        p.position_title,
+                                                                                    )}
+                                                                                    {renderDesktopDetailItem(
+                                                                                        'Contact Number',
+                                                                                        p.contact_number,
+                                                                                    )}
+                                                                                    {renderDesktopDetailItem(
+                                                                                        'Registration Event',
+                                                                                        registrationProgramme?.title,
+                                                                                    )}
                                                                                 </div>
+                                                                                {registrationDetails.length >
+                                                                                    0 && (
+                                                                                    <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+                                                                                        <div className="mb-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                                                                                            Registration
+                                                                                            Details
+                                                                                        </div>
+                                                                                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                                                                            {registrationDetails.map(
+                                                                                                (
+                                                                                                    field,
+                                                                                                ) => (
+                                                                                                    <React.Fragment
+                                                                                                        key={
+                                                                                                            field.id
+                                                                                                        }
+                                                                                                    >
+                                                                                                        {renderDesktopDetailItem(
+                                                                                                            field.label,
+                                                                                                            field.value,
+                                                                                                            '-',
+                                                                                                        )}
+                                                                                                    </React.Fragment>
+                                                                                                ),
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
                                                                                 {isAsemme10RegistrationView &&
                                                                                     asemme10Registration && (
                                                                                         <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
@@ -5090,131 +4936,6 @@ export default function ParticipantPage(props: PageProps) {
                         </Card>
                     </TabsContent>
 
-                    {/* -------------------- Countries -------------------- */}
-                    <TabsContent value="countries" className="mt-4">
-                        <Card className="border-slate-200/70 dark:border-slate-800">
-                            <CardHeader className="space-y-3">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <CardTitle className="flex items-center gap-2 text-base">
-                                            <Globe2 className="h-4 w-4 text-[#00359c]" />
-                                            ASEAN Countries
-                                        </CardTitle>
-                                        <CardDescription>
-                                            Manage country list and upload flag
-                                            image per country.
-                                        </CardDescription>
-                                    </div>
-
-                                    <div className="relative w-full sm:w-[320px]">
-                                        <Search className="pointer-events-none absolute top-2.5 left-3 h-4 w-4 text-slate-500" />
-                                        <Input
-                                            value={countryQuery}
-                                            onChange={(e) =>
-                                                setCountryQuery(e.target.value)
-                                            }
-                                            placeholder="Search country or code..."
-                                            className="pl-9"
-                                        />
-                                    </div>
-                                </div>
-
-                                <Separator />
-                            </CardHeader>
-
-                            <CardContent>
-                                <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="bg-slate-50 dark:bg-slate-900/40">
-                                                <TableHead>Country</TableHead>
-                                                <TableHead className="w-[160px]">
-                                                    Status
-                                                </TableHead>
-                                                <TableHead className="w-[80px] text-right">
-                                                    Action
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredCountries.map((c) => (
-                                                <TableRow key={c.id}>
-                                                    <TableCell>
-                                                        <FlagCell country={c} />
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <StatusBadge
-                                                            active={c.is_active}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="rounded-full"
-                                                                >
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent
-                                                                align="end"
-                                                                className="w-44"
-                                                            >
-                                                                <DropdownMenuLabel>
-                                                                    Actions
-                                                                </DropdownMenuLabel>
-                                                                <DropdownMenuItem
-                                                                    onClick={() =>
-                                                                        openEditCountry(
-                                                                            c,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Pencil className="mr-2 h-4 w-4" />
-                                                                    Edit
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    onClick={() =>
-                                                                        toggleCountryActive(
-                                                                            c,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <BadgeCheck className="mr-2 h-4 w-4" />
-                                                                    {c.is_active
-                                                                        ? 'Set Inactive'
-                                                                        : 'Set Active'}
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    className="text-red-600 focus:text-red-600"
-                                                                    onClick={() =>
-                                                                        requestDelete(
-                                                                            'country',
-                                                                            c.id,
-                                                                            c.name,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                                    Delete
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
                     {/* -------------------- User Types -------------------- */}
                     <TabsContent value="userTypes" className="mt-4">
                         <Card className="border-slate-200/70 dark:border-slate-800">
@@ -5370,16 +5091,21 @@ export default function ParticipantPage(props: PageProps) {
                                 <div className="flex flex-col gap-2.5 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/40">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="flex items-start gap-3">
-                                            {programmeParticipant.country ? (
-                                                <FlagThumb
-                                                    country={
-                                                        programmeParticipant.country
+                                            {resolveParticipantProfileImage(
+                                                programmeParticipant,
+                                            ) ? (
+                                                <img
+                                                    src={
+                                                        resolveParticipantProfileImage(
+                                                            programmeParticipant,
+                                                        ) ?? undefined
                                                     }
-                                                    size={36}
-                                                    eager
+                                                    alt={`${programmeParticipant.full_name} profile`}
+                                                    className="size-9 rounded-lg border border-slate-200 object-cover dark:border-slate-800"
+                                                    draggable={false}
                                                 />
                                             ) : (
-                                                <div className="grid size-9 place-items-center rounded-lg border border-slate-200 bg-white text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+                                                <div className="grid size-9 place-items-center rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
                                                     —
                                                 </div>
                                             )}
@@ -5394,11 +5120,6 @@ export default function ParticipantPage(props: PageProps) {
                                                     •{' '}
                                                     {programmeParticipant
                                                         .user_type?.name ?? '—'}
-                                                </div>
-                                                <div className="text-xs text-slate-500 dark:text-slate-400">
-                                                    {programmeParticipant
-                                                        .country?.name ??
-                                                        'Country unavailable'}
                                                 </div>
                                             </div>
                                         </div>
@@ -6857,7 +6578,7 @@ export default function ParticipantPage(props: PageProps) {
                         onKeyDown={(e) => {
                             if (
                                 e.key === 'Enter' &&
-                                participantFormStep < 4 &&
+                                participantFormStep < 3 &&
                                 (e.target as HTMLElement).tagName !== 'TEXTAREA'
                             ) {
                                 e.preventDefault();
@@ -6865,7 +6586,7 @@ export default function ParticipantPage(props: PageProps) {
                                     (s) =>
                                         Math.min(
                                             s + 1,
-                                            4,
+                                            3,
                                         ) as ParticipantFormStep,
                                 );
                             }
@@ -7543,243 +7264,8 @@ export default function ParticipantPage(props: PageProps) {
                                     </div>
                                 )}
 
-                                {/* Step 3: Dietary & Accessibility */}
+                                {/* Step 3: Additional Info */}
                                 {participantFormStep === 3 && (
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                        {showFoodRestrictionsField ? (
-                                            <div className="rounded-xl border border-slate-200 px-3 py-3 sm:col-span-2 dark:border-slate-800">
-                                                <div className="space-y-0.5">
-                                                    <div className="text-sm font-medium">
-                                                        Dietary Preferences
-                                                    </div>
-                                                    <div className="text-xs text-slate-600 dark:text-slate-400">
-                                                        Select all that apply.
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                                    {DIETARY_PREFERENCE_OPTIONS.map(
-                                                        (option) => {
-                                                            const checked =
-                                                                participantForm.data.food_restrictions.includes(
-                                                                    option.value,
-                                                                );
-
-                                                            return (
-                                                                <label
-                                                                    key={
-                                                                        option.value
-                                                                    }
-                                                                    className="flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-2 text-sm dark:border-slate-700"
-                                                                >
-                                                                    <Checkbox
-                                                                        checked={
-                                                                            checked
-                                                                        }
-                                                                        onCheckedChange={(
-                                                                            value,
-                                                                        ) => {
-                                                                            const current =
-                                                                                participantForm
-                                                                                    .data
-                                                                                    .food_restrictions;
-
-                                                                            if (
-                                                                                value
-                                                                            ) {
-                                                                                participantForm.setData(
-                                                                                    'food_restrictions',
-                                                                                    current.includes(
-                                                                                        option.value,
-                                                                                    )
-                                                                                        ? current
-                                                                                        : [
-                                                                                              ...current,
-                                                                                              option.value,
-                                                                                          ],
-                                                                                );
-                                                                                return;
-                                                                            }
-
-                                                                            participantForm.setData(
-                                                                                'food_restrictions',
-                                                                                current.filter(
-                                                                                    (
-                                                                                        item,
-                                                                                    ) =>
-                                                                                        item !==
-                                                                                        option.value,
-                                                                                ),
-                                                                            );
-                                                                        }}
-                                                                    />
-                                                                    <span>
-                                                                        {
-                                                                            option.label
-                                                                        }
-                                                                    </span>
-                                                                </label>
-                                                            );
-                                                        },
-                                                    )}
-                                                </div>
-                                                {participantForm.data.food_restrictions.includes(
-                                                    'allergies',
-                                                ) ? (
-                                                    <div className="mt-3 space-y-1.5">
-                                                        <div className="text-sm font-medium">
-                                                            Allergies (please
-                                                            specify)
-                                                        </div>
-                                                        <Input
-                                                            value={
-                                                                participantForm
-                                                                    .data
-                                                                    .dietary_allergies
-                                                            }
-                                                            onChange={(e) =>
-                                                                participantForm.setData(
-                                                                    'dietary_allergies',
-                                                                    e.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            placeholder="Please specify"
-                                                        />
-                                                    </div>
-                                                ) : null}
-                                                {participantForm.data.food_restrictions.includes(
-                                                    'other',
-                                                ) ? (
-                                                    <div className="mt-3 space-y-1.5">
-                                                        <div className="text-sm font-medium">
-                                                            Other (please
-                                                            specify)
-                                                        </div>
-                                                        <Input
-                                                            value={
-                                                                participantForm
-                                                                    .data
-                                                                    .dietary_other
-                                                            }
-                                                            onChange={(e) =>
-                                                                participantForm.setData(
-                                                                    'dietary_other',
-                                                                    e.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            placeholder="Please specify"
-                                                        />
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                        ) : null}
-
-                                        <div className="rounded-xl border border-slate-200 px-3 py-3 sm:col-span-2 dark:border-slate-800">
-                                            <div className="space-y-0.5">
-                                                <div className="text-sm font-medium">
-                                                    Accessibility needs
-                                                </div>
-                                                <div className="text-xs text-slate-600 dark:text-slate-400">
-                                                    Select all applicable
-                                                    accessibility
-                                                    accommodations.
-                                                </div>
-                                            </div>
-                                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                                {ACCESSIBILITY_NEEDS_OPTIONS.map(
-                                                    (option) => {
-                                                        const checked =
-                                                            participantForm.data.accessibility_needs.includes(
-                                                                option.value,
-                                                            );
-
-                                                        return (
-                                                            <label
-                                                                key={
-                                                                    option.value
-                                                                }
-                                                                className="flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-2 text-sm dark:border-slate-700"
-                                                            >
-                                                                <Checkbox
-                                                                    checked={
-                                                                        checked
-                                                                    }
-                                                                    onCheckedChange={(
-                                                                        value,
-                                                                    ) => {
-                                                                        const current =
-                                                                            participantForm
-                                                                                .data
-                                                                                .accessibility_needs;
-
-                                                                        if (
-                                                                            value
-                                                                        ) {
-                                                                            participantForm.setData(
-                                                                                'accessibility_needs',
-                                                                                current.includes(
-                                                                                    option.value,
-                                                                                )
-                                                                                    ? current
-                                                                                    : [
-                                                                                          ...current,
-                                                                                          option.value,
-                                                                                      ],
-                                                                            );
-                                                                            return;
-                                                                        }
-
-                                                                        participantForm.setData(
-                                                                            'accessibility_needs',
-                                                                            current.filter(
-                                                                                (
-                                                                                    item,
-                                                                                ) =>
-                                                                                    item !==
-                                                                                    option.value,
-                                                                            ),
-                                                                        );
-                                                                    }}
-                                                                />
-                                                                <span>
-                                                                    {
-                                                                        option.label
-                                                                    }
-                                                                </span>
-                                                            </label>
-                                                        );
-                                                    },
-                                                )}
-                                            </div>
-                                            {participantForm.data.accessibility_needs.includes(
-                                                'other',
-                                            ) ? (
-                                                <div className="mt-3 space-y-1.5">
-                                                    <div className="text-sm font-medium">
-                                                        Other accommodations
-                                                    </div>
-                                                    <Input
-                                                        value={
-                                                            participantForm.data
-                                                                .accessibility_other
-                                                        }
-                                                        onChange={(e) =>
-                                                            participantForm.setData(
-                                                                'accessibility_other',
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        placeholder="Specify other accommodations"
-                                                    />
-                                                </div>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Step 4: Additional Info */}
-                                {participantFormStep === 4 && (
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         <div className="rounded-xl border border-slate-200 px-3 py-3 sm:col-span-2 dark:border-slate-800">
                                             <div className="flex items-center justify-between">
@@ -7994,52 +7480,6 @@ export default function ParticipantPage(props: PageProps) {
                                                 }
                                             />
                                         </div>
-
-                                        {editingParticipant ? (
-                                            <div className="rounded-xl border border-slate-200 px-3 py-3 sm:col-span-2 dark:border-slate-800">
-                                                <div className="text-sm font-medium">
-                                                    Consents
-                                                </div>
-                                                <div className="mt-2 grid gap-2 text-xs text-slate-600 dark:text-slate-400">
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <span>
-                                                            Contact Information
-                                                            Sharing
-                                                        </span>
-                                                        <Badge
-                                                            className={cn(
-                                                                'rounded-full border border-transparent px-2.5 py-1 text-[11px]',
-                                                                editingParticipant.consent_contact_sharing
-                                                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200'
-                                                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                                                            )}
-                                                        >
-                                                            {editingParticipant.consent_contact_sharing
-                                                                ? 'Consented'
-                                                                : 'Not consented'}
-                                                        </Badge>
-                                                    </div>
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <span>
-                                                            Photo and Videos
-                                                            Consent
-                                                        </span>
-                                                        <Badge
-                                                            className={cn(
-                                                                'rounded-full border border-transparent px-2.5 py-1 text-[11px]',
-                                                                editingParticipant.consent_photo_video
-                                                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200'
-                                                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                                                            )}
-                                                        >
-                                                            {editingParticipant.consent_photo_video
-                                                                ? 'Consented'
-                                                                : 'Not consented'}
-                                                        </Badge>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ) : null}
                                     </div>
                                 )}
                             </div>
@@ -8079,7 +7519,7 @@ export default function ParticipantPage(props: PageProps) {
                                     >
                                         Cancel
                                     </Button>
-                                    {participantFormStep < 4 ? (
+                                    {participantFormStep < 3 ? (
                                         <Button
                                             key="step-next"
                                             type="button"
