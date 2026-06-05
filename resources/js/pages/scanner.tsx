@@ -1191,7 +1191,9 @@ export default function Scanner(props: PageProps) {
         return code?.data?.trim() ?? '';
     }
 
-    async function startScan() {
+    async function startScan({
+        preserveLastDetected = false,
+    }: { preserveLastDetected?: boolean } = {}) {
         if (!ensureEventSelected()) return;
         if (!videoRef.current) return;
 
@@ -1201,7 +1203,9 @@ export default function Scanner(props: PageProps) {
         setIsScanning(true);
         isScanningRef.current = true;
         lockRef.current = false;
-        lastDetectedRef.current = '';
+        if (!preserveLastDetected) {
+            lastDetectedRef.current = '';
+        }
         setQrAim('searching');
 
         try {
@@ -1371,14 +1375,16 @@ export default function Scanner(props: PageProps) {
         }
     }
 
-    function scanAgain() {
+    function closeResultAndScanAgain() {
         resultLatchRef.current = false;
         setResult(null);
         setStatus('idle');
         setQrAim('idle');
-
         setResultOpen(false);
-        startScan();
+
+        if (selectedEventId && !isEventBlocked) {
+            void startScan({ preserveLastDetected: true });
+        }
     }
 
     React.useEffect(() => {
@@ -1456,7 +1462,12 @@ export default function Scanner(props: PageProps) {
             <Head title="Scanner" />
 
             {/* ✅ RESULT DIALOG (Success + Error) */}
-            <Dialog open={resultOpen}>
+            <Dialog
+                open={resultOpen}
+                onOpenChange={(open) => {
+                    if (!open) closeResultAndScanAgain();
+                }}
+            >
                 <DialogContent className="max-w-md overflow-hidden rounded-3xl bg-white p-0 dark:bg-slate-950">
                     <div className="max-h-[85vh] overflow-y-auto p-5">
                         <DialogHeader className="space-y-1">
@@ -1647,7 +1658,7 @@ export default function Scanner(props: PageProps) {
 
                     <DialogFooter className="border-t border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-950">
                         <Button
-                            onClick={scanAgain}
+                            onClick={closeResultAndScanAgain}
                             className={cn(
                                 'h-11 w-full rounded-2xl',
                                 dialogTone === 'success'

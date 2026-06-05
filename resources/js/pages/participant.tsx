@@ -581,6 +581,25 @@ function formatAsemme10RegistrationValue(value: unknown): string {
     return formatted === '' ? '-' : formatted;
 }
 
+function uppercaseHonorificTitle(value?: string | null) {
+    const title = (value ?? '').trim();
+
+    return title ? title.toLocaleUpperCase() : '';
+}
+
+function participantTableDisplayName(participant: ParticipantRow) {
+    const honorific =
+        participant.honorific_title === 'other'
+            ? participant.honorific_other
+            : participant.honorific_title;
+    const parts = [
+        uppercaseHonorificTitle(honorific),
+        participant.full_name?.trim(),
+    ].filter(Boolean);
+
+    return parts.length ? parts.join(' ') : '—';
+}
+
 const FALLBACK_EVENT_IMAGE = '/img/ched_banner.png';
 
 type EventPhase = 'ongoing' | 'upcoming' | 'closed';
@@ -3216,7 +3235,7 @@ export default function ParticipantPage(props: PageProps) {
                                             'text-blue-900 dark:text-blue-100',
                                     )}
                                 >
-                                    {p.full_name}
+                                    {participantTableDisplayName(p)}
                                 </div>
                                 <div className="truncate text-xs text-slate-500 dark:text-slate-400">
                                     {p.email}
@@ -4424,9 +4443,9 @@ export default function ParticipantPage(props: PageProps) {
                                                                                             'rotate-180',
                                                                                     )}
                                                                                 />
-                                                                                {
-                                                                                    p.full_name
-                                                                                }
+                                                                                {participantTableDisplayName(
+                                                                                    p,
+                                                                                )}
                                                                             </div>
                                                                             {isAsemme10RegistrationView &&
                                                                                 asemme10Registration?.badge_name && (

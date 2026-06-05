@@ -12,6 +12,53 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
+test('reports include active admin users with participant activity', function () {
+    $adminType = UserType::query()->create([
+        'name' => 'Admin',
+        'slug' => 'admin',
+        'is_active' => true,
+    ]);
+    $admin = User::factory()->create([
+        'name' => 'Admin Participant',
+        'user_type_id' => $adminType->id,
+        'is_active' => true,
+    ]);
+    $programme = Programme::query()->create([
+        'user_id' => $admin->id,
+        'tag' => 'TEST',
+        'title' => 'Test Event',
+        'description' => 'Programme description',
+        'location' => 'Manila',
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+        'is_active' => true,
+        'is_registration_active' => true,
+    ]);
+
+    $admin->joinedProgrammes()->attach($programme->id);
+
+    ParticipantAttendance::query()->create([
+        'user_id' => $admin->id,
+        'programme_id' => $programme->id,
+        'status' => 'scanned',
+        'scanned_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('reports'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('reports')
+            ->where('summary.total_registered_participants', 1)
+            ->where('summary.total_participants_attended', 1)
+            ->where('summary.total_participants_did_not_join', 0)
+            ->where('rows', fn ($rows) => collect($rows)->count() === 1
+                && collect($rows)->first()['name'] === 'Admin Participant'
+                && in_array($programme->id, collect($rows)->first()['joined_programme_ids'], true)
+                && in_array($programme->id, collect($rows)->first()['attended_programme_ids'], true))
+        );
+});
+
 test('reports count asemme10 registration attendees as selected event participants', function () {
     $adminType = UserType::query()->create([
         'name' => 'Admin',

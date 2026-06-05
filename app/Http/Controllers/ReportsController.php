@@ -12,11 +12,11 @@ use App\Models\UserType;
 use App\Models\VehicleAssignment;
 use App\Support\EventDefaults;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -40,7 +40,6 @@ class ReportsController extends Controller
 
         return back()->with('success', 'Welcome dinner preferences updated.');
     }
-
 
     public function sendAssignmentNotification(Request $request, User $user): JsonResponse
     {
@@ -95,19 +94,19 @@ class ReportsController extends Controller
 Please be informed of the following:
 
 "
-            . "Participant ID: ".($user->display_id ?: $user->id)."\n"
-            . "Event Title: {$event->title}
+            .'Participant ID: '.($user->display_id ?: $user->id)."\n"
+            ."Event Title: {$event->title}
 "
-            . 'Event Date: '.($eventDate ?: 'TBA')."
+            .'Event Date: '.($eventDate ?: 'TBA').'
+'
+            ."Vehicle: {$vehicleName}
 "
-            . "Vehicle: {$vehicleName}
+            ."Vehicle Plate Number: {$vehiclePlateNumber}
 "
-            . "Vehicle Plate Number: {$vehiclePlateNumber}
-"
-            . "Table Number: {$tableNumber}
+            ."Table Number: {$tableNumber}
 
 "
-            . 'Thank you!';
+            .'Thank you!';
 
         $appUrl = rtrim((string) config('app.url', 'https://events.ched.gov.ph'), '/');
         $htmlContent = $this->minifyHtml(view('emails.assignment-notification-brevo', [
@@ -196,8 +195,6 @@ Please be informed of the following:
         }
     }
 
-
-
     private function minifyHtml(string $html): string
     {
         $html = preg_replace('/<!--.*?-->/s', '', $html) ?? $html;
@@ -214,14 +211,25 @@ Please be informed of the following:
             ->orWhere('name', 'Admin')
             ->value('id');
 
-        $excludeAdmin = function ($query) use ($adminTypeId) {
+        $includeReportableParticipants = function ($query) use ($adminTypeId) {
             if (! $adminTypeId) {
                 return;
             }
 
             $query->where(function ($inner) use ($adminTypeId) {
                 $inner->where('users.user_type_id', '!=', $adminTypeId)
-                    ->orWhereNull('users.user_type_id');
+                    ->orWhereNull('users.user_type_id')
+                    ->orWhereExists(function ($exists) {
+                        $exists->selectRaw('1')
+                            ->from('participant_programmes')
+                            ->whereColumn('participant_programmes.user_id', 'users.id');
+                    })
+                    ->orWhereExists(function ($exists) {
+                        $exists->selectRaw('1')
+                            ->from('participant_attendances')
+                            ->whereColumn('participant_attendances.user_id', 'users.id')
+                            ->whereNotNull('participant_attendances.scanned_at');
+                    });
             });
         };
 
@@ -248,14 +256,14 @@ Please be informed of the following:
 
         $totalRegisteredParticipants = User::query()
             ->where('is_active', true)
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->count();
 
         $attendedParticipantIds = ParticipantAttendance::query()
             ->join('users', 'participant_attendances.user_id', '=', 'users.id')
             ->whereNotNull('participant_attendances.scanned_at')
-            ->tap(function ($query) use ($excludeAdmin) {
-                $excludeAdmin($query);
+            ->tap(function ($query) use ($includeReportableParticipants) {
+                $includeReportableParticipants($query);
             })
             ->distinct()
             ->pluck('participant_attendances.user_id');
@@ -266,7 +274,7 @@ Please be informed of the following:
         $joinedByUser = DB::table('participant_programmes')
             ->join('users', 'participant_programmes.user_id', '=', 'users.id')
             ->where('users.is_active', true)
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->select('participant_programmes.user_id', 'participant_programmes.programme_id')
             ->get()
             ->groupBy('user_id')
@@ -292,8 +300,8 @@ Please be informed of the following:
             ->join('users', 'participant_attendances.user_id', '=', 'users.id')
             ->where('users.is_active', true)
             ->whereNotNull('participant_attendances.scanned_at')
-            ->tap(function ($query) use ($excludeAdmin) {
-                $excludeAdmin($query);
+            ->tap(function ($query) use ($includeReportableParticipants) {
+                $includeReportableParticipants($query);
             })
             ->select('participant_attendances.user_id', 'participant_attendances.programme_id', 'participant_attendances.scanned_at')
             ->orderBy('participant_attendances.scanned_at')
@@ -322,7 +330,7 @@ Please be informed of the following:
             ->join('participant_tables', 'participant_table_assignments.participant_table_id', '=', 'participant_tables.id')
             ->join('users', 'participant_table_assignments.user_id', '=', 'users.id')
             ->where('users.is_active', true)
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->select([
                 'participant_table_assignments.user_id',
                 'participant_table_assignments.programme_id',
@@ -337,7 +345,7 @@ Please be informed of the following:
             ->leftJoin('transport_vehicles', 'vehicle_assignments.vehicle_id', '=', 'transport_vehicles.id')
             ->join('users', 'vehicle_assignments.user_id', '=', 'users.id')
             ->where('users.is_active', true)
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->select([
                 'vehicle_assignments.user_id',
                 'vehicle_assignments.programme_id',
@@ -353,7 +361,7 @@ Please be informed of the following:
         $assignmentNotificationByUser = AssignmentNotificationLog::query()
             ->join('users', 'assignment_notification_logs.user_id', '=', 'users.id')
             ->where('users.is_active', true)
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->select([
                 'assignment_notification_logs.user_id',
                 'assignment_notification_logs.programme_id',
@@ -518,7 +526,7 @@ Please be informed of the following:
             ->leftJoin('countries', 'users.country_id', '=', 'countries.id')
             ->leftJoin('user_types', 'users.user_type_id', '=', 'user_types.id')
             ->where('users.is_active', true)
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->select([
                 'users.id',
                 'users.honorific_title',

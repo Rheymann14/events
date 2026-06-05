@@ -24,14 +24,25 @@ class DashboardController extends Controller
             ->orWhere('name', 'Admin')
             ->value('id');
 
-        $excludeAdmin = function ($query) use ($adminTypeId) {
+        $includeReportableParticipants = function ($query) use ($adminTypeId) {
             if (! $adminTypeId) {
                 return;
             }
 
             $query->where(function ($inner) use ($adminTypeId) {
                 $inner->where('users.user_type_id', '!=', $adminTypeId)
-                    ->orWhereNull('users.user_type_id');
+                    ->orWhereNull('users.user_type_id')
+                    ->orWhereExists(function ($exists) {
+                        $exists->selectRaw('1')
+                            ->from('participant_programmes')
+                            ->whereColumn('participant_programmes.user_id', 'users.id');
+                    })
+                    ->orWhereExists(function ($exists) {
+                        $exists->selectRaw('1')
+                            ->from('participant_attendances')
+                            ->whereColumn('participant_attendances.user_id', 'users.id')
+                            ->whereNotNull('participant_attendances.scanned_at');
+                    });
             });
         };
 
@@ -45,7 +56,7 @@ class DashboardController extends Controller
 
         $participantsTotal = User::query()
             ->where('is_active', true)
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->count();
 
         $eventsTotal = Programme::query()->count();
@@ -53,15 +64,15 @@ class DashboardController extends Controller
         $scansTotal = ParticipantAttendance::query()
             ->join('users', 'participant_attendances.user_id', '=', 'users.id')
             ->whereNotNull('participant_attendances.scanned_at')
-            ->tap(function ($query) use ($excludeAdmin) {
-                $excludeAdmin($query);
+            ->tap(function ($query) use ($includeReportableParticipants) {
+                $includeReportableParticipants($query);
             })
             ->count();
 
         $participantsByCountry = User::query()
             ->where('is_active', true)
             ->whereNotNull('country_id')
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->select('country_id', DB::raw('count(*) as total'))
             ->groupBy('country_id')
             ->pluck('total', 'country_id');
@@ -70,8 +81,8 @@ class DashboardController extends Controller
             ->join('users', 'participant_attendances.user_id', '=', 'users.id')
             ->whereNotNull('participant_attendances.scanned_at')
             ->whereNotNull('users.country_id')
-            ->tap(function ($query) use ($excludeAdmin) {
-                $excludeAdmin($query);
+            ->tap(function ($query) use ($includeReportableParticipants) {
+                $includeReportableParticipants($query);
             })
             ->select('users.country_id', DB::raw('count(*) as total'))
             ->groupBy('users.country_id')
@@ -98,12 +109,9 @@ class DashboardController extends Controller
         $attendances = ParticipantAttendance::query()
             ->with(['participant.country'])
             ->whereNotNull('scanned_at')
-            ->when($adminTypeId, function ($query) use ($adminTypeId) {
-                $query->whereHas('participant', function ($inner) use ($adminTypeId) {
-                    $inner->where(function ($nested) use ($adminTypeId) {
-                        $nested->where('user_type_id', '!=', $adminTypeId)
-                            ->orWhereNull('user_type_id');
-                    });
+            ->when($adminTypeId, function ($query) use ($includeReportableParticipants) {
+                $query->whereHas('participant', function ($inner) use ($includeReportableParticipants) {
+                    $includeReportableParticipants($inner);
                 });
             })
             ->orderByDesc('scanned_at')
@@ -113,7 +121,7 @@ class DashboardController extends Controller
         $joinedRows = DB::table('participant_programmes')
             ->join('users', 'participant_programmes.user_id', '=', 'users.id')
             ->where('users.is_active', true)
-            ->tap($excludeAdmin)
+            ->tap($includeReportableParticipants)
             ->select(
                 'participant_programmes.programme_id',
                 'users.country_id',
@@ -195,8 +203,8 @@ class DashboardController extends Controller
             ->join('users', 'participant_attendances.user_id', '=', 'users.id')
             ->whereNotNull('participant_attendances.scanned_at')
             ->whereYear('participant_attendances.scanned_at', $year)
-            ->tap(function ($query) use ($excludeAdmin) {
-                $excludeAdmin($query);
+            ->tap(function ($query) use ($includeReportableParticipants) {
+                $includeReportableParticipants($query);
             })
             ->selectRaw("{$monthExpression} as month, COUNT(*) as total")
             ->groupBy('month')
@@ -207,8 +215,8 @@ class DashboardController extends Controller
             ->whereNotNull('participant_attendances.scanned_at')
             ->whereNotNull('users.country_id')
             ->whereYear('participant_attendances.scanned_at', $year)
-            ->tap(function ($query) use ($excludeAdmin) {
-                $excludeAdmin($query);
+            ->tap(function ($query) use ($includeReportableParticipants) {
+                $includeReportableParticipants($query);
             })
             ->selectRaw("{$monthExpression} as month, users.country_id as country_id, COUNT(*) as total")
             ->groupBy('month', 'country_id')

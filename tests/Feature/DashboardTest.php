@@ -3,6 +3,7 @@
 use App\Models\Country;
 use App\Models\EventRegistrationAttendee;
 use App\Models\EventRegistrationSubmission;
+use App\Models\ParticipantAttendance;
 use App\Models\Programme;
 use App\Models\User;
 use App\Models\UserType;
@@ -49,6 +50,47 @@ test('dashboard defaults to active registration event', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where('default_event_id', $registrationProgramme->id)
+        );
+});
+
+test('dashboard counts active admin users with participant activity', function () {
+    $adminType = UserType::query()->create([
+        'name' => 'Admin',
+        'slug' => 'admin',
+        'is_active' => true,
+    ]);
+    $admin = User::factory()->create([
+        'user_type_id' => $adminType->id,
+    ]);
+    $programme = Programme::query()->create([
+        'user_id' => $admin->id,
+        'tag' => 'TEST',
+        'title' => 'Test Event',
+        'description' => 'Programme description',
+        'location' => 'Manila',
+        'starts_at' => now()->subHour(),
+        'ends_at' => now()->addHour(),
+        'is_active' => true,
+        'is_registration_active' => true,
+    ]);
+
+    $admin->joinedProgrammes()->attach($programme->id);
+
+    ParticipantAttendance::query()->create([
+        'user_id' => $admin->id,
+        'programme_id' => $programme->id,
+        'status' => 'scanned',
+        'scanned_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stats.participants_total', 1)
+            ->where('stats.scans_total', 1)
+            ->where('events.0.joined_count', 1)
+            ->where('events.0.attendance_count', 1)
         );
 });
 

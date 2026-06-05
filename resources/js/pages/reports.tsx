@@ -201,9 +201,15 @@ function formatDateTime(value?: string | null) {
     }).format(date);
 }
 
+function uppercaseHonorificTitle(value?: string | null) {
+    const title = (value ?? '').trim();
+
+    return title ? title.toLocaleUpperCase() : '';
+}
+
 function buildDisplayName(row: ReportRow) {
     const parts = [
-        row.honorific_title,
+        uppercaseHonorificTitle(row.honorific_title),
         row.given_name,
         row.family_name,
         row.suffix,
@@ -292,7 +298,7 @@ function displayAsemme10Name(
     registration?: Asemme10Registration | null,
 ) {
     const name = [
-        registration?.title,
+        uppercaseHonorificTitle(registration?.title),
         registration?.given_name,
         registration?.family_name,
     ]
@@ -651,7 +657,6 @@ export default function Reports({
 
             return [
                 buildDisplayName(row),
-                row.country_name ?? '',
                 displayRegistrantType(row),
                 row.organization_name ?? '',
                 asemme10Registration?.badge_name ?? '',
@@ -735,7 +740,6 @@ export default function Reports({
                         <td>${escapeHtml(row.display_id ?? String(row.id))}</td>
                         <td>${escapeHtml(displayAsemme10Name(row, registration))}</td>
                         <td>${escapeHtml(registration?.badge_name ?? '-')}</td>
-                        <td>${escapeHtml(row.country_name ?? '-')}</td>
                         <td>${escapeHtml(registration?.registration_type ?? '-')}</td>
                         <td>${escapeHtml(displayAsemme10Role(registration?.role))}</td>
                         <td>${escapeHtml(registration?.organization_name ?? row.organization_name ?? '-')}</td>
@@ -756,7 +760,6 @@ export default function Reports({
                     <tr>
                         <td>${index + 1}</td>
                         <td>${escapeHtml(buildDisplayName(row))}</td>
-                        <td>${escapeHtml(row.country_name ?? '-')}</td>
                         <td>${escapeHtml(displayRegistrantType(row))}</td>
                         <td>${escapeHtml(row.organization_name ?? '-')}</td>
                         <td>${row.attend_welcome_dinner ? 'YES' : 'NO'}</td>
@@ -775,7 +778,6 @@ export default function Reports({
                   'Participant ID',
                   'Name',
                   'Badge Name',
-                  'Country',
                   'Registration Type',
                   'Role',
                   'Organization',
@@ -792,7 +794,6 @@ export default function Reports({
             : [
                   'Seq',
                   'Name',
-                  'Country',
                   'Registrant Type',
                   'Organization',
                   'Welcome Dinner',
@@ -895,31 +896,29 @@ export default function Reports({
                         .asemme10-table th:nth-child(4),
                         .asemme10-table td:nth-child(4) { width: 5%; }
                         .asemme10-table th:nth-child(5),
-                        .asemme10-table td:nth-child(5) { width: 5%; }
+                        .asemme10-table td:nth-child(5) { width: 6%; }
                         .asemme10-table th:nth-child(6),
-                        .asemme10-table td:nth-child(6) { width: 6%; }
+                        .asemme10-table td:nth-child(6) { width: 5%; }
                         .asemme10-table th:nth-child(7),
-                        .asemme10-table td:nth-child(7) { width: 5%; }
+                        .asemme10-table td:nth-child(7) { width: 6%; }
                         .asemme10-table th:nth-child(8),
-                        .asemme10-table td:nth-child(8) { width: 6%; }
+                        .asemme10-table td:nth-child(8) { width: 5%; }
                         .asemme10-table th:nth-child(9),
-                        .asemme10-table td:nth-child(9) { width: 5%; }
+                        .asemme10-table td:nth-child(9) { width: 10%; }
                         .asemme10-table th:nth-child(10),
-                        .asemme10-table td:nth-child(10) { width: 10%; }
+                        .asemme10-table td:nth-child(10) { width: 7%; }
                         .asemme10-table th:nth-child(11),
                         .asemme10-table td:nth-child(11) { width: 7%; }
                         .asemme10-table th:nth-child(12),
-                        .asemme10-table td:nth-child(12) { width: 7%; }
+                        .asemme10-table td:nth-child(12) { width: 5%; }
                         .asemme10-table th:nth-child(13),
-                        .asemme10-table td:nth-child(13) { width: 5%; }
+                        .asemme10-table td:nth-child(13) { width: 9%; }
                         .asemme10-table th:nth-child(14),
-                        .asemme10-table td:nth-child(14) { width: 9%; }
+                        .asemme10-table td:nth-child(14) { width: 5%; }
                         .asemme10-table th:nth-child(15),
                         .asemme10-table td:nth-child(15) { width: 5%; }
                         .asemme10-table th:nth-child(16),
-                        .asemme10-table td:nth-child(16) { width: 5%; }
-                        .asemme10-table th:nth-child(17),
-                        .asemme10-table td:nth-child(17) { width: 6%; }
+                        .asemme10-table td:nth-child(16) { width: 6%; }
                         thead { display: table-header-group; }
                         tr { break-inside: avoid; page-break-inside: avoid; }
                         .disclaimer {
@@ -1091,7 +1090,6 @@ export default function Reports({
                   'Participant ID',
                   'Name',
                   'Badge Name',
-                  'Country',
                   'Registration Type',
                   'Role',
                   'Organization',
@@ -1108,7 +1106,6 @@ export default function Reports({
             : [
                   'Seq',
                   'Name',
-                  'Country',
                   'Registrant Type',
                   'Organization',
                   'Welcome Dinner',
@@ -1134,7 +1131,6 @@ export default function Reports({
                     row.display_id ?? String(row.id),
                     displayAsemme10Name(row, registration),
                     registration?.badge_name ?? '-',
-                    row.country_name ?? '-',
                     registration?.registration_type ?? '-',
                     displayAsemme10Role(registration?.role),
                     registration?.organization_name ??
@@ -1155,7 +1151,6 @@ export default function Reports({
             return [
                 index + 1,
                 buildDisplayName(row),
-                row.country_name ?? '-',
                 displayRegistrantType(row),
                 row.organization_name ?? '-',
                 row.attend_welcome_dinner ? 'YES' : 'NO',
@@ -1612,7 +1607,7 @@ export default function Reports({
                                     onChange={(event) =>
                                         setSearch(event.target.value)
                                     }
-                                    placeholder="Search name, country, registrant type, organization, or check-in"
+                                    placeholder="Search name, registrant type, organization, or check-in"
                                     className="w-full md:w-80"
                                 />
 
@@ -1718,12 +1713,13 @@ export default function Reports({
                                                                   row,
                                                               )}
                                                     </p>
-                                                    <p className="text-xs break-all text-slate-500 dark:text-slate-400">
-                                                        {isAsemme10Selected
-                                                            ? `ID: ${row.display_id ?? row.id}`
-                                                            : (row.country_name ??
-                                                              '-')}
-                                                    </p>
+                                                    {isAsemme10Selected ? (
+                                                        <p className="text-xs break-all text-slate-500 dark:text-slate-400">
+                                                            ID:{' '}
+                                                            {row.display_id ??
+                                                                row.id}
+                                                        </p>
+                                                    ) : null}
                                                     {!isAsemme10Selected ? (
                                                         <p className="mt-1 text-xs break-words text-slate-500 dark:text-slate-400">
                                                             {displayRegistrantType(
@@ -2049,9 +2045,6 @@ export default function Reports({
                                                 <TableHead>
                                                     Participant
                                                 </TableHead>
-                                                <TableHead className="hidden md:table-cell">
-                                                    Country
-                                                </TableHead>
                                                 <TableHead className="hidden lg:table-cell">
                                                     Registration Type
                                                 </TableHead>
@@ -2289,10 +2282,6 @@ export default function Reports({
                                                                     </Button>
                                                                 </div>
                                                             </TableCell>
-                                                            <TableCell className="hidden break-words md:table-cell">
-                                                                {row.country_name ??
-                                                                    '-'}
-                                                            </TableCell>
                                                             <TableCell className="hidden break-words lg:table-cell">
                                                                 {registration?.registration_type ??
                                                                     '-'}
@@ -2353,7 +2342,7 @@ export default function Reports({
                                                         {isExpanded ? (
                                                             <TableRow className="border-b bg-slate-50/50 dark:bg-slate-900/20">
                                                                 <TableCell
-                                                                    colSpan={7}
+                                                                    colSpan={6}
                                                                     className="px-3 py-3 sm:px-6"
                                                                 >
                                                                     <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -2421,10 +2410,6 @@ export default function Reports({
                                                                         {buildDisplayName(
                                                                             row,
                                                                         )}
-                                                                    </p>
-                                                                    <p className="text-xs break-words text-slate-500 dark:text-slate-400">
-                                                                        {row.country_name ??
-                                                                            '-'}
                                                                     </p>
                                                                     <p className="mt-1 text-xs break-words text-slate-500 md:hidden dark:text-slate-400">
                                                                         {displayRegistrantType(
@@ -2753,7 +2738,7 @@ export default function Reports({
                                         <TableRow>
                                             <TableCell
                                                 colSpan={
-                                                    isAsemme10Selected ? 7 : 5
+                                                    isAsemme10Selected ? 6 : 5
                                                 }
                                                 className="text-center text-slate-500"
                                             >

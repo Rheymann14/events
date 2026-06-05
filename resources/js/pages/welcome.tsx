@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { createPortal } from 'react-dom';
 import PublicLayout, { PUBLIC_NAV_ITEMS } from '@/layouts/public-layout';
 import { cn } from '@/lib/utils';
-import { register } from '@/routes';
 import { Head, Link } from '@inertiajs/react';
 import {
     animate,
@@ -297,14 +296,14 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
         'No featured event yet.';
     const featuredDate = formatEventDateRange(featuredEvent?.starts_at, featuredEvent?.ends_at);
     const featuredVenue = featuredEvent?.venue?.name ?? featuredEvent?.location ?? 'Venue to be announced';
-    const featuredSubtitle = featuredEvent ? 'Active registration event' : 'No featured event';
+    const featuredSubtitle = featuredEvent ? 'Active registration event' : 'No featured event yet';
 
     return (
-        <section className="relative flex min-h-[90vh] items-center justify-center px-6">
+        <section className="relative z-20 flex min-h-[90vh] items-center justify-center px-6">
             <div className="mx-auto grid w-full max-w-7xl grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-16">
 
                 {/* ================= LEFT SIDE ================= */}
-                <div className="text-center lg:text-left">
+                <div className="relative z-30 text-center lg:text-left">
 
                     {/* Logos row */}
                     <div className="mb-6 flex items-center justify-center gap-3 lg:justify-start">
@@ -339,10 +338,10 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                     </p>
 
                     {/* CTA */}
-                    <div className="mt-10">
+                    <div className="relative z-40 mt-10">
                         <Link
-                            href={register()}
-                            className="group inline-flex items-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85]"
+                            href="/register"
+                            className="group relative z-40 inline-flex items-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85]"
                         >
                             Register Now
 
@@ -389,63 +388,66 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                         </div>
 
                         {/* EVENT CARD */}
-                        <div className="rounded-2xl overflow-hidden border border-slate-100 bg-gradient-to-br from-[#0033A0]/5 via-white to-amber-50/40">
+                        {featuredEvent ? (
+                            <div className="overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-br from-[#0033A0]/5 via-white to-amber-50/40">
 
-                            {/* IMAGE */}
-                            <div className="relative h-32 w-full">
-                                <img
-                                    src={featuredImageUrl}
-                                    alt={featuredEvent ? featuredEvent.title : 'CHED Featured Event'}
-                                    className="h-full w-full object-cover"
-                                />
+                                {/* IMAGE */}
+                                <div className="relative h-32 w-full">
+                                    <img
+                                        src={featuredImageUrl}
+                                        alt={featuredEvent.title}
+                                        className="h-full w-full object-cover"
+                                    />
 
-                                {/* overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-transparent" />
+                                    {/* overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-transparent" />
 
-                                {/* badge */}
-                                <div className="absolute left-3 top-3">
-                                    <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-white backdrop-blur">
-                                        FEATURED
-                                    </span>
-                                </div>
-
-                                {/* date */}
-                                <div className="absolute bottom-3 left-3">
-                                    <p className="text-[10px] text-white/70 uppercase tracking-wider">
-                                        Date
-                                    </p>
-                                    <p className="text-sm font-semibold text-white">{featuredDate}</p>
-                                </div>
-                            </div>
-
-                            {/* CONTENT */}
-                            <div className="p-4">
-
-                                <h4 className="text-sm font-bold text-slate-900">
-                                    {featuredTitle}
-                                </h4>
-
-                                <p className="mt-1 text-[12px] text-slate-600 leading-relaxed">
-                                    {featuredDescription}
-                                </p>
-
-                                {/* META */}
-                                <div className="mt-4 grid grid-cols-1 gap-2 text-[11px]">
-                                    <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
-                                        <p className="text-slate-400 uppercase">Venue</p>
-                                        <p className="font-semibold text-slate-800">{featuredVenue}</p>
+                                    {/* badge */}
+                                    <div className="absolute left-3 top-3">
+                                        <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-white backdrop-blur">
+                                            FEATURED
+                                        </span>
                                     </div>
 
-
-
-
-
-
+                                    {/* date */}
+                                    <div className="absolute bottom-3 left-3">
+                                        <p className="text-[10px] text-white/70 uppercase tracking-wider">
+                                            Date
+                                        </p>
+                                        <p className="text-sm font-semibold text-white">{featuredDate}</p>
+                                    </div>
                                 </div>
 
+                                {/* CONTENT */}
+                                <div className="p-4">
 
+                                    <h4 className="text-sm font-bold text-slate-900">
+                                        {featuredTitle}
+                                    </h4>
+
+                                    <p className="mt-1 text-[12px] text-slate-600 leading-relaxed">
+                                        {featuredDescription}
+                                    </p>
+
+                                    {/* META */}
+                                    <div className="mt-4 grid grid-cols-1 gap-2 text-[11px]">
+                                        <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
+                                            <p className="text-slate-400 uppercase">Venue</p>
+                                            <p className="font-semibold text-slate-800">{featuredVenue}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-12 text-center">
+                                <p className="text-sm font-semibold text-slate-500">
+                                    No Featured Event Yet
+                                </p>
+                                <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-slate-400">
+                                    Registration details will appear here once a featured event is available.
+                                </p>
+                            </div>
+                        )}
 
 
                     </div>
