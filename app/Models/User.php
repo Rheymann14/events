@@ -110,7 +110,7 @@ class User extends Authenticatable
     static::creating(function ($user) {
         if (empty($user->display_id)) {
             // Nice human-readable ID
-            $user->display_id = 'ASEAN-' . strtoupper(Str::random(4)) . '-' . strtoupper(Str::random(4));
+            $user->display_id = 'CHED-' . strtoupper(Str::random(4)) . '-' . strtoupper(Str::random(4));
         }
 
         if (empty($user->qr_token)) {

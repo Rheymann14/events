@@ -811,10 +811,10 @@ export default function Reports({
         const disclaimerHtml = `
             <section class="disclaimer">
                 <p><strong>Note:</strong> This data is system generated.</p>
-                <p><strong>Disclaimer:</strong> This report is prepared for ASEAN event administration. It contains personal data protected under applicable data privacy laws and is intended only for authorized ASEAN, CHED, and event secretariat use. Unauthorized access, disclosure, copying, alteration, distribution, or use of this document, in whole or in part, is strictly prohibited.</p>
+                <p><strong>Disclaimer:</strong> This report is prepared for CHED event administration. It contains personal data protected under applicable data privacy laws and is intended only for authorized CHED and event secretariat use. Unauthorized access, disclosure, copying, alteration, distribution, or use of this document, in whole or in part, is strictly prohibited.</p>
             </section>
         `;
-        const aseanLogoUrl = `${window.location.origin}/img/asean_logo.png`;
+        const chedLogoUrl = `${window.location.origin}/img/ched_logo.png`;
 
         const printHtml = `
             <html>
@@ -951,7 +951,7 @@ export default function Reports({
                  </head>
                  <body>
                     <div class="print-watermark" aria-hidden="true">
-                        <img src="${aseanLogoUrl}" alt="" />
+                        <img src="${chedLogoUrl}" alt="" />
                     </div>
                     <div class="page-footer" aria-hidden="true"></div>
                     <main class="print-content">

@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>ASEAN PH 2026 Registration</title>
+        <title>CHED Events Registration</title>
     </head>
     <body style="margin: 0; padding: 0; background-color: #f4f6fb; font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f6fb; padding: 24px 0;">
@@ -15,7 +15,7 @@
                                 @php
                                     $bannerSrc = $bannerPath && isset($message) ? $message->embed($bannerPath) : $bannerUrl;
                                 @endphp
-                                <img src="{{ $bannerSrc }}" alt="ASEAN Philippines 2026 banner" style="display: block; width: 100%; max-width: 280px; height: auto;" />
+                                <img src="{{ $bannerSrc }}" alt="CHED Events banner" style="display: block; width: 100%; max-width: 280px; height: auto;" />
                             </td>
                         </tr>
                            <tr>
@@ -57,7 +57,7 @@
                                                         @php
                                                             $logoSrc = $logoPath && isset($message) ? $message->embed($logoPath) : $logoUrl;
                                                         @endphp
-                                                        <img src="{{ $logoSrc }}" alt="ASEAN logo" style="width: 42px; height: 42px; display: block;" />
+                                                        <img src="{{ $logoSrc }}" alt="CHED logo" style="width: 42px; height: 42px; display: block;" />
                                                     </td>
                                                     <td style="width: 48px; vertical-align: middle;">
                                                         @php
@@ -66,7 +66,7 @@
                                                         <img src="{{ $bagongPilipinasSrc }}" alt="Bagong Pilipinas logo" style="width: 42px; height: 42px; display: block;" />
                                                     </td>
                                                     <td style="vertical-align: middle;">
-                                                        <div style="font-size: 13px; font-weight: 700; color: #0f172a;">ASEAN Philippines 2026</div>
+                                                        <div style="font-size: 13px; font-weight: 700; color: #0f172a;">CHED Events Registration</div>
                                                         <div style="font-size: 11px; color: #475569;">Participant Identification</div>
                                                     </td>
                                                 </tr>
@@ -81,7 +81,7 @@
                                                         <div style="font-size: 13px; line-height: 1.6; color: #334155;">
                                                             <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b;">Participant</div>
                                                             <div style="font-weight: 700; color: #0f172a;">{{ $user->name }}</div>
-                                                            <div style="margin-top: 6px;">{{ $user->country?->name ?? 'ASEAN Participant' }}</div>
+                                                            <div style="margin-top: 6px;">{{ $user->country?->name ?? 'CHED Participant' }}</div>
                                                             <div style="margin-top: 6px; font-size: 12px; color: #475569;">Participant ID:</div>
                                                             <div style="font-weight: 700; color: #1e40af;">{{ $user->display_id }}</div>
                                                             <div style="margin-top: 8px; font-size: 11px; color: #64748b;">

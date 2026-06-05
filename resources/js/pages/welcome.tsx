@@ -1,4 +1,4 @@
-// resources/js/pages/asean_welcome.tsx
+// resources/js/pages/welcome.tsx
 import { Button } from '@/components/ui/button';
 import { createPortal } from 'react-dom';
 import PublicLayout, { PUBLIC_NAV_ITEMS } from '@/layouts/public-layout';
@@ -355,7 +355,7 @@ function HeroSection() {
 
                                 <p className="mt-1 text-[12px] text-slate-600 leading-relaxed">
                                     A national CHED-led gathering of higher education leaders focused on innovation,
-                                    collaboration, and ASEAN integration.
+                                    collaboration, and institutional innovation.
                                 </p>
 
                                 {/* META */}
@@ -480,7 +480,7 @@ function LeaderModal({
                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-slate-950/10 to-transparent" />
                                         <div className="absolute bottom-4 left-4 right-4">
                                             <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-[0.22em] text-white backdrop-blur">
-                                                ASEAN PHILIPPINES 2026
+                                                CHED EVENTS
                                             </span>
                                         </div>
                                     </div>
@@ -496,7 +496,7 @@ function LeaderModal({
 
                                         <p className="mb-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                                             {item.description ||
-                                                'A key leadership role supporting the delivery of ASEAN Philippines 2026 through coordinated planning, operational readiness, and delegate services.'}
+                                                'A key leadership role supporting the delivery of CHED Events through coordinated planning, operational readiness, and delegate services.'}
                                         </p>
                                     </div>
                                 </div>
@@ -1046,8 +1046,8 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                 show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: easeOut } },
                             }}
                         >
-                            <span className="text-[#0033A0]">ASEAN</span> <span className="text-slate-900">Philippines</span>{' '}
-                            <span className="text-amber-600">2026</span>
+                            <span className="text-[#0033A0]">CHED</span> <span className="text-slate-900">Events</span>{' '}
+                            <span className="text-amber-600">Registration</span>
                             <div className="span text-lg">Higher Education Sector</div>
                         </motion.h2>
 
@@ -1058,7 +1058,7 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                                 show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: easeOut } },
                             }}
                         >
-                            Leaders supporting ASEAN Philippines 2026 coordination, protocol, readiness, and delegate services.
+                            Leaders supporting CHED Events coordination, protocol, readiness, and delegate services.
                         </motion.p>
                     </motion.div>
 
@@ -1102,7 +1102,7 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <p className="text-xs font-semibold tracking-[0.32em] text-[#1e3c73] uppercase">
-                                        ASEAN Philippines 2026
+                                        CHED Events Registration
                                     </p>
 
                                     <p className="mt-1 text-xs text-slate-600">

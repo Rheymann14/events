@@ -63,13 +63,13 @@ class WelcomeNotificationService
 
         try {
             $mailable = new ParticipantWelcomeMail($user);
-            $subject = $mailable->envelope()->subject ?? 'Registration Confirmed: ASEAN Philippines 2026 Registration';
+            $subject = $mailable->envelope()->subject ?? 'Registration Confirmed: CHED Events Registration';
             $html = $this->minifyHtml(view('emails.participant-welcome-brevo', $mailable->data())->render());
 
             $payload = [
                 'sender' => [
-                    'name' => config('services.brevo.sender_name', config('mail.from.name', 'ASEAN PH 2026')),
-                    'email' => config('services.brevo.sender_email', config('mail.from.address', 'ph2026@asean.chedro12.com')),
+                    'name' => config('services.brevo.sender_name', config('mail.from.name', 'CHED Events')),
+                    'email' => config('services.brevo.sender_email', config('mail.from.address', 'noreply@ched.gov.ph')),
                 ],
                 'to' => [[
                     'email' => $user->email,

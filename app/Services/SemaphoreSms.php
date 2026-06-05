@@ -68,17 +68,17 @@ class SemaphoreSms
         $email = $user->email;
 
         // return implode("\n", [
-        //     'Your ASEAN PH 2026 Higher Education Sector registration is confirmed 🎉',
+        //     'Your CHED Events registration is confirmed',
         //     "Hi {$name}, thank you for registering! Please keep this message for your records and for smooth entry on event day.",
         //     '',
         //     "System link: {$appUrl} — log in anytime to review your profile, joined events, and check-in updates. Your username is: {$email}",
         //     '',
         //     'This is a no-reply message.',
         //     '',
-        //     'Welcome to ASEAN PH 2026 — thank you for registering!',
+        //     'Welcome to CHED Events. Thank you for registering!',
         // ]);
             return implode("\n", [
-            'Welcome to ASEAN PH 2026! Thank you for registering to https://asean.ched.gov.ph. Looking forward to your participation!',
+            'Welcome to CHED Events! Thank you for registering to https://events.ched.gov.ph. Looking forward to your participation!',
             '',
             'This is a no-reply message.',
             '',

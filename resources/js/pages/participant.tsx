@@ -609,7 +609,7 @@ function formatAsemme10RegistrationValue(value: unknown): string {
     return formatted === '' ? '-' : formatted;
 }
 
-const FALLBACK_EVENT_IMAGE = '/img/asean_banner_logo.png';
+const FALLBACK_EVENT_IMAGE = '/img/ched_banner.png';
 
 type EventPhase = 'ongoing' | 'upcoming' | 'closed';
 
@@ -1052,8 +1052,8 @@ function ParticipantIdPrintCard({
                         <div className="flex items-center justify-between gap-2">
                             <div className="flex min-w-0 items-center gap-2.5">
                                 <img
-                                    src="/img/asean_logo.svg"
-                                    alt="ASEAN"
+                                    src="/img/ched_logo.png"
+                                    alt="CHED"
                                     className={cn(
                                         'object-contain drop-shadow-sm',
                                         headerLogo,
@@ -1081,7 +1081,7 @@ function ParticipantIdPrintCard({
                                             'text-[11px]',
                                         )}
                                     >
-                                        ASEAN Philippines 2026
+                                        CHED Events Registration
                                     </div>
                                     <div className="truncate text-[10px] text-slate-500 dark:text-slate-400">
                                         Participant Identification
@@ -1751,7 +1751,7 @@ export default function ParticipantPage(props: PageProps) {
         ip_affiliation: false,
         ip_group_name: '',
         is_active: true,
-        password: 'aseanph2026',
+        password: 'chedevents2026',
         has_food_restrictions: false,
         food_restrictions: [],
         dietary_allergies: '',
@@ -2727,7 +2727,7 @@ export default function ParticipantPage(props: PageProps) {
     function resetParticipantPassword(p: ParticipantRow) {
         router.patch(
             ENDPOINTS.participants.update(p.id),
-            { password: 'aseanph2026' },
+            { password: 'chedevents2026' },
             {
                 preserveScroll: true,
                 onSuccess: () => toast.success('Participant password reset.'),

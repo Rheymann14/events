@@ -130,8 +130,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'ph2026@asean.chedro12.com'),
-        'name' => env('MAIL_FROM_NAME', 'ASEAN PH 2026'),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@ched.gov.ph'),
+        'name' => env('MAIL_FROM_NAME', 'CHED Events'),
     ],
 
 ];

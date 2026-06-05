@@ -54,7 +54,7 @@ export default function EventKitEntry() {
                                     id="participant-id"
                                     value={form.data.participant_id}
                                     onChange={(event) => form.setData('participant_id', event.target.value)}
-                                    placeholder="ASEAN-XXXX-XXXX"
+                                    placeholder="CHED-XXXX-XXXX"
                                     className={cn(errors?.participant_id && 'border-rose-500 focus-visible:ring-rose-500/30')}
                                 />
                                 {errors?.participant_id ? (

@@ -587,7 +587,7 @@ export default function Register({
         registeredParticipant?.event_title ??
         asemme10Submission?.event_title ??
         activeProgramme?.title ??
-        'ASEAN Philippines 2026';
+        'CHED Events Registration';
     const virtualIdCountryCode =
         virtualIdParticipant?.country_code?.toUpperCase() ?? 'PHL';
     const virtualIdCountryName =
@@ -1893,10 +1893,10 @@ export default function Register({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const [qrImage, aseanLogo, bagongLogo, flagImage, backgroundImage] =
+        const [qrImage, chedLogo, bagongLogo, flagImage, backgroundImage] =
             await Promise.all([
                 loadCanvasImage(successQrDataUrl),
-                loadCanvasImage('/img/asean_logo.png'),
+                loadCanvasImage('/img/ched_logo.png'),
                 loadCanvasImage('/img/bagong_pilipinas.png'),
                 loadCanvasImage(virtualIdFlagUrl),
                 loadCanvasImage('/img/bg2.png'),
@@ -1930,8 +1930,8 @@ export default function Register({
         drawRoundedRect(ctx, 22, 20, canvas.width - 44, canvas.height - 40, 46);
         ctx.clip();
 
-        if (aseanLogo) {
-            drawContainedCanvasImage(ctx, aseanLogo, 56, 52, 62, 62);
+        if (chedLogo) {
+            drawContainedCanvasImage(ctx, chedLogo, 56, 52, 62, 62);
         }
 
         if (bagongLogo) {
@@ -1940,7 +1940,7 @@ export default function Register({
 
         ctx.fillStyle = '#334155';
         ctx.font = '700 25px Arial, sans-serif';
-        ctx.fillText('ASEAN Philippines 2026', 240, 70);
+        ctx.fillText('CHED Events Registration', 240, 70);
         ctx.fillStyle = '#64748b';
         ctx.font = '400 20px Arial, sans-serif';
         ctx.fillText(virtualIdEventTitle, 240, 101);
@@ -5940,8 +5940,8 @@ export default function Register({
                                                 <div className="flex min-w-0 flex-col">
                                                     <div className="flex items-start gap-2">
                                                         <img
-                                                            src="/img/asean_logo.png"
-                                                            alt="ASEAN"
+                                                            src="/img/ched_logo.png"
+                                                            alt="CHED"
                                                             className="h-6 w-6 object-contain sm:h-7 sm:w-7"
                                                         />
                                                         <img
@@ -5951,8 +5951,8 @@ export default function Register({
                                                         />
                                                         <div className="min-w-0">
                                                             <p className="truncate text-[11px] font-bold text-slate-700 sm:text-sm">
-                                                                ASEAN
-                                                                Philippines 2026
+                                                                CHED Events
+                                                                Registration
                                                             </p>
                                                             <p className="truncate text-[10px] text-slate-500 sm:text-[11px]">
                                                                 {

@@ -64,7 +64,7 @@ export default function EventKitCertificate() {
 
                 <Card className="mx-auto mt-6 max-w-4xl rounded-3xl border-slate-200 bg-white p-10 shadow-lg dark:border-slate-800 dark:bg-slate-950 print:mt-0 print:border-none print:shadow-none">
                     <div className="text-center">
-                        <div className="text-xs uppercase tracking-[0.3em] text-slate-400">ASEAN Philippines 2026</div>
+                        <div className="text-xs uppercase tracking-[0.3em] text-slate-400">CHED Events Registration</div>
                         <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                             {title}
                         </h1>

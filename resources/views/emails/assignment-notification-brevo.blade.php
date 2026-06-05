@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>ASEAN PH 2026 Assignment Notification</title>
+        <title>CHED Events Assignment Notification</title>
     </head>
     <body style="margin: 0; padding: 0; background-color: #f4f6fb; font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f6fb; padding: 24px 0;">
@@ -12,7 +12,7 @@
                     <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden;">
                         <tr>
                             <td style="padding: 20px 28px 8px;">
-                                <img src="{{ $bannerUrl }}" alt="ASEAN Philippines 2026 banner" style="display: block; width: 100%; max-width: 260px; height: auto;" />
+                                <img src="{{ $bannerUrl }}" alt="CHED Events banner" style="display: block; width: 100%; max-width: 260px; height: auto;" />
                             </td>
                         </tr>
                         <tr>
@@ -33,10 +33,10 @@
                                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                                 <tr>
                                                     <td style="width: 40px; vertical-align: middle;">
-                                                        <img src="{{ $logoUrl }}" alt="ASEAN logo" style="width: 36px; height: 36px; display: block;" />
+                                                        <img src="{{ $logoUrl }}" alt="CHED logo" style="width: 36px; height: 36px; display: block;" />
                                                     </td>
                                                     <td style="vertical-align: middle;">
-                                                        <div style="font-size: 12px; font-weight: 700; color: #0f172a;">ASEAN Philippines 2026</div>
+                                                        <div style="font-size: 12px; font-weight: 700; color: #0f172a;">CHED Events Registration</div>
                                                         <div style="font-size: 11px; color: #475569;">Assignment Notification</div>
                                                     </td>
                                                 </tr>

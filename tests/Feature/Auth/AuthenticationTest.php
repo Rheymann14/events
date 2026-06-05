@@ -26,11 +26,11 @@ test('users can authenticate using the login screen', function () {
 
 test('users can authenticate using participant id on the login screen', function () {
     $user = User::factory()->withoutTwoFactor()->create([
-        'display_id' => 'ASEAN-TEST-0001',
+        'display_id' => 'CHED-TEST-0001',
     ]);
 
     $response = $this->post(route('login.store'), [
-        'email' => 'asean-test-0001',
+        'email' => 'ched-test-0001',
         'password' => 'password',
     ]);
 

@@ -45,8 +45,8 @@ return [
 
     'brevo' => [
         'api_key' => env('BREVO_API_KEY'),
-        'sender_email' => env('BREVO_SENDER_EMAIL', 'ph2026@asean.chedro12.com'),
-        'sender_name' => env('BREVO_SENDER_NAME', 'ASEAN PH 2026'),
+        'sender_email' => env('BREVO_SENDER_EMAIL', 'noreply@ched.gov.ph'),
+        'sender_name' => env('BREVO_SENDER_NAME', 'CHED Events'),
     ],
 
     'registration' => [

@@ -271,8 +271,8 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex min-w-0 items-center gap-2.5">
                                     <img
-                                        src="/img/asean_logo.svg"
-                                        alt="ASEAN"
+                                        src="/img/ched_logo.png"
+                                        alt="CHED"
                                         className="h-8 w-8 object-contain drop-shadow-sm"
                                         draggable={false}
                                         loading="eager"
@@ -288,7 +288,7 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
                                     />
                                     <div className="min-w-0">
                                         <p className="truncate text-[13px] leading-4 font-semibold text-slate-900 dark:text-slate-100">
-                                            ASEAN Philippines 2026
+                                            CHED Events Registration
                                         </p>
                                         <p className="truncate text-[11px] leading-4 text-slate-600 dark:text-slate-300">
                                             Participant Identification

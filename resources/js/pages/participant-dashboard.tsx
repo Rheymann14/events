@@ -234,8 +234,8 @@ function IdCardPreview({
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2.5">
                         <img
-                            src="/img/asean_logo.png"
-                            alt="ASEAN"
+                            src="/img/ched_logo.png"
+                            alt="CHED"
                             className={cn('object-contain drop-shadow-sm', headerLogo)}
                             draggable={false}
                             loading="lazy"
@@ -250,7 +250,7 @@ function IdCardPreview({
 
                         <div className="min-w-0">
                             <div className="truncate text-[11px] font-semibold tracking-wide text-slate-700 dark:text-slate-200">
-                                ASEAN Philippines 2026
+                                CHED Events Registration
                             </div>
                             <div className="truncate text-[10px] text-slate-500 dark:text-slate-400">
                                 Participant Identification
@@ -503,7 +503,7 @@ export default function ParticipantDashboard({ participant }: PageProps) {
         if (!qrDataUrl) return;
         const a = document.createElement('a');
         a.href = qrDataUrl;
-        a.download = `asean-id-qr-${participant.display_id}.png`;
+        a.download = `ched-id-qr-${participant.display_id}.png`;
         document.body.appendChild(a);
         a.click();
         a.remove();

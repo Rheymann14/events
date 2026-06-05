@@ -109,10 +109,10 @@ Please be informed of the following:
 "
             . 'Thank you!';
 
-        $appUrl = rtrim((string) config('app.url', 'https://asean-registration.ched.gov.ph'), '/');
+        $appUrl = rtrim((string) config('app.url', 'https://events.ched.gov.ph'), '/');
         $htmlContent = $this->minifyHtml(view('emails.assignment-notification-brevo', [
-            'bannerUrl' => $appUrl.'/img/asean_banner_logo.png',
-            'logoUrl' => $appUrl.'/img/asean_logo.png',
+            'bannerUrl' => $appUrl.'/img/ched_banner.png',
+            'logoUrl' => $appUrl.'/img/ched_logo.png',
             'participantName' => $participantName,
             'participantId' => $user->display_id ?: $user->id,
             'eventTitle' => $event->title,
@@ -145,14 +145,14 @@ Please be informed of the following:
                 ])
                 ->post('https://api.brevo.com/v3/smtp/email', [
                     'sender' => [
-                        'name' => config('services.brevo.sender_name', config('mail.from.name', 'ASEAN PH 2026')),
-                        'email' => config('services.brevo.sender_email', config('mail.from.address', 'ph2026@asean.chedro12.com')),
+                        'name' => config('services.brevo.sender_name', config('mail.from.name', 'CHED Events')),
+                        'email' => config('services.brevo.sender_email', config('mail.from.address', 'noreply@ched.gov.ph')),
                     ],
                     'to' => [[
                         'email' => $user->email,
                         'name' => $participantName,
                     ]],
-                    'subject' => 'ASEAN 2026 Assignment Notification',
+                    'subject' => 'CHED Events Assignment Notification',
                     'htmlContent' => $htmlContent,
                     'textContent' => $textContent,
                 ]);

@@ -302,8 +302,8 @@ function ScannerIdCardPreview({
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2.5">
                         <img
-                            src="/img/asean_logo.png"
-                            alt="ASEAN"
+                            src="/img/ched_logo.png"
+                            alt="CHED"
                             className={cn(
                                 'object-contain drop-shadow-sm',
                                 headerLogo,
@@ -329,7 +329,7 @@ function ScannerIdCardPreview({
                                     'text-[11px]',
                                 )}
                             >
-                                ASEAN Philippines 2026
+                                CHED Events Registration
                             </div>
                             <div className="truncate text-[10px] text-slate-500 dark:text-slate-400">
                                 Participant Identification
@@ -455,7 +455,7 @@ function ScannerIdCardPreview({
                         <img
                             src={
                                 participant.profile_image_url ??
-                                '/img/asean_logo.png'
+                                '/img/ched_logo.png'
                             }
                             alt={participant.name}
                             className="rounded-2xl object-cover"

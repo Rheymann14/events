@@ -546,7 +546,7 @@ class ParticipantController extends Controller
             'email' => $validated['email'],
             'contact_number' => $validated['contact_number'] ?? null,
             'contact_country_code' => $validated['contact_country_code'] ?? null,
-            'password' => $validated['password'] ?? 'aseanph2026',
+            'password' => $validated['password'] ?? 'chedevents2026',
             'country_id' => $validated['country_id'] ?? null,
             'user_type_id' => $validated['user_type_id'] ?? null,
             'other_user_type' => $otherUserType,
@@ -905,7 +905,7 @@ class ParticipantController extends Controller
         $pdf->setLineStyle(0.6);
         $assets = [
             'background' => public_path('img/id-card-bg.jpg'),
-            'asean_logo' => public_path('img/id-card-asean-logo.jpg'),
+            'ched_logo' => public_path('img/id-card-ched-logo.jpg'),
             'bagong_logo' => public_path('img/id-card-bagong-pilipinas-logo.jpg'),
         ];
 
@@ -965,8 +965,8 @@ class ParticipantController extends Controller
 
         $logoSize = $isLandscape ? 17.0 : 22.0;
         $logoY = $top - $pad - $logoSize;
-        if ($assets['asean_logo']) {
-            $this->drawPdfImage($pdf, $assets['asean_logo'], $x + $pad, $logoY, $logoSize, $logoSize);
+        if ($assets['ched_logo']) {
+            $this->drawPdfImage($pdf, $assets['ched_logo'], $x + $pad, $logoY, $logoSize, $logoSize);
         }
         if ($assets['bagong_logo']) {
             $this->drawPdfImage($pdf, $assets['bagong_logo'], $x + $pad + $logoSize + 5.0, $logoY, $logoSize, $logoSize);
@@ -976,7 +976,7 @@ class ParticipantController extends Controller
         $titleLimit = $width - ($titleX - $x) - $pad;
         $titleSize = $isLandscape ? 6.6 : 6.9;
         $subtitleSize = $isLandscape ? 5.6 : 5.9;
-        $this->drawText($pdf, $this->limitPdfText('ASEAN Philippines 2026', $this->charsForWidth($titleLimit, $titleSize)), $titleX, $top - $pad - 8.0, $titleSize, [0.08, 0.20, 0.36]);
+        $this->drawText($pdf, $this->limitPdfText('CHED Events Registration', $this->charsForWidth($titleLimit, $titleSize)), $titleX, $top - $pad - 8.0, $titleSize, [0.08, 0.20, 0.36]);
         $this->drawText($pdf, 'Participant Identification', $titleX, $top - $pad - 18.6, $subtitleSize, [0.35, 0.43, 0.55]);
 
         $pdf->setStrokeColor([0.82, 0.88, 0.96]);
@@ -1175,8 +1175,16 @@ class ParticipantController extends Controller
 
     private function drawPdfImage(Cpdf $pdf, string $path, float $x, float $y, float $width, float $height): void
     {
-        if (Str::lower(pathinfo($path, PATHINFO_EXTENSION)) === 'svg') {
+        $extension = Str::lower(pathinfo($path, PATHINFO_EXTENSION));
+
+        if ($extension === 'svg') {
             $pdf->addSvgFromFile($path, $x, $y, $width, $height);
+
+            return;
+        }
+
+        if ($extension === 'png') {
+            $pdf->addPngFromFile($path, $x, $y, $width, $height);
 
             return;
         }

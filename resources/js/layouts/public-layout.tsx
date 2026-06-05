@@ -120,7 +120,7 @@ export default function PublicLayout({
                         <Link href="/" className="flex items-center gap-3">
                             <img
                                 src="/img/ched_banner.png"
-                                alt="ASEAN Philippines 2026"
+                                alt="CHED Events"
                                 className="h-10 w-auto drop-shadow-sm sm:h-11"
                                 draggable={false}
                             />
@@ -210,7 +210,7 @@ export default function PublicLayout({
                                         <div className="flex items-center gap-3">
                                             <img
                                                 src="/img/ched_banner.png"
-                                                alt="ASEAN Philippines 2026"
+                                                alt="CHED Events"
                                                 className="h-10 w-auto"
                                                 draggable={false}
                                             />

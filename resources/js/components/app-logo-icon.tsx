@@ -7,7 +7,7 @@ export default function AppLogoIcon({ className, ...props }: AppLogoIconProps) {
     return (
         <img
             {...props}
-            src="/img/asean_logo.png"
+            src="/img/ched_logo.png"
             alt={props.alt ?? 'App Logo'}
             draggable={false}
             loading={props.loading ?? 'lazy'}

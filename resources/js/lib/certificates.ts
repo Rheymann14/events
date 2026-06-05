@@ -48,8 +48,7 @@ export const CERTIFICATE_PRINT_STYLES = `
     height: auto;
 }
 
-.certificate-logo--asean-he { max-height: 52px; }   /* top */
-.certificate-logo--participation { max-height: 54px; } /* bottom (your existing ASEAN/CHED logo) */
+.certificate-logo--participation { max-height: 64px; }
 
 
     .title { text-align: center; font-size: 24px; font-weight: 700; letter-spacing: 1px; margin: 10px 0 14px; }
@@ -90,10 +89,7 @@ function renderCertificate({
         type === 'appearance'
             ? `<img class="certificate-logo certificate-logo--appearance" src="/img/ched_logo_bagong_pilipinas.png" alt="" />`
             : `
-                <div class="certificate-logo-stack">
-                    <img class="certificate-logo--asean-he" src="/img/asean_logo_he.png" alt="" />
-                    <img class="certificate-logo--participation" src="/img/ched_logo_bagong_pilipinas_asean.png" alt="" />
-                </div>
+                <img class="certificate-logo certificate-logo--participation" src="/img/ched_logo_bagong_pilipinas.png" alt="" />
             `;
 
     return `
