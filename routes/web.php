@@ -19,13 +19,41 @@ use App\Http\Controllers\UserTypeController;
 use App\Http\Controllers\VehicleAssignmentController;
 use App\Http\Controllers\VenueController;
 use App\Http\Controllers\VenueSectionController;
+use App\Models\Programme;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 Route::get('/', function () {
+    $featuredProgramme = Programme::query()
+        ->where('is_active', true)
+        ->where('is_registration_active', true)
+        ->with(['venues' => fn ($query) => $query->where('is_active', true)->orderBy('id')])
+        ->first();
+
+    $venue = $featuredProgramme?->venues->first();
+
     return Inertia::render('welcome', [
         'canRegister' => Features::enabled(Features::registration()),
+        'activeRegistrationProgramme' => $featuredProgramme
+            ? [
+                'id' => $featuredProgramme->id,
+                'tag' => $featuredProgramme->tag,
+                'title' => $featuredProgramme->title,
+                'description' => $featuredProgramme->description,
+                'starts_at' => $featuredProgramme->starts_at?->toISOString(),
+                'ends_at' => $featuredProgramme->ends_at?->toISOString(),
+                'location' => $featuredProgramme->location,
+                'image_url' => $featuredProgramme->image_url,
+                'is_registration_active' => $featuredProgramme->is_registration_active,
+                'venue' => $venue
+                    ? [
+                        'name' => $venue->name,
+                        'address' => $venue->address,
+                    ]
+                    : null,
+            ]
+            : null,
     ]);
 })->name('home');
 

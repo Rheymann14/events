@@ -137,9 +137,7 @@ class FortifyServiceProvider extends ServiceProvider
                             'display_id' => $participant->display_id,
                             'qr_payload' => $participant->qr_payload,
                             'event_title' => $registeredEvent?->title,
-                            'country_code' => $participant->country?->code,
-                            'country_name' => $participant->country?->name,
-                            'country_flag_url' => $participant->country?->flag_url,
+                            'profile_photo_url' => $participant->profile_photo_path ? asset($participant->profile_photo_path) : null,
                         ]
                         : null;
 

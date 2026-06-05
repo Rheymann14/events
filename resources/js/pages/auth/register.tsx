@@ -132,6 +132,7 @@ type Asemme10Submission = {
         country_name?: string | null;
         country_flag_url?: string | null;
         virtual_id_email_sent?: boolean;
+        profile_photo_url?: string | null;
     }[];
 };
 
@@ -144,6 +145,7 @@ type VirtualIdParticipant = {
     country_code?: string | null;
     country_name?: string | null;
     country_flag_url?: string | null;
+    profile_photo_url?: string | null;
 };
 
 const FOOD_RESTRICTION_OPTIONS = [
@@ -432,6 +434,35 @@ function drawContainedCanvasImage(
     );
 }
 
+function drawCoverCanvasImage(
+    ctx: CanvasRenderingContext2D,
+    image: HTMLImageElement,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+) {
+    const imageWidth = image.naturalWidth || image.width;
+    const imageHeight = image.naturalHeight || image.height;
+
+    if (!imageWidth || !imageHeight) {
+        ctx.drawImage(image, x, y, width, height);
+        return;
+    }
+
+    const scale = Math.max(width / imageWidth, height / imageHeight);
+    const drawWidth = imageWidth * scale;
+    const drawHeight = imageHeight * scale;
+
+    ctx.drawImage(
+        image,
+        x + (width - drawWidth) / 2,
+        y + (height - drawHeight) / 2,
+        drawWidth,
+        drawHeight,
+    );
+}
+
 function fallbackCountryFlagUrl(
     participant?: VirtualIdParticipant | null,
 ): string | null {
@@ -446,6 +477,10 @@ function fallbackCountryFlagUrl(
     const code = participant.country_code?.toLowerCase();
 
     return code ? `/asean/${code}.jpg` : null;
+}
+
+function virtualIdPhotoUrl(participant?: VirtualIdParticipant | null): string {
+    return participant?.profile_photo_url || '/img/ched_logo.png';
 }
 
 function getCenteredCircleCrop(width: number, height: number): Crop {
@@ -588,11 +623,7 @@ export default function Register({
         asemme10Submission?.event_title ??
         activeProgramme?.title ??
         'CHED Events Registration';
-    const virtualIdCountryCode =
-        virtualIdParticipant?.country_code?.toUpperCase() ?? 'PHL';
-    const virtualIdCountryName =
-        virtualIdParticipant?.country_name ?? 'Philippines';
-    const virtualIdFlagUrl = fallbackCountryFlagUrl(virtualIdParticipant);
+    const virtualIdImageUrl = virtualIdPhotoUrl(virtualIdParticipant);
     const [preferredImagePreviewUrl, setPreferredImagePreviewUrl] =
         React.useState<string | null>(null);
     const [preferredImageError, setPreferredImageError] =
@@ -833,18 +864,6 @@ export default function Register({
         [countries],
     );
 
-    React.useEffect(() => {
-        if (!selectedCountry?.code) return;
-
-        const nextCode =
-            COUNTRY_PHONE_CODE_MAP[selectedCountry.code.toUpperCase()] ?? '';
-
-        // ✅ only auto-fill if user hasn't chosen yet
-        if (!contactCountryCode && nextCode) {
-            setContactCountryCode(nextCode);
-        }
-    }, [selectedCountry?.code]); // ✅ remove contactCountryCode deps to avoid loops
-
     const filteredRegistrantTypes = React.useMemo(() => {
         return registrantTypes.filter((type) => {
             const name = type.name.trim().toLowerCase();
@@ -1060,7 +1079,6 @@ export default function Register({
 
             if (step === 0) {
                 return [
-                    'country_id',
                     'honorific_title',
                     'honorific_other',
                     'given_name',
@@ -1074,7 +1092,6 @@ export default function Register({
                     'organization_name',
                     'position_title',
                     'email',
-                    'contact_country_code',
                     'contact_number',
                     'user_type_id',
                     'other_user_type',
@@ -1291,7 +1308,6 @@ export default function Register({
             }
 
             if (step === 0) {
-                requireValue('country_id', 'Country of Origin');
                 requireValue('honorific_title', 'Honorific / Title');
 
                 if (honorificTitle === 'other') {
@@ -1307,7 +1323,6 @@ export default function Register({
                 requireValue('organization_name', 'Organization');
                 requireValue('position_title', 'Designation / Position');
                 requireValue('email', 'Email address');
-                requireValue('contact_country_code', 'Country code');
                 requireValue('contact_number', 'Contact number');
                 requireValue('user_type_id', 'Registrant type');
 
@@ -1893,14 +1908,19 @@ export default function Register({
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const [qrImage, chedLogo, bagongLogo, flagImage, backgroundImage] =
-            await Promise.all([
-                loadCanvasImage(successQrDataUrl),
-                loadCanvasImage('/img/ched_logo.png'),
-                loadCanvasImage('/img/bagong_pilipinas.png'),
-                loadCanvasImage(virtualIdFlagUrl),
-                loadCanvasImage('/img/bg2.png'),
-            ]);
+        const [
+            qrImage,
+            chedLogo,
+            bagongLogo,
+            participantImage,
+            backgroundImage,
+        ] = await Promise.all([
+            loadCanvasImage(successQrDataUrl),
+            loadCanvasImage('/img/ched_logo.png'),
+            loadCanvasImage('/img/bagong_pilipinas.png'),
+            loadCanvasImage(virtualIdImageUrl),
+            loadCanvasImage('/img/bg2.png'),
+        ]);
 
         if (!qrImage) return;
 
@@ -1958,17 +1978,17 @@ export default function Register({
         ctx.clip();
         ctx.fillStyle = '#dbeafe';
         ctx.fillRect(56, 292, 134, 134);
-        if (flagImage) {
-            ctx.drawImage(flagImage, 56, 292, 134, 134);
+        if (participantImage) {
+            drawCoverCanvasImage(ctx, participantImage, 56, 292, 134, 134);
         }
         ctx.restore();
 
         ctx.fillStyle = '#0f172a';
-        ctx.font = '700 34px Arial, sans-serif';
-        ctx.fillText(virtualIdCountryName, 214, 342, 420);
+        ctx.font = '700 28px Arial, sans-serif';
+        ctx.fillText('Participant Photo', 214, 342, 420);
         ctx.fillStyle = '#64748b';
         ctx.font = '500 24px Arial, sans-serif';
-        ctx.fillText(virtualIdCountryCode, 214, 382);
+        ctx.fillText(virtualIdParticipant.display_id, 214, 382);
 
         ctx.fillStyle = '#475569';
         ctx.font = '700 24px Arial, sans-serif';
@@ -1999,12 +2019,7 @@ export default function Register({
         ctx.fillStyle = '#334155';
         ctx.font = '700 18px Arial, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(
-            `${virtualIdCountryCode} - ${virtualIdParticipant.name}`,
-            934,
-            608,
-            340,
-        );
+        ctx.fillText(virtualIdParticipant.name, 934, 608, 340);
         ctx.fillStyle = '#64748b';
         ctx.font = '500 15px Arial, sans-serif';
         ctx.fillText(virtualIdParticipant.display_id, 934, 645);
@@ -2022,10 +2037,8 @@ export default function Register({
         link.click();
     }, [
         successQrDataUrl,
-        virtualIdCountryCode,
-        virtualIdCountryName,
         virtualIdEventTitle,
-        virtualIdFlagUrl,
+        virtualIdImageUrl,
         virtualIdParticipant,
     ]);
 
@@ -2656,236 +2669,6 @@ export default function Register({
                                             )}
                                         >
                                             <div className="grid gap-2">
-                                                <Label htmlFor="country_id">
-                                                    Country of Origin{' '}
-                                                    <span className="text-[11px] font-semibold text-red-600">
-                                                        {' '}
-                                                        *
-                                                    </span>
-                                                </Label>
-                                                <input
-                                                    type="hidden"
-                                                    name="country_id"
-                                                    value={country}
-                                                />
-
-                                                <Popover
-                                                    open={countryOpen}
-                                                    onOpenChange={
-                                                        setCountryOpen
-                                                    }
-                                                >
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            role="combobox"
-                                                            aria-expanded={
-                                                                countryOpen
-                                                            }
-                                                            className={
-                                                                comboboxTriggerClass
-                                                            }
-                                                            tabIndex={1}
-                                                        >
-                                                            <span className="flex min-w-0 items-center gap-2">
-                                                                {selectedCountry ? (
-                                                                    <>
-                                                                        {selectedCountry.flag_url ? (
-                                                                            <img
-                                                                                src={
-                                                                                    selectedCountry.flag_url
-                                                                                }
-                                                                                alt=""
-                                                                                className="h-6 w-6 shrink-0 rounded-md border border-slate-200 object-cover"
-                                                                                loading="lazy"
-                                                                                draggable={
-                                                                                    false
-                                                                                }
-                                                                            />
-                                                                        ) : (
-                                                                            <span className="grid h-6 w-6 place-items-center rounded-md border border-slate-200 bg-slate-50 text-[10px] text-slate-400">
-                                                                                {
-                                                                                    selectedCountry.code
-                                                                                }
-                                                                            </span>
-                                                                        )}
-                                                                        <span className="truncate">
-                                                                            {
-                                                                                selectedCountry.name
-                                                                            }
-                                                                        </span>
-                                                                    </>
-                                                                ) : (
-                                                                    <span className="text-muted-foreground">
-                                                                        Select
-                                                                        country…
-                                                                    </span>
-                                                                )}
-                                                            </span>
-                                                            <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-
-                                                    <PopoverContent
-                                                        className="z-50 w-[--radix-popover-trigger-width] p-0"
-                                                        align="start"
-                                                    >
-                                                        <Command>
-                                                            <CommandInput placeholder="Search country…" />
-                                                            <CommandEmpty>
-                                                                No country
-                                                                found.
-                                                            </CommandEmpty>
-
-                                                            {/* ✅ scrollable list */}
-                                                            <CommandList className="max-h-[320px] overflow-auto overscroll-contain sm:max-h-[380px]">
-                                                                <CommandGroup heading="ASEAN Countries">
-                                                                    {groupedCountries.asean.map(
-                                                                        (
-                                                                            item,
-                                                                        ) => (
-                                                                            <CommandItem
-                                                                                key={
-                                                                                    item.id
-                                                                                }
-                                                                                value={
-                                                                                    item.name
-                                                                                }
-                                                                                onSelect={() => {
-                                                                                    setCountry(
-                                                                                        String(
-                                                                                            item.id,
-                                                                                        ),
-                                                                                    );
-                                                                                    setCountryOpen(
-                                                                                        false,
-                                                                                    );
-                                                                                }}
-                                                                                className="gap-2"
-                                                                            >
-                                                                                {item.flag_url ? (
-                                                                                    <img
-                                                                                        src={
-                                                                                            item.flag_url
-                                                                                        }
-                                                                                        alt=""
-                                                                                        className="h-6 w-6 shrink-0 rounded-md border border-slate-200 object-cover"
-                                                                                        loading="lazy"
-                                                                                        draggable={
-                                                                                            false
-                                                                                        }
-                                                                                    />
-                                                                                ) : (
-                                                                                    <span className="grid h-6 w-6 place-items-center rounded-md border border-slate-200 bg-slate-50 text-[10px] text-slate-400">
-                                                                                        {
-                                                                                            item.code
-                                                                                        }
-                                                                                    </span>
-                                                                                )}
-                                                                                <span className="truncate">
-                                                                                    {
-                                                                                        item.name
-                                                                                    }
-                                                                                </span>
-                                                                                <Check
-                                                                                    className={cn(
-                                                                                        'ml-auto h-4 w-4',
-                                                                                        country ===
-                                                                                            String(
-                                                                                                item.id,
-                                                                                            )
-                                                                                            ? 'opacity-100'
-                                                                                            : 'opacity-0',
-                                                                                    )}
-                                                                                />
-                                                                            </CommandItem>
-                                                                        ),
-                                                                    )}
-                                                                </CommandGroup>
-
-                                                                {groupedCountries
-                                                                    .nonAsean
-                                                                    .length >
-                                                                0 ? (
-                                                                    <CommandGroup heading="Non-ASEAN Countries">
-                                                                        {groupedCountries.nonAsean.map(
-                                                                            (
-                                                                                item,
-                                                                            ) => (
-                                                                                <CommandItem
-                                                                                    key={
-                                                                                        item.id
-                                                                                    }
-                                                                                    value={`${item.name} ${item.code}`}
-                                                                                    onSelect={() => {
-                                                                                        setCountry(
-                                                                                            String(
-                                                                                                item.id,
-                                                                                            ),
-                                                                                        );
-                                                                                        setCountryOpen(
-                                                                                            false,
-                                                                                        );
-                                                                                    }}
-                                                                                    className="gap-2"
-                                                                                >
-                                                                                    {item.flag_url ? (
-                                                                                        <img
-                                                                                            src={
-                                                                                                item.flag_url
-                                                                                            }
-                                                                                            alt=""
-                                                                                            className="h-6 w-6 shrink-0 rounded-md border border-slate-200 object-cover"
-                                                                                            loading="lazy"
-                                                                                            draggable={
-                                                                                                false
-                                                                                            }
-                                                                                        />
-                                                                                    ) : (
-                                                                                        <span className="grid h-6 w-6 place-items-center rounded-md border border-slate-200 bg-slate-50 text-[10px] text-slate-400">
-                                                                                            {
-                                                                                                item.code
-                                                                                            }
-                                                                                        </span>
-                                                                                    )}
-                                                                                    <span className="truncate">
-                                                                                        {
-                                                                                            item.name
-                                                                                        }
-                                                                                    </span>
-                                                                                    <Check
-                                                                                        className={cn(
-                                                                                            'ml-auto h-4 w-4',
-                                                                                            country ===
-                                                                                                String(
-                                                                                                    item.id,
-                                                                                                )
-                                                                                                ? 'opacity-100'
-                                                                                                : 'opacity-0',
-                                                                                        )}
-                                                                                    />
-                                                                                </CommandItem>
-                                                                            ),
-                                                                        )}
-                                                                    </CommandGroup>
-                                                                ) : null}
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
-
-                                                <InputError
-                                                    message={
-                                                        err.country_id &&
-                                                        !country
-                                                            ? err.country_id
-                                                            : undefined
-                                                    }
-                                                />
-                                            </div>
-
-                                            <div className="grid gap-2">
                                                 <Label htmlFor="honorific_title">
                                                     Honorific / Title{' '}
                                                     <span className="text-[11px] font-semibold text-red-600">
@@ -3412,152 +3195,35 @@ export default function Register({
                                                 </span>
                                             </Label>
 
-                                            <div className="grid gap-2 sm:grid-cols-[180px_1fr]">
-                                                {/* ✅ Country code combobox */}
-                                                <div className="grid gap-2">
-                                                    <input
-                                                        type="hidden"
-                                                        name="contact_country_code"
-                                                        value={
-                                                            contactCountryCode
-                                                        }
-                                                    />
-
-                                                    <Popover
-                                                        open={phoneCodeOpen}
-                                                        onOpenChange={
-                                                            setPhoneCodeOpen
-                                                        }
-                                                    >
-                                                        <PopoverTrigger asChild>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                role="combobox"
-                                                                aria-expanded={
-                                                                    phoneCodeOpen
-                                                                }
-                                                                className={
-                                                                    comboboxTriggerClass
-                                                                }
-                                                                tabIndex={
-                                                                    honorificTitle ===
-                                                                    'other'
-                                                                        ? 10
-                                                                        : 9
-                                                                }
-                                                            >
-                                                                <span className="truncate">
-                                                                    {contactCountryCode ? (
-                                                                        (PHONE_CODE_OPTIONS.find(
-                                                                            (
-                                                                                o,
-                                                                            ) =>
-                                                                                o.value ===
-                                                                                contactCountryCode,
-                                                                        )
-                                                                            ?.label ??
-                                                                        contactCountryCode)
-                                                                    ) : (
-                                                                        <span className="text-muted-foreground">
-                                                                            Country
-                                                                            code…
-                                                                        </span>
-                                                                    )}
-                                                                </span>
-                                                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                                                            </Button>
-                                                        </PopoverTrigger>
-
-                                                        <PopoverContent
-                                                            className="w-[--radix-popover-trigger-width] p-0"
-                                                            align="start"
-                                                        >
-                                                            <Command>
-                                                                <CommandInput placeholder="Search country code…" />
-                                                                <CommandEmpty>
-                                                                    No country
-                                                                    code found.
-                                                                </CommandEmpty>
-
-                                                                <CommandList className="max-h-[240px] overflow-auto">
-                                                                    <CommandGroup>
-                                                                        {PHONE_CODE_OPTIONS.map(
-                                                                            (
-                                                                                item,
-                                                                            ) => (
-                                                                                <CommandItem
-                                                                                    key={
-                                                                                        item.value
-                                                                                    }
-                                                                                    value={`${item.label} ${item.value}`} // ✅ searchable by country and code
-                                                                                    onSelect={() => {
-                                                                                        setContactCountryCode(
-                                                                                            item.value,
-                                                                                        ); // ✅ store +63 etc
-                                                                                        setPhoneCodeOpen(
-                                                                                            false,
-                                                                                        );
-                                                                                    }}
-                                                                                >
-                                                                                    {
-                                                                                        item.label
-                                                                                    }
-                                                                                    <Check
-                                                                                        className={cn(
-                                                                                            'ml-auto h-4 w-4',
-                                                                                            contactCountryCode ===
-                                                                                                item.value
-                                                                                                ? 'opacity-100'
-                                                                                                : 'opacity-0',
-                                                                                        )}
-                                                                                    />
-                                                                                </CommandItem>
-                                                                            ),
-                                                                        )}
-                                                                    </CommandGroup>
-                                                                </CommandList>
-                                                            </Command>
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                </div>
-
-                                                {/* ✅ Contact number input (THIS is what was missing) */}
-                                                <Input
-                                                    id="contact_number"
-                                                    type="tel"
-                                                    tabIndex={
-                                                        honorificTitle ===
-                                                        'other'
-                                                            ? 11
-                                                            : 10
-                                                    }
-                                                    autoComplete="tel"
-                                                    name="contact_number"
-                                                    inputMode="numeric"
-                                                    placeholder="e.g. 9123456789"
-                                                    className={inputClass}
-                                                    onInput={(event) => {
-                                                        event.currentTarget.value =
-                                                            event.currentTarget.value.replace(
-                                                                /[^0-9]/g,
-                                                                '',
-                                                            );
-                                                    }}
-                                                />
-                                            </div>
-
+                                            <Input
+                                                id="contact_number"
+                                                type="tel"
+                                                tabIndex={
+                                                    honorificTitle === 'other'
+                                                        ? 10
+                                                        : 9
+                                                }
+                                                autoComplete="tel"
+                                                name="contact_number"
+                                                inputMode="numeric"
+                                                placeholder="e.g. 09123456789"
+                                                className={inputClass}
+                                                onInput={(event) => {
+                                                    event.currentTarget.value =
+                                                        event.currentTarget.value.replace(
+                                                            /[^0-9]/g,
+                                                            '',
+                                                        );
+                                                }}
+                                            />
                                             <InputError
                                                 message={
-                                                    err.contact_country_code &&
-                                                    !contactCountryCode
-                                                        ? err.contact_country_code
-                                                        : err.contact_number &&
-                                                            shouldShowError(
-                                                                'contact_number',
-                                                            )
-                                                          ? err.contact_number
-                                                          : undefined
+                                                    err.contact_number &&
+                                                    shouldShowError(
+                                                        'contact_number',
+                                                    )
+                                                        ? err.contact_number
+                                                        : undefined
                                                 }
                                             />
                                         </div>
@@ -5975,33 +5641,22 @@ export default function Register({
 
                                                     <div className="mt-2.5 flex min-w-0 items-center gap-2.5 sm:mt-3">
                                                         <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm sm:h-12 sm:w-12">
-                                                            {virtualIdFlagUrl ? (
-                                                                <img
-                                                                    src={
-                                                                        virtualIdFlagUrl
-                                                                    }
-                                                                    alt={
-                                                                        virtualIdCountryName
-                                                                    }
-                                                                    className="h-full w-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                <span className="text-sm font-bold text-slate-500">
-                                                                    {
-                                                                        virtualIdCountryCode
-                                                                    }
-                                                                </span>
-                                                            )}
+                                                            <img
+                                                                src={
+                                                                    virtualIdImageUrl
+                                                                }
+                                                                alt="Participant"
+                                                                className="h-full w-full object-cover"
+                                                            />
                                                         </div>
                                                         <div className="min-w-0">
                                                             <p className="truncate text-base font-bold text-slate-900 sm:text-lg">
-                                                                {
-                                                                    virtualIdCountryName
-                                                                }
+                                                                Participant
+                                                                Photo
                                                             </p>
                                                             <p className="text-[11px] font-medium text-slate-500 sm:text-xs">
                                                                 {
-                                                                    virtualIdCountryCode
+                                                                    virtualIdParticipant.display_id
                                                                 }
                                                             </p>
                                                         </div>
@@ -6046,10 +5701,6 @@ export default function Register({
                                                             </div>
                                                         )}
                                                         <p className="mt-1.5 line-clamp-2 max-w-full text-center text-[8px] font-bold text-slate-700 sm:text-[9px]">
-                                                            {
-                                                                virtualIdCountryCode
-                                                            }{' '}
-                                                            -{' '}
                                                             {
                                                                 virtualIdParticipant.name
                                                             }

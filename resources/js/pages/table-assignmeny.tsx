@@ -1334,20 +1334,6 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                             'rotate-180',
                                                                     )}
                                                                 />
-                                                                {assignment
-                                                                    .participant
-                                                                    ?.country ? (
-                                                                    <FlagThumb
-                                                                        country={
-                                                                            assignment
-                                                                                .participant
-                                                                                .country
-                                                                        }
-                                                                        size={
-                                                                            22
-                                                                        }
-                                                                    />
-                                                                ) : null}
                                                                 <div className="min-w-0">
                                                                     <div className="truncate font-medium text-slate-900 dark:text-slate-100">
                                                                         {assignment
@@ -1358,9 +1344,9 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                     <div className="text-xs text-slate-500">
                                                                         {assignment
                                                                             .participant
-                                                                            ?.country
+                                                                            ?.user_type
                                                                             ?.name ??
-                                                                            'Country unavailable'}
+                                                                            'Participant type unavailable'}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1502,16 +1488,6 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                             'rotate-180',
                                                                     )}
                                                                 />
-                                                                {participant.country ? (
-                                                                    <FlagThumb
-                                                                        country={
-                                                                            participant.country
-                                                                        }
-                                                                        size={
-                                                                            22
-                                                                        }
-                                                                    />
-                                                                ) : null}
                                                                 <div className="min-w-0">
                                                                     <div className="truncate font-medium text-slate-900 dark:text-slate-100">
                                                                         {
@@ -1520,9 +1496,9 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                     </div>
                                                                     <div className="text-xs text-slate-500">
                                                                         {participant
-                                                                            .country
+                                                                            .user_type
                                                                             ?.name ??
-                                                                            'Country unavailable'}
+                                                                            'Participant type unavailable'}
                                                                     </div>
                                                                 </div>
                                                             </div>

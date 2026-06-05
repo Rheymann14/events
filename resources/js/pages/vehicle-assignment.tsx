@@ -108,14 +108,6 @@ type SearchItem = {
     description?: string;
 };
 
-function getFlagSrc(country?: Participant['country']) {
-    if (!country) return null;
-    if (country.flag_url) return country.flag_url;
-    const code = (country.code ?? '').trim().toLowerCase();
-    if (!code) return null;
-    return `https://flagcdn.com/w80/${code}.png`;
-}
-
 function SearchableDropdown({
     value,
     onValueChange,
@@ -212,7 +204,8 @@ function showToastError(errors: Record<string, string | string[]>) {
 
 function VirtualLandscapeId({ participant }: { participant: Participant }) {
     const [qrDataUrl, setQrDataUrl] = React.useState<string | null>(null);
-    const flagSrc = getFlagSrc(participant.country);
+    const participantImageSrc =
+        participant.profile_photo_url || '/img/ched_logo.png';
     const name = participant.full_name || '—';
     const displayId = participant.display_id || '—';
 
@@ -310,31 +303,19 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
 
                                     <div className="mt-2 flex items-center gap-2.5">
                                         <div className="h-9 w-9 overflow-hidden rounded-lg border border-slate-200/70 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
-                                            {flagSrc ? (
-                                                <img
-                                                    src={flagSrc}
-                                                    alt={
-                                                        participant.country
-                                                            ?.name ??
-                                                        'Country flag'
-                                                    }
-                                                    className="h-full w-full object-cover"
-                                                />
-                                            ) : null}
+                                            <img
+                                                src={participantImageSrc}
+                                                alt="Participant"
+                                                className="h-full w-full object-cover"
+                                            />
                                         </div>
                                         <div className="min-w-0">
                                             <div className="truncate text-[14px] leading-4 font-semibold text-slate-900 dark:text-slate-100">
-                                                {participant.country?.name ||
-                                                    '—'}
+                                                Participant Photo
                                             </div>
-                                            {participant.country?.code ? (
-                                                <div className="mt-0.5 text-[12px] leading-4 text-slate-500 dark:text-slate-300">
-                                                    {String(
-                                                        participant.country
-                                                            .code,
-                                                    ).toUpperCase()}
-                                                </div>
-                                            ) : null}
+                                            <div className="mt-0.5 text-[12px] leading-4 text-slate-500 dark:text-slate-300">
+                                                {displayId}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -384,14 +365,8 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
                                     <div className="mt-2 w-full text-center">
                                         <div
                                             className="line-clamp-2 text-[10px] font-semibold text-slate-900 dark:text-slate-100"
-                                            title={`${String(participant.country?.code ?? '').toUpperCase()} • ${name}`}
+                                            title={name}
                                         >
-                                            {String(
-                                                participant.country?.code ?? '',
-                                            ).toUpperCase()}
-                                            {participant.country?.code
-                                                ? ' • '
-                                                : ''}
                                             {name}
                                         </div>
                                         <div className="mt-1 font-mono text-[10px] break-words text-slate-500 dark:text-slate-400">
@@ -442,8 +417,9 @@ export default function VehicleAssignmentPage({
     const [presenceOverrides, setPresenceOverrides] = React.useState<
         Record<number, boolean>
     >({});
-    const [sendingPickupVehicleId, setSendingPickupVehicleId] =
-        React.useState<number | null>(null);
+    const [sendingPickupVehicleId, setSendingPickupVehicleId] = React.useState<
+        number | null
+    >(null);
     const [idPreviewParticipant, setIdPreviewParticipant] =
         React.useState<Participant | null>(null);
     const perPage = 10;
@@ -716,7 +692,8 @@ export default function VehicleAssignmentPage({
                 return;
             }
 
-            counts[assignment.vehicle_id] = (counts[assignment.vehicle_id] ?? 0) + 1;
+            counts[assignment.vehicle_id] =
+                (counts[assignment.vehicle_id] ?? 0) + 1;
         });
 
         return counts;
@@ -830,7 +807,10 @@ export default function VehicleAssignmentPage({
                                                 '—'}
                                         </p>
                                         <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
-                                            Checked passengers: {checkedPassengersByVehicle[vehicle.id] ?? 0}
+                                            Checked passengers:{' '}
+                                            {checkedPassengersByVehicle[
+                                                vehicle.id
+                                            ] ?? 0}
                                         </p>
                                         <Button
                                             type="button"
@@ -843,8 +823,11 @@ export default function VehicleAssignmentPage({
                                             )}
                                             disabled={
                                                 (!vehicle.pickup_sent_at &&
-                                                    (checkedPassengersByVehicle[vehicle.id] ?? 0) === 0) ||
-                                                sendingPickupVehicleId === vehicle.id
+                                                    (checkedPassengersByVehicle[
+                                                        vehicle.id
+                                                    ] ?? 0) === 0) ||
+                                                sendingPickupVehicleId ===
+                                                    vehicle.id
                                             }
                                             onClick={() =>
                                                 vehicle.pickup_sent_at
@@ -852,7 +835,8 @@ export default function VehicleAssignmentPage({
                                                     : sendPickup(vehicle.id)
                                             }
                                         >
-                                            {sendingPickupVehicleId === vehicle.id
+                                            {sendingPickupVehicleId ===
+                                            vehicle.id
                                                 ? vehicle.pickup_sent_at
                                                     ? 'Removing...'
                                                     : 'Sending...'

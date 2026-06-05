@@ -489,7 +489,6 @@ class ParticipantController extends Controller
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'contact_number' => ['nullable', 'string', 'max:30'],
-            'contact_country_code' => ['nullable', 'string', 'max:10'],
             'country_id' => ['nullable', 'exists:countries,id'],
             'user_type_id' => ['nullable', 'exists:user_types,id'],
             'other_user_type' => ['nullable', 'string', 'max:255'],
@@ -545,7 +544,7 @@ class ParticipantController extends Controller
             'name' => $fullName ?: $validated['full_name'],
             'email' => $validated['email'],
             'contact_number' => $validated['contact_number'] ?? null,
-            'contact_country_code' => $validated['contact_country_code'] ?? null,
+            'contact_country_code' => null,
             'password' => $validated['password'] ?? 'chedevents2026',
             'country_id' => $validated['country_id'] ?? null,
             'user_type_id' => $validated['user_type_id'] ?? null,
@@ -594,7 +593,6 @@ class ParticipantController extends Controller
             'full_name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'email', 'max:255', 'unique:users,email,'.$participant->id],
             'contact_number' => ['sometimes', 'nullable', 'string', 'max:30'],
-            'contact_country_code' => ['sometimes', 'nullable', 'string', 'max:10'],
             'country_id' => ['nullable', 'exists:countries,id'],
             'user_type_id' => ['nullable', 'exists:user_types,id'],
             'other_user_type' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -664,10 +662,6 @@ class ParticipantController extends Controller
 
         if (array_key_exists('contact_number', $validated)) {
             $updates['contact_number'] = $validated['contact_number'];
-        }
-
-        if (array_key_exists('contact_country_code', $validated)) {
-            $updates['contact_country_code'] = $validated['contact_country_code'];
         }
 
         if (array_key_exists('country_id', $validated)) {
@@ -802,11 +796,10 @@ class ParticipantController extends Controller
                 'name',
                 'display_id',
                 'qr_payload',
-                'country_id',
                 'user_type_id',
+                'profile_photo_path',
             ])
             ->with([
-                'country:id,code,name',
                 'userType:id,name,slug',
             ])
             ->whereIn('id', $ids)
@@ -821,10 +814,8 @@ class ParticipantController extends Controller
                 'name' => $user->name ?: 'Participant',
                 'display_id' => $user->display_id ?: (string) $user->id,
                 'qr_payload' => $user->qr_payload ?: ($user->display_id ?: (string) $user->id),
-                'country_name' => $user->country?->name ?: '-',
-                'country_code' => $user->country?->code ? strtoupper($user->country->code) : '',
                 'type_name' => $user->userType?->name ?: '',
-                'flag_path' => $this->countryFlagJpegPath($user->country?->code, $user->country?->name),
+                'photo_path' => $this->participantIdPhotoPath($user->profile_photo_path),
             ])
             ->values();
 
@@ -984,12 +975,10 @@ class ParticipantController extends Controller
         $pdf->line($x + $pad, $top - $pad - 29, $x + $width - $pad, $top - $pad - 29);
 
         $name = $this->pdfText((string) $participant['name']);
-        $country = $this->pdfText((string) $participant['country_name']);
-        $countryCode = $this->pdfText((string) $participant['country_code']);
         $type = $this->pdfText((string) $participant['type_name']);
         $displayId = $this->pdfText((string) $participant['display_id']);
         $qrPayload = (string) ($participant['qr_payload'] ?? $participant['display_id']);
-        $flagPath = $participant['flag_path'] ?? null;
+        $photoPath = $participant['photo_path'] ?? null;
 
         $bodyTop = $top - $pad - 43.0;
         $this->drawText($pdf, 'PARTICIPANT', $x + $pad, $bodyTop, $isLandscape ? 6.4 : 7.0, [0.39, 0.46, 0.57]);
@@ -1008,19 +997,18 @@ class ParticipantController extends Controller
             }
 
             $detailsY = $bodyTop - 39.0 - ((count($nameLines) - 1) * $nameLineGap);
-            $flagSize = 38.0;
-            if ($flagPath) {
-                $this->drawClippedJpeg($pdf, $flagPath, $x + $pad, $detailsY - 30.0, $flagSize, $flagSize, 7.0);
+            $photoSize = 38.0;
+            if ($photoPath) {
+                $this->drawClippedImage($pdf, $photoPath, $x + $pad, $detailsY - 30.0, $photoSize, $photoSize, 7.0);
             }
-            $detailX = $flagPath ? $x + $pad + $flagSize + 7.0 : $x + $pad;
-            $detailLimit = $leftLimit - ($flagPath ? $flagSize + 7.0 : 0.0);
-            $this->drawText($pdf, $this->limitPdfText($country, $this->charsForWidth($detailLimit, 8.0)), $detailX, $detailsY - 1.0, 8.0, [0.12, 0.18, 0.27]);
-            if ($countryCode !== '') {
-                $this->drawText($pdf, $this->limitPdfText($countryCode, $this->charsForWidth($detailLimit, 7.0)), $detailX, $detailsY - 13.0, 7.0, [0.39, 0.46, 0.57]);
+            $detailX = $photoPath ? $x + $pad + $photoSize + 7.0 : $x + $pad;
+            $detailLimit = $leftLimit - ($photoPath ? $photoSize + 7.0 : 0.0);
+            if ($type !== '') {
+                $this->drawText($pdf, $this->limitPdfText($type, $this->charsForWidth($detailLimit, 8.0)), $detailX, $detailsY - 1.0, 8.0, [0.12, 0.18, 0.27]);
             }
 
-            $idLabelX = $flagPath ? $detailX : $x + $pad;
-            $idLabelLimit = $flagPath ? $detailLimit : $leftLimit;
+            $idLabelX = $photoPath ? $detailX : $x + $pad;
+            $idLabelLimit = $photoPath ? $detailLimit : $leftLimit;
             $this->drawText($pdf, $this->limitPdfText('PARTICIPANT ID', $this->charsForWidth($idLabelLimit, 5.5)), $idLabelX, $y + 29.0, 5.5, [0.39, 0.46, 0.57]);
             $idText = $this->limitPdfText($displayId, $this->charsForWidth($leftLimit - 12.0, 6.8));
             $idWidth = min($leftLimit, max(58.0, strlen($idText) * 4.5 + 12.0));
@@ -1031,7 +1019,7 @@ class ParticipantController extends Controller
             $this->roundedBorder($pdf, $x + $pad, $idBadgeY, $idWidth, $idBadgeH, 7.0);
             $this->drawText($pdf, $idText, $x + $pad + 6.0, $idBadgeY + 5.7, 6.8, [0.02, 0.06, 0.16]);
 
-            $this->drawQrPanel($pdf, $displayId, $qrPayload, $qrPanelX, $qrPanelY, $qrPanelW, $qrPanelH, 54.0, true, $countryCode, $name);
+            $this->drawQrPanel($pdf, $displayId, $qrPayload, $qrPanelX, $qrPanelY, $qrPanelW, $qrPanelH, 54.0, true, '', $name);
 
             return;
         }
@@ -1045,15 +1033,14 @@ class ParticipantController extends Controller
         }
 
         $detailsY = $bodyTop - 54.0 - ((count($nameLines) - 1) * $nameLineGap);
-        $flagSize = 42.0;
-        if ($flagPath) {
-            $this->drawClippedJpeg($pdf, $flagPath, $x + $pad, $detailsY - 32.0, $flagSize, $flagSize, 8.0);
+        $photoSize = 42.0;
+        if ($photoPath) {
+            $this->drawClippedImage($pdf, $photoPath, $x + $pad, $detailsY - 32.0, $photoSize, $photoSize, 8.0);
         }
-        $detailX = $flagPath ? $x + $pad + $flagSize + 8.0 : $x + $pad;
-        $detailLimit = $leftLimit - ($flagPath ? $flagSize + 8.0 : 0.0);
-        $this->drawText($pdf, $this->limitPdfText($country, $this->charsForWidth($detailLimit, 10.8)), $detailX, $detailsY, 10.8, [0.12, 0.18, 0.27]);
-        if ($countryCode !== '') {
-            $this->drawText($pdf, $this->limitPdfText($countryCode, $this->charsForWidth($detailLimit, 9.0)), $detailX, $detailsY - 14.0, 9.0, [0.39, 0.46, 0.57]);
+        $detailX = $photoPath ? $x + $pad + $photoSize + 8.0 : $x + $pad;
+        $detailLimit = $leftLimit - ($photoPath ? $photoSize + 8.0 : 0.0);
+        if ($type !== '') {
+            $this->drawText($pdf, $this->limitPdfText($type, $this->charsForWidth($detailLimit, 10.8)), $detailX, $detailsY, 10.8, [0.12, 0.18, 0.27]);
         }
         $idY = $detailsY - 64.0;
         $this->drawText($pdf, 'PARTICIPANT ID', $x + $pad, $idY + 24.0, 6.5, [0.39, 0.46, 0.57]);
@@ -1068,7 +1055,7 @@ class ParticipantController extends Controller
         $qrPanelH = 128.0;
         $qrPanelX = $x + $pad;
         $qrPanelY = $y + 24.0;
-        $this->drawQrPanel($pdf, $displayId, $qrPayload, $qrPanelX, $qrPanelY, $qrPanelW, $qrPanelH, 80.0, false, $countryCode, $name);
+        $this->drawQrPanel($pdf, $displayId, $qrPayload, $qrPanelX, $qrPanelY, $qrPanelW, $qrPanelH, 80.0, false, '', $name);
     }
 
     private function drawQrPanel(
@@ -1142,6 +1129,22 @@ class ParticipantController extends Controller
     {
         $pdf->clippingRectangleRounded($x, $y, $width, $height, $radius, $radius, $radius, $radius);
         $this->drawJpegCover($pdf, $path, $x, $y, $width, $height);
+        $pdf->clippingEnd();
+        $pdf->setStrokeColor([0.82, 0.88, 0.96]);
+        $this->roundedBorder($pdf, $x, $y, $width, $height, $radius);
+    }
+
+    private function drawClippedImage(Cpdf $pdf, string $path, float $x, float $y, float $width, float $height, float $radius): void
+    {
+        $pdf->clippingRectangleRounded($x, $y, $width, $height, $radius, $radius, $radius, $radius);
+
+        $extension = Str::lower(pathinfo($path, PATHINFO_EXTENSION));
+        if (in_array($extension, ['jpg', 'jpeg'], true)) {
+            $this->drawJpegCover($pdf, $path, $x, $y, $width, $height);
+        } else {
+            $this->drawPdfImage($pdf, $path, $x, $y, $width, $height);
+        }
+
         $pdf->clippingEnd();
         $pdf->setStrokeColor([0.82, 0.88, 0.96]);
         $this->roundedBorder($pdf, $x, $y, $width, $height, $radius);
@@ -1307,16 +1310,17 @@ class ParticipantController extends Controller
         return max($minSize, min($baseSize, $fittedSize));
     }
 
-    private function countryFlagJpegPath(?string $code, ?string $name): ?string
+    private function participantIdPhotoPath(?string $profilePhotoPath): ?string
     {
-        $code = Str::of((string) $code)->lower()->trim()->toString();
-        $slug = Str::of((string) $name)->lower()->slug('-')->toString();
-        $candidates = array_filter([
-            $code ? public_path("asean/{$code}.jpg") : null,
-            $code ? public_path("asean/{$code}.jpeg") : null,
-            $slug ? public_path("asean/{$slug}.jpg") : null,
-            $slug ? public_path("asean/{$slug}.jpeg") : null,
-        ]);
+        $candidates = [];
+
+        if ($profilePhotoPath) {
+            $profilePhotoPath = ltrim($profilePhotoPath, '/');
+            $candidates[] = public_path($profilePhotoPath);
+        }
+
+        $candidates[] = public_path('img/id-card-ched-logo.jpg');
+        $candidates[] = public_path('img/ched_logo.png');
 
         foreach ($candidates as $candidate) {
             if (File::exists($candidate)) {

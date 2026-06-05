@@ -191,9 +191,7 @@ class Asemme10RegistrationController extends Controller
                     'display_id' => $user->display_id,
                     'qr_payload' => $user->qr_payload,
                     'role' => $attendee['role'],
-                    'country_code' => $user->country?->code,
-                    'country_name' => $user->country?->name,
-                    'country_flag_url' => $user->country?->flag_url,
+                    'profile_photo_url' => $user->profile_photo_path ? asset($user->profile_photo_path) : null,
                     'virtual_id_email_sent' => $this->canEmailAttendee($attendee, $user),
                 ];
             }

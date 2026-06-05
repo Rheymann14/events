@@ -440,7 +440,7 @@ export default function ParticipantDashboard({ participant }: PageProps) {
     const [previewOpen, setPreviewOpen] = React.useState(false);
 
     const uploadInputRef = React.useRef<HTMLInputElement | null>(null);
-    const fullContactNumber = [participant.contact_country_code, participant.contact_number].filter(Boolean).join(' ');
+    const fullContactNumber = participant.contact_number ?? '';
     const honorificTitle =
         participant.honorific_title === 'other'
             ? participant.honorific_other || 'Other'

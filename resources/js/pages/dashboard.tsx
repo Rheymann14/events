@@ -1,5 +1,4 @@
 import AppLayout from '@/layouts/app-layout';
-import { splitCountriesByAsean } from '@/lib/countries';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
@@ -156,13 +155,6 @@ function formatTime(dateString?: string | null) {
     }).format(date);
 }
 
-function getFlagSrc(country?: CountryOption | null) {
-    if (!country) return null;
-    if (country.flag_url) return country.flag_url;
-    const code = (country.code || '').toLowerCase().trim();
-    return code ? `/asean/${code}.png` : null;
-}
-
 type EventStatus = 'ongoing' | 'upcoming' | 'closed';
 
 function getEventStatus(event: DashboardEvent): EventStatus {
@@ -276,9 +268,7 @@ function StarRating({ value, max = 5 }: { value: number; max?: number }) {
 export default function Dashboard() {
     const { props } = usePage<PageProps>();
     const isMobile = useIsMobile();
-    const [open, setOpen] = React.useState(false);
     const [eventOpen, setEventOpen] = React.useState(false);
-    const [country, setCountry] = React.useState<string | null>(null);
     const [eventFilter, setEventFilter] = React.useState<string | null>(() =>
         props.default_event_id ? String(props.default_event_id) : null,
     );
@@ -291,22 +281,14 @@ export default function Dashboard() {
     >({});
 
     const {
-        countries,
         stats,
         events,
         country_stats: baseCountryStats,
         line_data: lineData,
         feedback,
     } = props;
-    const groupedCountries = React.useMemo(
-        () => splitCountriesByAsean(countries),
-        [countries],
-    );
 
-    const countryId = country ? Number(country) : null;
-    const current = countryId
-        ? (countries.find((c) => c.id === countryId) ?? null)
-        : null;
+    const countryId = null;
     const eventFilterId = eventFilter ? Number(eventFilter) : null;
     const eventFilterEvent = eventFilterId
         ? (events.find((event) => event.id === eventFilterId) ?? null)
@@ -533,18 +515,13 @@ export default function Dashboard() {
         };
     }, [filteredParticipants, filteredScans]);
 
-    const currentBadge =
-        current || eventFilterEvent ? (
-            <Badge variant="secondary" className="rounded-full">
-                Filtered
-            </Badge>
-        ) : null;
+    const currentBadge = eventFilterEvent ? (
+        <Badge variant="secondary" className="rounded-full">
+            Filtered
+        </Badge>
+    ) : null;
     const participantHint = eventFilterEvent ? (
-        current ? (
-            'Selected event and country'
-        ) : (
-            'Selected event'
-        )
+        'Selected event'
     ) : (
         <span>
             Overall:{' '}
@@ -581,45 +558,22 @@ export default function Dashboard() {
                             </h1>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                            {current ? (
-                                <span className="inline-flex items-center gap-2">
-                                    Showing for
-                                    <span className="inline-flex items-center gap-2 rounded-full border bg-background px-2 py-1 text-foreground">
-                                        {getFlagSrc(current) ? (
-                                            <img
-                                                src={getFlagSrc(current) ?? ''}
-                                                alt=""
-                                                className="size-4 rounded-full object-cover"
-                                            />
-                                        ) : null}
-                                        <span className="max-w-[170px] truncate font-medium">
-                                            {current.name}
-                                        </span>
-                                    </span>
-                                    <Badge
-                                        variant="secondary"
-                                        className="rounded-full text-[11px]"
-                                    >
-                                        {filteredParticipants.toLocaleString()}{' '}
-                                        participants
-                                    </Badge>
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center gap-2">
-                                    Showing for all countries
-                                    <Badge
-                                        variant="secondary"
-                                        className="rounded-full text-[11px]"
-                                    >
-                                        {filteredParticipants.toLocaleString()}{' '}
-                                        participants
-                                    </Badge>
-                                </span>
-                            )}
+                            <span className="inline-flex items-center gap-2">
+                                {eventFilterEvent
+                                    ? 'Showing selected event'
+                                    : 'Showing all events'}
+                                <Badge
+                                    variant="secondary"
+                                    className="rounded-full text-[11px]"
+                                >
+                                    {filteredParticipants.toLocaleString()}{' '}
+                                    participants
+                                </Badge>
+                            </span>
                         </div>
                     </div>
 
-                    {/* Country filter */}
+                    {/* Event filter */}
                     <div className="flex flex-wrap items-center justify-end gap-2">
                         <div className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
                             <Filter className="size-4" />
@@ -738,189 +692,6 @@ export default function Dashboard() {
                                                 );
                                             })}
                                         </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-
-                        <Popover open={open} onOpenChange={setOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className="h-9 justify-between rounded-xl px-3 text-xs"
-                                >
-                                    <span className="inline-flex items-center gap-2">
-                                        {current ? (
-                                            <>
-                                                {getFlagSrc(current) ? (
-                                                    <img
-                                                        src={
-                                                            getFlagSrc(
-                                                                current,
-                                                            ) ?? ''
-                                                        }
-                                                        alt=""
-                                                        className="size-5 rounded-full object-cover"
-                                                    />
-                                                ) : null}
-                                                <span className="max-w-[180px] truncate">
-                                                    {current.name}
-                                                </span>
-                                            </>
-                                        ) : (
-                                            <span className="text-muted-foreground">
-                                                All countries
-                                            </span>
-                                        )}
-                                    </span>
-                                    <ChevronsUpDown className="ml-2 size-4 opacity-60" />
-                                </Button>
-                            </PopoverTrigger>
-
-                            <PopoverContent
-                                className="w-[300px] p-0"
-                                align="end"
-                            >
-                                <Command>
-                                    <CommandInput placeholder="Search country..." />
-                                    <CommandEmpty>No results.</CommandEmpty>
-
-                                    {/* ✅ scrollable countries list */}
-                                    <CommandList className="max-h-[320px] overflow-auto overscroll-contain">
-                                        <CommandGroup>
-                                            <CommandItem
-                                                value="__all__"
-                                                onSelect={() => {
-                                                    setCountry(null);
-                                                    setOpen(false);
-                                                }}
-                                                className="gap-2"
-                                            >
-                                                <span className="inline-flex size-4 items-center justify-center">
-                                                    {!country ? (
-                                                        <Check className="size-4" />
-                                                    ) : null}
-                                                </span>
-                                                <span>All countries</span>
-                                            </CommandItem>
-                                        </CommandGroup>
-
-                                        <CommandGroup heading="ASEAN Countries">
-                                            {groupedCountries.asean.map((c) => {
-                                                const participantCount =
-                                                    filteredCountryStats?.[
-                                                        String(c.id)
-                                                    ]?.participants ?? 0;
-
-                                                return (
-                                                    <CommandItem
-                                                        key={c.id}
-                                                        value={String(c.id)}
-                                                        onSelect={() => {
-                                                            setCountry(
-                                                                String(c.id),
-                                                            );
-                                                            setOpen(false);
-                                                        }}
-                                                        className="gap-2"
-                                                    >
-                                                        <span className="inline-flex size-4 items-center justify-center">
-                                                            {country ===
-                                                            String(c.id) ? (
-                                                                <Check className="size-4" />
-                                                            ) : null}
-                                                        </span>
-                                                        {getFlagSrc(c) ? (
-                                                            <img
-                                                                src={
-                                                                    getFlagSrc(
-                                                                        c,
-                                                                    ) ?? ''
-                                                                }
-                                                                alt=""
-                                                                className="size-5 rounded-full object-cover"
-                                                            />
-                                                        ) : null}
-                                                        <span className="truncate">
-                                                            {c.name}
-                                                        </span>
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="ml-auto rounded-full text-[11px]"
-                                                        >
-                                                            {participantCount.toLocaleString()}
-                                                        </Badge>
-                                                    </CommandItem>
-                                                );
-                                            })}
-                                        </CommandGroup>
-
-                                        {groupedCountries.nonAsean.length >
-                                        0 ? (
-                                            <CommandGroup heading="Non-ASEAN Countries">
-                                                {groupedCountries.nonAsean.map(
-                                                    (c) => {
-                                                        const participantCount =
-                                                            filteredCountryStats?.[
-                                                                String(c.id)
-                                                            ]?.participants ??
-                                                            0;
-
-                                                        return (
-                                                            <CommandItem
-                                                                key={c.id}
-                                                                value={String(
-                                                                    c.id,
-                                                                )}
-                                                                onSelect={() => {
-                                                                    setCountry(
-                                                                        String(
-                                                                            c.id,
-                                                                        ),
-                                                                    );
-                                                                    setOpen(
-                                                                        false,
-                                                                    );
-                                                                }}
-                                                                className="gap-2"
-                                                            >
-                                                                <span className="inline-flex size-4 items-center justify-center">
-                                                                    {country ===
-                                                                    String(
-                                                                        c.id,
-                                                                    ) ? (
-                                                                        <Check className="size-4" />
-                                                                    ) : null}
-                                                                </span>
-                                                                {getFlagSrc(
-                                                                    c,
-                                                                ) ? (
-                                                                    <img
-                                                                        src={
-                                                                            getFlagSrc(
-                                                                                c,
-                                                                            ) ??
-                                                                            ''
-                                                                        }
-                                                                        alt=""
-                                                                        className="size-5 rounded-full object-cover"
-                                                                    />
-                                                                ) : null}
-                                                                <span className="truncate">
-                                                                    {c.name}
-                                                                </span>
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="ml-auto rounded-full text-[11px]"
-                                                                >
-                                                                    {participantCount.toLocaleString()}
-                                                                </Badge>
-                                                            </CommandItem>
-                                                        );
-                                                    },
-                                                )}
-                                            </CommandGroup>
-                                        ) : null}
                                     </CommandList>
                                 </Command>
                             </PopoverContent>
@@ -1632,9 +1403,6 @@ export default function Dashboard() {
                                             <th className="px-3 py-2 text-left font-semibold">
                                                 Participant
                                             </th>
-                                            <th className="px-3 py-2 text-left font-semibold">
-                                                Country
-                                            </th>
                                             <th className="w-28 px-3 py-2 text-left font-semibold">
                                                 Checked in
                                             </th>
@@ -1659,23 +1427,6 @@ export default function Dashboard() {
                                                             {participant.display_id ??
                                                                 participant.email ??
                                                                 '—'}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-2 align-top">
-                                                        <div className="inline-flex items-center gap-2">
-                                                            {participant.country_flag_url ? (
-                                                                <img
-                                                                    src={
-                                                                        participant.country_flag_url
-                                                                    }
-                                                                    alt=""
-                                                                    className="size-4 rounded-full object-cover"
-                                                                />
-                                                            ) : null}
-                                                            <span className="text-muted-foreground">
-                                                                {participant.country_name ??
-                                                                    '—'}
-                                                            </span>
                                                         </div>
                                                     </td>
                                                     <td className="px-3 py-2 align-top text-muted-foreground">

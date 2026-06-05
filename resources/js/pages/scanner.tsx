@@ -148,16 +148,6 @@ function fmtDateTime(dateStr?: string | null) {
     }).format(d);
 }
 
-function getFlagSrc(
-    countryCode?: string | null,
-    countryFlagUrl?: string | null,
-) {
-    if (countryFlagUrl) return countryFlagUrl;
-    const code = (countryCode || '').toLowerCase().trim();
-    if (!code) return null;
-    return `/asean/${code}.png`;
-}
-
 function resolveEventPhase(event: EventRow, now: number): EventRow['phase'] {
     const start = event.starts_at;
     if (!start) return 'upcoming';
@@ -234,7 +224,6 @@ function Pill({
  */
 function ScannerIdCardPreview({
     participant,
-    flagSrc,
     orientation,
 }: {
     participant: {
@@ -242,12 +231,12 @@ function ScannerIdCardPreview({
         display_id: string;
         profile_image_url?: string | null;
         is_verified?: boolean;
-        country?: { name?: string | null; code?: string | null } | null;
     };
-    flagSrc: string | null;
     orientation: 'portrait' | 'landscape';
 }) {
     const isLandscape = orientation === 'landscape';
+    const participantImageSrc =
+        participant.profile_image_url ?? '/img/ched_logo.png';
 
     // ✅ keep accurate print size, but DON'T force fixed aspect height on screen
     const printSize = isLandscape
@@ -385,34 +374,22 @@ function ScannerIdCardPreview({
                                     'h-9 w-9',
                                 )}
                             >
-                                {flagSrc ? (
-                                    <img
-                                        src={flagSrc}
-                                        alt={
-                                            participant.country?.name ??
-                                            'Country flag'
-                                        }
-                                        className="h-full w-full object-cover"
-                                        draggable={false}
-                                        loading="lazy"
-                                        onError={(e) => {
-                                            (
-                                                e.currentTarget as HTMLImageElement
-                                            ).style.display = 'none';
-                                        }}
-                                    />
-                                ) : null}
+                                <img
+                                    src={participantImageSrc}
+                                    alt="Participant"
+                                    className="h-full w-full object-cover"
+                                    draggable={false}
+                                    loading="lazy"
+                                />
                             </div>
 
                             <div className="min-w-0">
                                 <div className="truncate text-[12px] font-semibold text-slate-900 dark:text-slate-100">
-                                    {participant.country?.name ?? '—'}
+                                    Participant Photo
                                 </div>
-                                {participant.country?.code ? (
-                                    <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                        {participant.country.code.toUpperCase()}
-                                    </div>
-                                ) : null}
+                                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                    {participant.display_id}
+                                </div>
                             </div>
                         </div>
 
@@ -480,11 +457,8 @@ function ScannerIdCardPreview({
                             >
                                 <span
                                     className="line-clamp-2"
-                                    title={`${participant.country?.code?.toUpperCase() ?? ''} • ${participant.name}`}
+                                    title={participant.name}
                                 >
-                                    {participant.country?.code?.toUpperCase() ??
-                                        ''}
-                                    {participant.country?.code ? ' • ' : ''}
                                     {participant.name}
                                 </span>
                             </div>
@@ -1193,7 +1167,8 @@ export default function Scanner(props: PageProps) {
             return '';
         }
 
-        const canvas = scanCanvasRef.current ?? document.createElement('canvas');
+        const canvas =
+            scanCanvasRef.current ?? document.createElement('canvas');
         const context = canvas.getContext('2d', {
             willReadFrequently: true,
         });
@@ -1297,10 +1272,7 @@ export default function Scanner(props: PageProps) {
                             lastDetectedRef.current = '';
                         }
 
-                        if (
-                            rawValue &&
-                            rawValue !== lastDetectedRef.current
-                        ) {
+                        if (rawValue && rawValue !== lastDetectedRef.current) {
                             lastDetectedRef.current = rawValue;
                             lockRef.current = true;
 
@@ -1471,12 +1443,6 @@ export default function Scanner(props: PageProps) {
             is_verified: p.is_verified ?? true,
         };
     }, [participantDisplayId, result?.participant]);
-
-    const flagSrc = getFlagSrc(
-        result?.participant?.country_code,
-        result?.participant?.country_flag_url,
-    );
-
     const dialogTitle = result?.ok
         ? 'Verified'
         : result?.message?.toLowerCase().includes('not joined')
@@ -1509,7 +1475,6 @@ export default function Scanner(props: PageProps) {
                             <div className="mt-4">
                                 <ScannerIdCardPreview
                                     participant={cardParticipant}
-                                    flagSrc={flagSrc}
                                     orientation="landscape"
                                 />
                             </div>

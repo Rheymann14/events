@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { createPortal } from 'react-dom';
 import PublicLayout, { PUBLIC_NAV_ITEMS } from '@/layouts/public-layout';
-import { cn, resolveUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { register } from '@/routes';
 import { Head, Link } from '@inertiajs/react';
 import {
@@ -24,6 +24,26 @@ import * as React from 'react';
 // --- TYPES ---
 type FlagItem = { name: string; src: string };
 type LeadershipItem = { id: number; title: string; src: string; description?: string };
+type ActiveRegistrationProgramme = {
+    id: number;
+    tag: string | null;
+    title: string;
+    description: string | null;
+    starts_at: string | null;
+    ends_at: string | null;
+    location: string | null;
+    image_url: string | null;
+    is_registration_active?: boolean;
+    venue?: {
+        name: string;
+        address?: string | null;
+    } | null;
+};
+
+type WelcomeProps = {
+    canRegister?: boolean;
+    activeRegistrationProgramme?: ActiveRegistrationProgramme | null;
+};
 
 // --- DATA ---
 const ASEAN_FLAGS = [
@@ -105,6 +125,50 @@ const LEADERSHIP_ITEMS: LeadershipItem[] = [
 const LEFT_FLAGS = ASEAN_FLAGS.slice(0, 5);
 const RIGHT_FLAGS = ASEAN_FLAGS.slice(5, 10); // ✅ only 5 flags on the right (exclude Timor-Leste)
 const TIMOR_FLAG = ASEAN_FLAGS[10]; // ✅ Timor-Leste
+
+function resolveEventImageUrl(imageUrl?: string | null) {
+    if (!imageUrl) return '/img/ched_co.jpg';
+    if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) return imageUrl;
+    return `/event-images/${imageUrl}`;
+}
+
+function formatEventDateRange(startsAt?: string | null, endsAt?: string | null) {
+    if (!startsAt) return 'Date to be announced';
+
+    const start = new Date(startsAt);
+    const end = endsAt ? new Date(endsAt) : null;
+
+    if (Number.isNaN(start.getTime())) return 'Date to be announced';
+
+    const dateFormatter = new Intl.DateTimeFormat('en-PH', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+    const timeFormatter = new Intl.DateTimeFormat('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+
+    if (!end || Number.isNaN(end.getTime())) {
+        return `${dateFormatter.format(start)} - ${timeFormatter.format(start)}`;
+    }
+
+    const sameYear = start.getFullYear() === end.getFullYear();
+    const sameMonth = sameYear && start.getMonth() === end.getMonth();
+    const sameDay = sameMonth && start.getDate() === end.getDate();
+
+    if (sameDay) {
+        return `${dateFormatter.format(start)} - ${timeFormatter.format(start)}-${timeFormatter.format(end)}`;
+    }
+
+    if (sameMonth) {
+        const monthFormatter = new Intl.DateTimeFormat('en-PH', { month: 'short' });
+        return `${monthFormatter.format(start)} ${start.getDate()}-${end.getDate()}, ${start.getFullYear()}`;
+    }
+
+    return `${dateFormatter.format(start)} - ${dateFormatter.format(end)}`;
+}
 
 function useMediaQuery(query: string) {
     const [matches, setMatches] = React.useState(false);
@@ -224,7 +288,17 @@ function FlyingFlag({
 
 
 
-function HeroSection() {
+function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgramme?: ActiveRegistrationProgramme | null }) {
+    const featuredEvent = activeRegistrationProgramme ?? null;
+    const featuredImageUrl = resolveEventImageUrl(featuredEvent?.image_url);
+    const featuredTitle = featuredEvent?.title ?? 'No featured event';
+    const featuredDescription =
+        featuredEvent?.description ??
+        'No featured event yet.';
+    const featuredDate = formatEventDateRange(featuredEvent?.starts_at, featuredEvent?.ends_at);
+    const featuredVenue = featuredEvent?.venue?.name ?? featuredEvent?.location ?? 'Venue to be announced';
+    const featuredSubtitle = featuredEvent ? 'Active registration event' : 'No featured event';
+
     return (
         <section className="relative flex min-h-[90vh] items-center justify-center px-6">
             <div className="mx-auto grid w-full max-w-7xl grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-16">
@@ -310,7 +384,7 @@ function HeroSection() {
                             </div>
 
                             <p className="text-[12px] text-slate-500">
-                                Upcoming official CHED activity highlight
+                                {featuredSubtitle}
                             </p>
                         </div>
 
@@ -320,8 +394,8 @@ function HeroSection() {
                             {/* IMAGE */}
                             <div className="relative h-32 w-full">
                                 <img
-                                    src="/img/ched_co.jpg"
-                                    alt="CHED Featured Event"
+                                    src={featuredImageUrl}
+                                    alt={featuredEvent ? featuredEvent.title : 'CHED Featured Event'}
                                     className="h-full w-full object-cover"
                                 />
 
@@ -340,9 +414,7 @@ function HeroSection() {
                                     <p className="text-[10px] text-white/70 uppercase tracking-wider">
                                         Date
                                     </p>
-                                    <p className="text-sm font-semibold text-white">
-                                        July 15–17, 2026
-                                    </p>
+                                    <p className="text-sm font-semibold text-white">{featuredDate}</p>
                                 </div>
                             </div>
 
@@ -350,19 +422,18 @@ function HeroSection() {
                             <div className="p-4">
 
                                 <h4 className="text-sm font-bold text-slate-900">
-                                    Higher Education Leaders Summit
+                                    {featuredTitle}
                                 </h4>
 
                                 <p className="mt-1 text-[12px] text-slate-600 leading-relaxed">
-                                    A national CHED-led gathering of higher education leaders focused on innovation,
-                                    collaboration, and institutional innovation.
+                                    {featuredDescription}
                                 </p>
 
                                 {/* META */}
                                 <div className="mt-4 grid grid-cols-1 gap-2 text-[11px]">
                                     <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
                                         <p className="text-slate-400 uppercase">Venue</p>
-                                        <p className="font-semibold text-slate-800">Manila</p>
+                                        <p className="font-semibold text-slate-800">{featuredVenue}</p>
                                     </div>
 
 
@@ -789,7 +860,7 @@ function ThreeDImageRing({
  */
 
 
-export default function Welcome({ canRegister = true }: { canRegister?: boolean }) {
+export default function Welcome({ canRegister = true, activeRegistrationProgramme = null }: WelcomeProps) {
 
 
 
@@ -998,7 +1069,7 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
 
 
                 {/* 1. HERO */}
-                <HeroSection />
+                <HeroSection activeRegistrationProgramme={activeRegistrationProgramme} />
 
                 {/* 2. 3D RING LEADERSHIP */}
                 {/* 2. 3D RING LEADERSHIP (fade-in on reach) */}

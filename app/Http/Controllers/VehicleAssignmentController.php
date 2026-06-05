@@ -179,7 +179,7 @@ class VehicleAssignmentController extends Controller
                     'id' => $participant->id,
                     'display_id' => $participant->display_id,
                     'qr_payload' => $participant->qr_payload,
-                    'profile_photo_url' => $participant->profile_photo_url,
+                    'profile_photo_url' => $participant->profile_photo_path ? asset($participant->profile_photo_path) : null,
                     'full_name' => $participant->name,
                     'email' => $participant->email,
                     'country' => $participant->country
@@ -356,7 +356,7 @@ class VehicleAssignmentController extends Controller
                     'id' => $participant->id,
                     'display_id' => $participant->display_id,
                     'qr_payload' => $participant->qr_payload,
-                    'profile_photo_url' => $participant->profile_photo_url,
+                    'profile_photo_url' => $participant->profile_photo_path ? asset($participant->profile_photo_path) : null,
                     'full_name' => $participant->name,
                     'email' => $participant->email,
                     'country' => $participant->country

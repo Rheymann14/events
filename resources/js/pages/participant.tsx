@@ -517,11 +517,9 @@ const STEP_FIELDS: Record<ParticipantFormStep, string[]> = {
         'email',
     ],
     2: [
-        'contact_country_code',
         'contact_number',
         'organization_name',
         'position_title',
-        'country_id',
         'user_type_id',
         'other_user_type',
     ],
@@ -884,16 +882,6 @@ async function downloadPdfResponse(response: Response, fallbackName: string) {
     URL.revokeObjectURL(url);
 }
 
-function getFlagSrc(country?: Country | null) {
-    if (!country) return null;
-    if (country.flag_url) return country.flag_url;
-
-    const code = (country.code || '').toLowerCase().trim();
-    if (!code) return null;
-
-    return `/asean/${code}.png`;
-}
-
 function resolveParticipantProfileImage(participant?: ParticipantRow | null) {
     if (!participant) return null;
 
@@ -996,7 +984,8 @@ function ParticipantIdPrintCard({
 
     const headerLogo = isLandscape ? 'h-8 w-8' : 'h-9 w-9';
 
-    const flagSrc = getFlagSrc(participant.country);
+    const participantImageSrc =
+        resolveParticipantProfileImage(participant) || '/img/ched_logo.png';
     const name = participant.full_name || '—';
     const displayId = participant.display_id ?? '—';
 
@@ -1145,24 +1134,14 @@ function ParticipantIdPrintCard({
                                                 : 'h-9 w-9',
                                         )}
                                     >
-                                        {flagSrc ? (
-                                            <img
-                                                src={flagSrc}
-                                                alt={
-                                                    participant.country?.name ??
-                                                    'Country flag'
-                                                }
-                                                className="h-full w-full object-cover"
-                                                draggable={false}
-                                                loading="eager"
-                                                decoding="async"
-                                                onError={(e) => {
-                                                    (
-                                                        e.currentTarget as HTMLImageElement
-                                                    ).style.display = 'none';
-                                                }}
-                                            />
-                                        ) : null}
+                                        <img
+                                            src={participantImageSrc}
+                                            alt="Participant"
+                                            className="h-full w-full object-cover"
+                                            draggable={false}
+                                            loading="eager"
+                                            decoding="async"
+                                        />
                                     </div>
 
                                     <div className="min-w-0">
@@ -1174,24 +1153,19 @@ function ParticipantIdPrintCard({
                                                     : 'text-[12px]',
                                             )}
                                         >
-                                            {participant.country?.name ?? '—'}
+                                            Participant Photo
                                         </div>
 
-                                        {participant.country?.code ? (
-                                            <div
-                                                className={cn(
-                                                    'font-medium text-slate-500 dark:text-slate-400',
-                                                    isLandscape
-                                                        ? 'text-[15px]'
-                                                        : 'text-[11px]',
-                                                )}
-                                            >
-                                                {String(
-                                                    participant.country.code ??
-                                                        '',
-                                                ).toUpperCase()}
-                                            </div>
-                                        ) : null}
+                                        <div
+                                            className={cn(
+                                                'font-medium text-slate-500 dark:text-slate-400',
+                                                isLandscape
+                                                    ? 'text-[15px]'
+                                                    : 'text-[11px]',
+                                            )}
+                                        >
+                                            {displayId}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1296,15 +1270,8 @@ function ParticipantIdPrintCard({
                                     >
                                         <span
                                             className="line-clamp-2"
-                                            title={`${String(participant.country?.code ?? '').toUpperCase()} • ${name}`}
+                                            title={name}
                                         >
-                                            {String(
-                                                participant.country?.code ?? '',
-                                            ).toUpperCase()}
-
-                                            {participant.country?.code
-                                                ? ' • '
-                                                : ''}
                                             {name}
                                         </span>
                                     </div>
@@ -2482,7 +2449,6 @@ export default function ParticipantPage(props: PageProps) {
         asemme10DelegationForm.transform((data) => ({
             ...data,
             programme_id: data.programme_id ? Number(data.programme_id) : null,
-            country_id: data.country_id ? Number(data.country_id) : null,
             focal: {
                 name: data.focal.name.trim(),
                 email: data.focal.email.trim(),
@@ -2561,8 +2527,6 @@ export default function ParticipantPage(props: PageProps) {
             full_name: p.full_name ?? '',
             email: p.email ?? '',
             contact_number: p.contact_number ?? '',
-            contact_country_code: p.contact_country_code ?? '',
-            country_id: p.country_id ? String(p.country_id) : '',
             user_type_id: p.user_type_id ? String(p.user_type_id) : '',
             other_user_type: p.other_user_type ?? '',
             honorific_title: p.honorific_title ?? '',
@@ -2615,8 +2579,6 @@ export default function ParticipantPage(props: PageProps) {
             full_name: data.full_name.trim(),
             email: data.email.trim(),
             contact_number: data.contact_number.trim() || null,
-            contact_country_code: data.contact_country_code.trim() || null,
-            country_id: data.country_id ? Number(data.country_id) : null,
             user_type_id: data.user_type_id ? Number(data.user_type_id) : null,
             other_user_type: data.other_user_type.trim() || null,
             honorific_title: data.honorific_title.trim() || null,
@@ -3286,24 +3248,6 @@ export default function ParticipantPage(props: PageProps) {
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                     <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5 dark:bg-slate-900/70">
                         <div className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
-                            Country
-                        </div>
-                        <div className="mt-1 flex min-w-0 items-center gap-1.5 text-slate-700 dark:text-slate-300">
-                            {p.country ? (
-                                <>
-                                    <FlagThumb country={p.country} size={16} />
-                                    <span className="truncate">
-                                        {p.country.name}
-                                    </span>
-                                </>
-                            ) : (
-                                <span className="text-slate-400">-</span>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5 dark:bg-slate-900/70">
-                        <div className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
                             {isAsemme10RegistrationView ? 'Role' : 'Type'}
                         </div>
                         <div className="mt-1 truncate text-slate-700 dark:text-slate-300">
@@ -3790,219 +3734,10 @@ export default function ParticipantPage(props: PageProps) {
                                                         true,
                                                     );
                                                 }}
-                                                placeholder="Search name, email, country, type..."
+                                                placeholder="Search name, email, type..."
                                                 className="h-9 pl-9 text-xs"
                                             />
                                         </div>
-
-                                        <Popover
-                                            open={participantCountryOpen}
-                                            onOpenChange={
-                                                setParticipantCountryOpen
-                                            }
-                                        >
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    role="combobox"
-                                                    aria-expanded={
-                                                        participantCountryOpen
-                                                    }
-                                                    className="h-9 w-full justify-between text-xs sm:w-[180px]"
-                                                >
-                                                    <span className="truncate">
-                                                        {selectedCountry
-                                                            ? selectedCountry.name
-                                                            : 'All Countries'}
-                                                    </span>
-                                                    <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent
-                                                className="w-[--radix-popover-trigger-width] p-0"
-                                                align="start"
-                                            >
-                                                <Command>
-                                                    <CommandInput placeholder="Search country..." />
-                                                    <CommandEmpty>
-                                                        No country found.
-                                                    </CommandEmpty>
-                                                    <CommandList>
-                                                        <CommandGroup>
-                                                            <CommandItem
-                                                                value="All Countries"
-                                                                onSelect={() => {
-                                                                    setParticipantCountryFilter(
-                                                                        'all',
-                                                                    );
-                                                                    setCurrentPage(
-                                                                        1,
-                                                                    );
-                                                                    visitParticipants(
-                                                                        {
-                                                                            country_id:
-                                                                                'all',
-                                                                            page: 1,
-                                                                        },
-                                                                    );
-                                                                    setParticipantCountryOpen(
-                                                                        false,
-                                                                    );
-                                                                }}
-                                                            >
-                                                                All Countries
-                                                                <Check
-                                                                    className={cn(
-                                                                        'ml-auto h-4 w-4',
-                                                                        participantCountryFilter ===
-                                                                            'all'
-                                                                            ? 'opacity-100'
-                                                                            : 'opacity-0',
-                                                                    )}
-                                                                />
-                                                            </CommandItem>
-                                                        </CommandGroup>
-                                                        <CommandGroup heading="ASEAN Countries">
-                                                            {groupedCountries.asean.map(
-                                                                (c) => (
-                                                                    <CommandItem
-                                                                        key={
-                                                                            c.id
-                                                                        }
-                                                                        value={`${c.name} ${c.code}`}
-                                                                        onSelect={() => {
-                                                                            setParticipantCountryFilter(
-                                                                                String(
-                                                                                    c.id,
-                                                                                ),
-                                                                            );
-                                                                            setCurrentPage(
-                                                                                1,
-                                                                            );
-                                                                            visitParticipants(
-                                                                                {
-                                                                                    country_id:
-                                                                                        String(
-                                                                                            c.id,
-                                                                                        ),
-                                                                                    page: 1,
-                                                                                },
-                                                                            );
-                                                                            setParticipantCountryOpen(
-                                                                                false,
-                                                                            );
-                                                                        }}
-                                                                        className="gap-2"
-                                                                    >
-                                                                        <div className="grid size-5 place-items-center overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                                                                            <FlagImage
-                                                                                code={
-                                                                                    c.code
-                                                                                }
-                                                                                name={
-                                                                                    c.name
-                                                                                }
-                                                                                preferredSrc={
-                                                                                    c.flag_url
-                                                                                }
-                                                                                className="h-full w-full object-cover"
-                                                                            />
-                                                                        </div>
-                                                                        <span className="truncate">
-                                                                            {
-                                                                                c.name
-                                                                            }
-                                                                        </span>
-                                                                        <Check
-                                                                            className={cn(
-                                                                                'ml-auto h-4 w-4',
-                                                                                participantCountryFilter ===
-                                                                                    String(
-                                                                                        c.id,
-                                                                                    )
-                                                                                    ? 'opacity-100'
-                                                                                    : 'opacity-0',
-                                                                            )}
-                                                                        />
-                                                                    </CommandItem>
-                                                                ),
-                                                            )}
-                                                        </CommandGroup>
-                                                        {groupedCountries
-                                                            .nonAsean.length >
-                                                        0 ? (
-                                                            <CommandGroup heading="Non-ASEAN Countries">
-                                                                {groupedCountries.nonAsean.map(
-                                                                    (c) => (
-                                                                        <CommandItem
-                                                                            key={
-                                                                                c.id
-                                                                            }
-                                                                            value={`${c.name} ${c.code}`}
-                                                                            onSelect={() => {
-                                                                                setParticipantCountryFilter(
-                                                                                    String(
-                                                                                        c.id,
-                                                                                    ),
-                                                                                );
-                                                                                setCurrentPage(
-                                                                                    1,
-                                                                                );
-                                                                                visitParticipants(
-                                                                                    {
-                                                                                        country_id:
-                                                                                            String(
-                                                                                                c.id,
-                                                                                            ),
-                                                                                        page: 1,
-                                                                                    },
-                                                                                );
-                                                                                setParticipantCountryOpen(
-                                                                                    false,
-                                                                                );
-                                                                            }}
-                                                                            className="gap-2"
-                                                                        >
-                                                                            <div className="grid size-5 place-items-center overflow-hidden rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                                                                                <FlagImage
-                                                                                    code={
-                                                                                        c.code
-                                                                                    }
-                                                                                    name={
-                                                                                        c.name
-                                                                                    }
-                                                                                    preferredSrc={
-                                                                                        c.flag_url
-                                                                                    }
-                                                                                    className="h-full w-full object-cover"
-                                                                                />
-                                                                            </div>
-                                                                            <span className="truncate">
-                                                                                {
-                                                                                    c.name
-                                                                                }
-                                                                            </span>
-                                                                            <Check
-                                                                                className={cn(
-                                                                                    'ml-auto h-4 w-4',
-                                                                                    participantCountryFilter ===
-                                                                                        String(
-                                                                                            c.id,
-                                                                                        )
-                                                                                        ? 'opacity-100'
-                                                                                        : 'opacity-0',
-                                                                                )}
-                                                                            />
-                                                                        </CommandItem>
-                                                                    ),
-                                                                )}
-                                                            </CommandGroup>
-                                                        ) : null}
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
 
                                         <Popover
                                             open={participantTypeOpen}
@@ -4597,9 +4332,6 @@ export default function ParticipantPage(props: PageProps) {
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow className="bg-slate-50 dark:bg-slate-900/40">
-                                                        <TableHead className="w-[220px]">
-                                                            Country
-                                                        </TableHead>
                                                         <TableHead className="w-[240px]">
                                                             Name
                                                         </TableHead>
@@ -4694,30 +4426,6 @@ export default function ParticipantPage(props: PageProps) {
                                                                             )
                                                                         }
                                                                     >
-                                                                        <TableCell className="text-slate-700 dark:text-slate-300">
-                                                                            {p.country ? (
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <FlagThumb
-                                                                                        country={
-                                                                                            p.country
-                                                                                        }
-                                                                                        size={
-                                                                                            18
-                                                                                        }
-                                                                                    />
-                                                                                    <span className="truncate">
-                                                                                        {
-                                                                                            p
-                                                                                                .country
-                                                                                                .name
-                                                                                        }
-                                                                                    </span>
-                                                                                </div>
-                                                                            ) : (
-                                                                                '—'
-                                                                            )}
-                                                                        </TableCell>
-
                                                                         <TableCell
                                                                             className={cn(
                                                                                 'font-medium text-slate-900 dark:text-slate-100',
@@ -7644,131 +7352,31 @@ export default function ParticipantPage(props: PageProps) {
                                                     *
                                                 </span>
                                             </div>
-                                            <div className="grid gap-2 sm:grid-cols-[180px_1fr]">
-                                                <Popover
-                                                    open={
-                                                        participantFormPhoneCodeOpen
-                                                    }
-                                                    onOpenChange={
-                                                        setParticipantFormPhoneCodeOpen
-                                                    }
-                                                >
-                                                    <PopoverTrigger asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            role="combobox"
-                                                            aria-expanded={
-                                                                participantFormPhoneCodeOpen
-                                                            }
-                                                            className="w-full justify-between"
-                                                        >
-                                                            <span className="truncate">
-                                                                {participantForm
-                                                                    .data
-                                                                    .contact_country_code
-                                                                    ? (PHONE_CODE_OPTIONS.find(
-                                                                          (o) =>
-                                                                              o.value ===
-                                                                              participantForm
-                                                                                  .data
-                                                                                  .contact_country_code,
-                                                                      )
-                                                                          ?.label ??
-                                                                      participantForm
-                                                                          .data
-                                                                          .contact_country_code)
-                                                                    : 'Country code…'}
-                                                            </span>
-                                                            <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent
-                                                        className="w-[--radix-popover-trigger-width] p-0"
-                                                        align="start"
-                                                    >
-                                                        <Command>
-                                                            <CommandInput placeholder="Search country code…" />
-                                                            <CommandEmpty>
-                                                                No country code
-                                                                found.
-                                                            </CommandEmpty>
-                                                            <CommandList className="max-h-[240px] overflow-auto">
-                                                                <CommandGroup>
-                                                                    {PHONE_CODE_OPTIONS.map(
-                                                                        (
-                                                                            item,
-                                                                        ) => (
-                                                                            <CommandItem
-                                                                                key={
-                                                                                    item.value
-                                                                                }
-                                                                                value={`${item.label} ${item.value}`}
-                                                                                onSelect={() => {
-                                                                                    participantForm.setData(
-                                                                                        'contact_country_code',
-                                                                                        item.value,
-                                                                                    );
-                                                                                    setParticipantFormPhoneCodeOpen(
-                                                                                        false,
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                {
-                                                                                    item.label
-                                                                                }
-                                                                                <Check
-                                                                                    className={cn(
-                                                                                        'ml-auto h-4 w-4',
-                                                                                        participantForm
-                                                                                            .data
-                                                                                            .contact_country_code ===
-                                                                                            item.value
-                                                                                            ? 'opacity-100'
-                                                                                            : 'opacity-0',
-                                                                                    )}
-                                                                                />
-                                                                            </CommandItem>
-                                                                        ),
-                                                                    )}
-                                                                </CommandGroup>
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
-                                                <Input
-                                                    type="tel"
-                                                    inputMode="numeric"
-                                                    pattern="[0-9]*"
-                                                    value={
-                                                        participantForm.data
-                                                            .contact_number
-                                                    }
-                                                    onChange={(e) =>
-                                                        participantForm.setData(
-                                                            'contact_number',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    onInput={(event) => {
-                                                        event.currentTarget.value =
-                                                            event.currentTarget.value.replace(
-                                                                /[^0-9]/g,
-                                                                '',
-                                                            );
-                                                    }}
-                                                    placeholder="e.g. 9123456789"
-                                                />
-                                            </div>
+                                            <Input
+                                                type="tel"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                value={
+                                                    participantForm.data
+                                                        .contact_number
+                                                }
+                                                onChange={(e) =>
+                                                    participantForm.setData(
+                                                        'contact_number',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                onInput={(event) => {
+                                                    event.currentTarget.value =
+                                                        event.currentTarget.value.replace(
+                                                            /[^0-9]/g,
+                                                            '',
+                                                        );
+                                                }}
+                                                placeholder="e.g. 09123456789"
+                                            />
                                             {participantForm.errors
-                                                .contact_country_code ? (
-                                                <div className="text-xs text-red-600">
-                                                    {
-                                                        participantForm.errors
-                                                            .contact_country_code
-                                                    }
-                                                </div>
-                                            ) : participantForm.errors
-                                                  .contact_number ? (
+                                                .contact_number ? (
                                                 <div className="text-xs text-red-600">
                                                     {
                                                         participantForm.errors
@@ -7816,171 +7424,6 @@ export default function ParticipantPage(props: PageProps) {
                                                 placeholder="Job title / role"
                                             />
                                         </div>
-
-                                        <div className="space-y-1.5">
-                                            <div className="text-sm font-medium">
-                                                Country of Origin{' '}
-                                                <span className="text-[11px] font-semibold text-red-600">
-                                                    {' '}
-                                                    *
-                                                </span>
-                                            </div>
-                                            <Popover
-                                                open={
-                                                    participantFormCountryOpen
-                                                }
-                                                onOpenChange={
-                                                    setParticipantFormCountryOpen
-                                                }
-                                            >
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        aria-expanded={
-                                                            participantFormCountryOpen
-                                                        }
-                                                        className="w-full justify-between"
-                                                    >
-                                                        <span className="truncate">
-                                                            {selectedFormCountry
-                                                                ? selectedFormCountry.name
-                                                                : 'Select country…'}
-                                                        </span>
-                                                        <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent
-                                                    className="w-[--radix-popover-trigger-width] p-0"
-                                                    align="start"
-                                                >
-                                                    <Command>
-                                                        <CommandInput placeholder="Search country…" />
-                                                        <CommandEmpty>
-                                                            No country found.
-                                                        </CommandEmpty>
-                                                        <CommandList>
-                                                            <CommandGroup heading="ASEAN Countries">
-                                                                {groupedActiveCountries.asean.map(
-                                                                    (c) => (
-                                                                        <CommandItem
-                                                                            key={
-                                                                                c.id
-                                                                            }
-                                                                            value={`${c.name} ${c.code}`}
-                                                                            onSelect={() => {
-                                                                                participantForm.setData(
-                                                                                    'country_id',
-                                                                                    String(
-                                                                                        c.id,
-                                                                                    ),
-                                                                                );
-                                                                                setParticipantFormCountryOpen(
-                                                                                    false,
-                                                                                );
-                                                                            }}
-                                                                            className="gap-2"
-                                                                        >
-                                                                            <FlagThumb
-                                                                                country={
-                                                                                    c
-                                                                                }
-                                                                                size={
-                                                                                    18
-                                                                                }
-                                                                            />
-                                                                            <span className="truncate">
-                                                                                {
-                                                                                    c.name
-                                                                                }
-                                                                            </span>
-                                                                            <Check
-                                                                                className={cn(
-                                                                                    'ml-auto h-4 w-4',
-                                                                                    participantForm
-                                                                                        .data
-                                                                                        .country_id ===
-                                                                                        String(
-                                                                                            c.id,
-                                                                                        )
-                                                                                        ? 'opacity-100'
-                                                                                        : 'opacity-0',
-                                                                                )}
-                                                                            />
-                                                                        </CommandItem>
-                                                                    ),
-                                                                )}
-                                                            </CommandGroup>
-                                                            {groupedActiveCountries
-                                                                .nonAsean
-                                                                .length > 0 ? (
-                                                                <CommandGroup heading="Non-ASEAN Countries">
-                                                                    {groupedActiveCountries.nonAsean.map(
-                                                                        (c) => (
-                                                                            <CommandItem
-                                                                                key={
-                                                                                    c.id
-                                                                                }
-                                                                                value={`${c.name} ${c.code}`}
-                                                                                onSelect={() => {
-                                                                                    participantForm.setData(
-                                                                                        'country_id',
-                                                                                        String(
-                                                                                            c.id,
-                                                                                        ),
-                                                                                    );
-                                                                                    setParticipantFormCountryOpen(
-                                                                                        false,
-                                                                                    );
-                                                                                }}
-                                                                                className="gap-2"
-                                                                            >
-                                                                                <FlagThumb
-                                                                                    country={
-                                                                                        c
-                                                                                    }
-                                                                                    size={
-                                                                                        18
-                                                                                    }
-                                                                                />
-                                                                                <span className="truncate">
-                                                                                    {
-                                                                                        c.name
-                                                                                    }
-                                                                                </span>
-                                                                                <Check
-                                                                                    className={cn(
-                                                                                        'ml-auto h-4 w-4',
-                                                                                        participantForm
-                                                                                            .data
-                                                                                            .country_id ===
-                                                                                            String(
-                                                                                                c.id,
-                                                                                            )
-                                                                                            ? 'opacity-100'
-                                                                                            : 'opacity-0',
-                                                                                    )}
-                                                                                />
-                                                                            </CommandItem>
-                                                                        ),
-                                                                    )}
-                                                                </CommandGroup>
-                                                            ) : null}
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
-                                            {participantForm.errors
-                                                .country_id ? (
-                                                <div className="text-xs text-red-600">
-                                                    {
-                                                        participantForm.errors
-                                                            .country_id
-                                                    }
-                                                </div>
-                                            ) : null}
-                                        </div>
-
                                         <div className="space-y-1.5">
                                             <div className="text-sm font-medium">
                                                 Registrant Type{' '}
