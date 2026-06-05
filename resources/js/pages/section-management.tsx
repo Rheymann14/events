@@ -1,20 +1,3 @@
-import * as React from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -25,7 +8,38 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Image, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import * as React from 'react';
 import { toast } from 'sonner';
 
 type SectionImage = {
@@ -46,7 +60,9 @@ type PageProps = {
     section?: SectionData | null;
 };
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Section Management', href: '/section-management' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Section Management', href: '/section-management' },
+];
 
 const ENDPOINTS = {
     title: '/section-management/title',
@@ -57,7 +73,8 @@ const ENDPOINTS = {
 
 function resolveSectionImage(imagePath?: string | null) {
     if (!imagePath) return null;
-    if (imagePath.startsWith('http') || imagePath.startsWith('/')) return imagePath;
+    if (imagePath.startsWith('http') || imagePath.startsWith('/'))
+        return imagePath;
     return `/section/${imagePath}`;
 }
 
@@ -68,14 +85,19 @@ function showToastError(errors: Record<string, string | string[]>) {
 }
 
 export default function SectionManagement({ section }: PageProps) {
-    const sectionTitle = section?.title ?? 'Section Title';
+    const sectionTitle = section?.title ?? '';
     const images = section?.images ?? [];
 
     const sectionForm = useForm<{ title: string }>({
         title: sectionTitle,
     });
 
-    const imageForm = useForm<{ title: string; description: string; link: string; image: File | null }>({
+    const imageForm = useForm<{
+        title: string;
+        description: string;
+        link: string;
+        image: File | null;
+    }>({
         title: '',
         description: '',
         link: '',
@@ -85,8 +107,12 @@ export default function SectionManagement({ section }: PageProps) {
     const [dialogOpen, setDialogOpen] = React.useState(false);
     const [editing, setEditing] = React.useState<SectionImage | null>(null);
     const [deleteOpen, setDeleteOpen] = React.useState(false);
-    const [deleteTarget, setDeleteTarget] = React.useState<SectionImage | null>(null);
-    const [currentImageUrl, setCurrentImageUrl] = React.useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = React.useState<SectionImage | null>(
+        null,
+    );
+    const [currentImageUrl, setCurrentImageUrl] = React.useState<string | null>(
+        null,
+    );
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
 
     React.useEffect(() => {
@@ -142,7 +168,8 @@ export default function SectionManagement({ section }: PageProps) {
         sectionForm.patch(ENDPOINTS.title, {
             preserveScroll: true,
             onSuccess: () => toast.success('Section title updated.'),
-            onError: (errors) => showToastError(errors as Record<string, string | string[]>),
+            onError: (errors) =>
+                showToastError(errors as Record<string, string | string[]>),
         });
     }
 
@@ -169,9 +196,12 @@ export default function SectionManagement({ section }: PageProps) {
                 imageForm.reset();
                 setCurrentImageUrl(null);
                 setPreviewUrl(null);
-                toast.success(editing ? 'Section image updated.' : 'Section image added.');
+                toast.success(
+                    editing ? 'Section image updated.' : 'Section image added.',
+                );
             },
-            onError: (errors) => showToastError(errors as Record<string, string | string[]>),
+            onError: (errors) =>
+                showToastError(errors as Record<string, string | string[]>),
         });
     }
 
@@ -190,7 +220,8 @@ export default function SectionManagement({ section }: PageProps) {
                 setDeleteOpen(false);
                 setDeleteTarget(null);
             },
-            onError: (errors) => showToastError(errors as Record<string, string | string[]>),
+            onError: (errors) =>
+                showToastError(errors as Record<string, string | string[]>),
         });
     }
 
@@ -207,7 +238,8 @@ export default function SectionManagement({ section }: PageProps) {
                         </h1>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Update the public venue section title and manage image cards.
+                        Update the public venue section title and manage image
+                        cards.
                     </p>
                 </div>
 
@@ -215,27 +247,40 @@ export default function SectionManagement({ section }: PageProps) {
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Section title</h2>
+                                <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                    Section title
+                                </h2>
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                                    This title appears above the image grid on the public venue page.
+                                    This title appears above the image grid on
+                                    the public venue page.
                                 </p>
                             </div>
                         </div>
 
                         <Separator className="my-4" />
 
-                        <form onSubmit={submitSectionTitle} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <form
+                            onSubmit={submitSectionTitle}
+                            className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                        >
                             <div className="flex-1">
                                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                     Title
                                 </label>
                                 <Input
                                     value={sectionForm.data.title}
-                                    onChange={(e) => sectionForm.setData('title', e.target.value)}
-                                    placeholder="Section Title"
+                                    onChange={(e) =>
+                                        sectionForm.setData(
+                                            'title',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder="Optional section title"
                                 />
                                 {sectionForm.errors.title ? (
-                                    <div className="mt-1 text-xs text-red-600">{sectionForm.errors.title}</div>
+                                    <div className="mt-1 text-xs text-red-600">
+                                        {sectionForm.errors.title}
+                                    </div>
                                 ) : null}
                             </div>
                             <Button
@@ -251,9 +296,12 @@ export default function SectionManagement({ section }: PageProps) {
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-950">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                                <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Section images</h2>
+                                <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                    Section images
+                                </h2>
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                                    Upload images with titles and descriptions for the section cards.
+                                    Upload images with titles and descriptions
+                                    for the section cards.
                                 </p>
                             </div>
                             <Button
@@ -277,24 +325,35 @@ export default function SectionManagement({ section }: PageProps) {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[110px]">Preview</TableHead>
+                                            <TableHead className="w-[110px]">
+                                                Preview
+                                            </TableHead>
                                             <TableHead>Title</TableHead>
                                             <TableHead>Description</TableHead>
                                             <TableHead>Link</TableHead>
-                                            <TableHead className="w-[80px] text-right">Actions</TableHead>
+                                            <TableHead className="w-[80px] text-right">
+                                                Actions
+                                            </TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {images.map((item) => {
-                                            const imageUrl = resolveSectionImage(item.image_path);
+                                            const imageUrl =
+                                                resolveSectionImage(
+                                                    item.image_path,
+                                                );
                                             return (
                                                 <TableRow key={item.id}>
                                                     <TableCell>
                                                         <div className="h-16 w-24 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/40">
                                                             {imageUrl ? (
                                                                 <img
-                                                                    src={imageUrl}
-                                                                    alt={item.title}
+                                                                    src={
+                                                                        imageUrl
+                                                                    }
+                                                                    alt={
+                                                                        item.title
+                                                                    }
                                                                     className="h-full w-full object-cover"
                                                                     loading="lazy"
                                                                 />
@@ -312,7 +371,8 @@ export default function SectionManagement({ section }: PageProps) {
                                                     </TableCell>
                                                     <TableCell className="whitespace-normal">
                                                         <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
-                                                            {item.description || '—'}
+                                                            {item.description ||
+                                                                '—'}
                                                         </p>
                                                     </TableCell>
                                                     <TableCell className="whitespace-normal">
@@ -326,23 +386,48 @@ export default function SectionManagement({ section }: PageProps) {
                                                                 {item.link}
                                                             </a>
                                                         ) : (
-                                                            <span className="text-sm text-slate-500">—</span>
+                                                            <span className="text-sm text-slate-500">
+                                                                —
+                                                            </span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="rounded-full">
+                                                            <DropdownMenuTrigger
+                                                                asChild
+                                                            >
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="rounded-full"
+                                                                >
                                                                     <MoreHorizontal className="h-4 w-4" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" className="w-44">
-                                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => openEdit(item)}>
+                                                            <DropdownMenuContent
+                                                                align="end"
+                                                                className="w-44"
+                                                            >
+                                                                <DropdownMenuLabel>
+                                                                    Actions
+                                                                </DropdownMenuLabel>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        openEdit(
+                                                                            item,
+                                                                        )
+                                                                    }
+                                                                >
                                                                     <Pencil className="mr-2 h-4 w-4" />
                                                                     Edit
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => requestDelete(item)}>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        requestDelete(
+                                                                            item,
+                                                                        )
+                                                                    }
+                                                                >
                                                                     <Trash2 className="mr-2 h-4 w-4 text-red-600" />
                                                                     Delete
                                                                 </DropdownMenuItem>
@@ -363,22 +448,33 @@ export default function SectionManagement({ section }: PageProps) {
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="sm:max-w-[560px]">
                     <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit section image' : 'Add section image'}</DialogTitle>
+                        <DialogTitle>
+                            {editing
+                                ? 'Edit section image'
+                                : 'Add section image'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Provide a title, description, and image for the venue section.
+                            Provide a title, description, and image for the
+                            venue section.
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submitImage} className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Image title</label>
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                Image title
+                            </label>
                             <Input
                                 value={imageForm.data.title}
-                                onChange={(e) => imageForm.setData('title', e.target.value)}
+                                onChange={(e) =>
+                                    imageForm.setData('title', e.target.value)
+                                }
                                 placeholder="Image title"
                             />
                             {imageForm.errors.title ? (
-                                <div className="text-xs text-red-600">{imageForm.errors.title}</div>
+                                <div className="text-xs text-red-600">
+                                    {imageForm.errors.title}
+                                </div>
                             ) : null}
                         </div>
 
@@ -388,13 +484,20 @@ export default function SectionManagement({ section }: PageProps) {
                             </label>
                             <Textarea
                                 value={imageForm.data.description}
-                                onChange={(e) => imageForm.setData('description', e.target.value)}
+                                onChange={(e) =>
+                                    imageForm.setData(
+                                        'description',
+                                        e.target.value,
+                                    )
+                                }
                                 placeholder="Short description"
                                 rows={3}
                                 className="break-all"
                             />
                             {imageForm.errors.description ? (
-                                <div className="text-xs text-red-600">{imageForm.errors.description}</div>
+                                <div className="text-xs text-red-600">
+                                    {imageForm.errors.description}
+                                </div>
                             ) : null}
                         </div>
 
@@ -404,11 +507,15 @@ export default function SectionManagement({ section }: PageProps) {
                             </label>
                             <Input
                                 value={imageForm.data.link}
-                                onChange={(e) => imageForm.setData('link', e.target.value)}
+                                onChange={(e) =>
+                                    imageForm.setData('link', e.target.value)
+                                }
                                 placeholder="https://example.com"
                             />
                             {imageForm.errors.link ? (
-                                <div className="text-xs text-red-600">{imageForm.errors.link}</div>
+                                <div className="text-xs text-red-600">
+                                    {imageForm.errors.link}
+                                </div>
                             ) : null}
                         </div>
 
@@ -419,15 +526,25 @@ export default function SectionManagement({ section }: PageProps) {
                             <Input
                                 type="file"
                                 accept="image/*"
-                                onChange={(e) => handleImageChange(e.target.files?.[0] ?? null)}
+                                onChange={(e) =>
+                                    handleImageChange(
+                                        e.target.files?.[0] ?? null,
+                                    )
+                                }
                             />
                             {imageForm.errors.image ? (
-                                <div className="text-xs text-red-600">{imageForm.errors.image}</div>
+                                <div className="text-xs text-red-600">
+                                    {imageForm.errors.image}
+                                </div>
                             ) : null}
 
                             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/40">
                                 {previewUrl ? (
-                                    <img src={previewUrl} alt="Preview" className="h-48 w-full object-contain" />
+                                    <img
+                                        src={previewUrl}
+                                        alt="Preview"
+                                        className="h-48 w-full object-contain"
+                                    />
                                 ) : currentImageUrl ? (
                                     <img
                                         src={currentImageUrl}
@@ -435,13 +552,18 @@ export default function SectionManagement({ section }: PageProps) {
                                         className="h-48 w-full object-contain"
                                     />
                                 ) : (
-                                    <div className="grid h-48 place-items-center text-xs text-slate-500">No image selected</div>
+                                    <div className="grid h-48 place-items-center text-xs text-slate-500">
+                                        No image selected
+                                    </div>
                                 )}
                             </div>
                         </div>
 
                         <DialogFooter>
-                            <Button type="submit" className="bg-[#00359c] text-white hover:bg-[#00359c]/90">
+                            <Button
+                                type="submit"
+                                className="bg-[#00359c] text-white hover:bg-[#00359c]/90"
+                            >
                                 {editing ? 'Save changes' : 'Add image'}
                             </Button>
                         </DialogFooter>
@@ -454,12 +576,18 @@ export default function SectionManagement({ section }: PageProps) {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete this image?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This removes the image from the section and deletes its file from storage.
+                            This removes the image from the section and deletes
+                            its file from storage.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeleteOpen(false)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={confirmDelete}>
+                        <AlertDialogCancel onClick={() => setDeleteOpen(false)}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={confirmDelete}
+                        >
                             Delete
                         </AlertDialogAction>
                     </AlertDialogFooter>

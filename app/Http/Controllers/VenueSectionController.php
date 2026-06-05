@@ -38,12 +38,12 @@ class VenueSectionController extends Controller
     public function updateTitle(Request $request)
     {
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['nullable', 'string', 'max:255'],
         ]);
 
         $section = $this->resolveSection();
         $section->update([
-            'title' => trim($validated['title']),
+            'title' => trim($validated['title'] ?? ''),
         ]);
 
         return back();
@@ -127,7 +127,7 @@ class VenueSectionController extends Controller
     private function resolveSection(): VenueSection
     {
         return VenueSection::query()->firstOrCreate([], [
-            'title' => 'Section Title',
+            'title' => '',
         ]);
     }
 

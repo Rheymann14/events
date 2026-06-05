@@ -1,27 +1,27 @@
-import * as React from 'react';
-import PublicLayout from '@/layouts/public-layout';
-import { Head } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import PublicLayout from '@/layouts/public-layout';
+import { Head } from '@inertiajs/react';
 import {
-    MapPin,
-    ExternalLink,
     CalendarDays,
     ChevronDown,
     ChevronUp,
-    X,
+    ExternalLink,
     ImageOff,
+    MapPin,
     Search,
+    X,
 } from 'lucide-react';
+import * as React from 'react';
 
 type ProgrammeRow = {
     id: number;
@@ -77,11 +77,20 @@ function formatDateRange(startsAt?: string | null, endsAt?: string | null) {
     const end = endsAt ? new Date(endsAt) : null;
 
     if (Number.isNaN(start.getTime())) return null;
-    const date = new Intl.DateTimeFormat('en-PH', { month: 'short', day: '2-digit' }).format(start);
-    const time = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(start);
+    const date = new Intl.DateTimeFormat('en-PH', {
+        month: 'short',
+        day: '2-digit',
+    }).format(start);
+    const time = new Intl.DateTimeFormat('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+    }).format(start);
 
     if (!end || Number.isNaN(end.getTime())) return `${date} · ${time}`;
-    const endTime = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(end);
+    const endTime = new Intl.DateTimeFormat('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+    }).format(end);
     return `${date} · ${time}–${endTime}`;
 }
 
@@ -98,11 +107,20 @@ function MapEmbed({
         return (
             <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
                 <div className="space-y-2">
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">Map preview unavailable</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-100">
+                        Map preview unavailable
+                    </p>
                     <p>No pinned map location.</p>
                     {googleMapsLink ? (
-                        <Button asChild className="mt-2 h-9 rounded-2xl bg-[#0033A0] text-white hover:opacity-95">
-                            <a href={googleMapsLink} target="_blank" rel="noopener noreferrer">
+                        <Button
+                            asChild
+                            className="mt-2 h-9 rounded-2xl bg-[#0033A0] text-white hover:opacity-95"
+                        >
+                            <a
+                                href={googleMapsLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
                                 Open in Google Maps
                                 <ExternalLink className="ml-2 h-4 w-4" />
                             </a>
@@ -119,7 +137,9 @@ function MapEmbed({
                 <div className="absolute inset-0 z-10 grid place-items-center bg-white/70 backdrop-blur-sm dark:bg-slate-950/50">
                     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-white/10 dark:bg-slate-900">
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700 dark:border-slate-700 dark:border-t-slate-200" />
-                        <p className="text-sm text-slate-700 dark:text-slate-200">Loading map…</p>
+                        <p className="text-sm text-slate-700 dark:text-slate-200">
+                            Loading map…
+                        </p>
                     </div>
                 </div>
             )}
@@ -138,26 +158,34 @@ function MapEmbed({
 
 function resolveSectionImage(imagePath?: string | null) {
     if (!imagePath) return null;
-    if (imagePath.startsWith('http') || imagePath.startsWith('/')) return imagePath;
+    if (imagePath.startsWith('http') || imagePath.startsWith('/'))
+        return imagePath;
     return `/section/${imagePath}`;
 }
 
 function EventVenuePanel({ event }: { event: EventVenue }) {
     return (
         <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-12">
-            <Card className="overflow-hidden rounded-2xl border-slate-200/70 bg-white shadow-[0_12px_40px_-25px_rgba(2,6,23,0.35)] dark:border-white/10 dark:bg-slate-900 lg:col-span-8">
-                <MapEmbed embedUrl={event.embedUrl} googleMapsLink={event.googleMapsLink} />
+            <Card className="overflow-hidden rounded-2xl border-slate-200/70 bg-white shadow-[0_12px_40px_-25px_rgba(2,6,23,0.35)] lg:col-span-8 dark:border-white/10 dark:bg-slate-900">
+                <MapEmbed
+                    embedUrl={event.embedUrl}
+                    googleMapsLink={event.googleMapsLink}
+                />
             </Card>
 
-            <Card className="rounded-2xl border-slate-200/70 bg-white/70 p-6 shadow-[0_12px_40px_-25px_rgba(2,6,23,0.35)] backdrop-blur-md dark:border-white/10 dark:bg-slate-900/40 lg:col-span-4">
+            <Card className="rounded-2xl border-slate-200/70 bg-white/70 p-6 shadow-[0_12px_40px_-25px_rgba(2,6,23,0.35)] backdrop-blur-md lg:col-span-4 dark:border-white/10 dark:bg-slate-900/40">
                 <div className="flex items-start gap-3">
                     <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0033A0]/10 text-[#0033A0] dark:bg-[#7aa2ff]/15 dark:text-[#7aa2ff]">
                         <MapPin className="h-5 w-5" />
                     </div>
 
                     <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{event.venueName}</p>
-                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{event.address}</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                            {event.venueName}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            {event.address}
+                        </p>
 
                         {event.dateLabel && (
                             <div className="mt-3 inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:bg-white/10 dark:text-slate-100">
@@ -174,7 +202,11 @@ function EventVenuePanel({ event }: { event: EventVenue }) {
                             asChild
                             className="h-11 rounded-2xl bg-gradient-to-r from-[#0033A0] to-[#1e3c73] text-white hover:opacity-95"
                         >
-                            <a href={event.googleMapsLink} target="_blank" rel="noopener noreferrer">
+                            <a
+                                href={event.googleMapsLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
                                 Open in Google Maps
                                 <ExternalLink className="ml-2 h-4 w-4" />
                             </a>
@@ -191,9 +223,12 @@ function EventVenuePanel({ event }: { event: EventVenue }) {
                 </div>
 
                 <div className="mt-6 rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4 text-sm text-amber-950 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-100">
-                    <p className="font-medium text-amber-950 dark:text-amber-50">Tip</p>
+                    <p className="font-medium text-amber-950 dark:text-amber-50">
+                        Tip
+                    </p>
                     <p className="mt-1 text-amber-900/90 dark:text-amber-100/90">
-                        {event.tip ?? 'Tap “Open in Google Maps” for the exact pin and navigation directions.'}
+                        {event.tip ??
+                            'Tap “Open in Google Maps” for the exact pin and navigation directions.'}
                     </p>
                 </div>
             </Card>
@@ -228,7 +263,13 @@ function TruncateWithToggle({
 
     return (
         <div className="space-y-2">
-            <div className={[clamp, 'break-words [overflow-wrap:anywhere]', className].join(' ')}>
+            <div
+                className={[
+                    clamp,
+                    '[overflow-wrap:anywhere] break-words',
+                    className,
+                ].join(' ')}
+            >
                 {text}
             </div>
 
@@ -264,13 +305,21 @@ function NoImageFallback({ label = 'No image uploaded' }: { label?: string }) {
     );
 }
 
-export default function Venue({ venues = [], all_venues = [], active_registration_programme, section }: PageProps) {
+export default function Venue({
+    venues = [],
+    all_venues = [],
+    active_registration_programme,
+    section,
+}: PageProps) {
     const activeEventVenues = React.useMemo(() => {
         return venues.map((venue) => ({
             id: String(venue.id),
             label: venue.programme?.title ?? venue.name,
             dateLabel:
-                formatDateRange(venue.programme?.starts_at ?? null, venue.programme?.ends_at ?? null) ?? undefined,
+                formatDateRange(
+                    venue.programme?.starts_at ?? null,
+                    venue.programme?.ends_at ?? null,
+                ) ?? undefined,
             venueName: venue.name,
             address: venue.address,
             googleMapsLink: venue.google_maps_url ?? undefined,
@@ -283,7 +332,10 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
             id: String(venue.id),
             label: venue.programme?.title ?? venue.name,
             dateLabel:
-                formatDateRange(venue.programme?.starts_at ?? null, venue.programme?.ends_at ?? null) ?? undefined,
+                formatDateRange(
+                    venue.programme?.starts_at ?? null,
+                    venue.programme?.ends_at ?? null,
+                ) ?? undefined,
             venueName: venue.name,
             address: venue.address,
             googleMapsLink: venue.google_maps_url ?? undefined,
@@ -305,20 +357,29 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
         );
     }, [allEventVenues, venueSearch]);
 
-    const eventVenues = showAllVenues ? searchedAllEventVenues : activeEventVenues;
-    const activeRegistrationTitle = active_registration_programme?.title?.trim() || 'Current registration';
+    const eventVenues = showAllVenues
+        ? searchedAllEventVenues
+        : activeEventVenues;
+    const activeRegistrationTitle =
+        active_registration_programme?.title?.trim() || 'Current registration';
     const canBrowseAllVenues = allEventVenues.length > 0;
 
     React.useEffect(() => {
         if (!showAllVenues) setVenueSearch('');
     }, [showAllVenues]);
 
-    const sectionTitle = section?.title?.trim() || 'Section Title';
+    const sectionTitle = section?.title?.trim() ?? '';
     const sectionItems = section?.items ?? [];
+    const hasVisibleSection =
+        sectionTitle.length > 0 && sectionItems.length > 0;
 
-    const [activeItem, setActiveItem] = React.useState<VenueSectionItem | null>(null);
+    const [activeItem, setActiveItem] = React.useState<VenueSectionItem | null>(
+        null,
+    );
 
-    const [brokenImages, setBrokenImages] = React.useState<Record<number, boolean>>({});
+    const [brokenImages, setBrokenImages] = React.useState<
+        Record<number, boolean>
+    >({});
 
     // ✅ toggles for long title/desc inside dialog (reset per item)
     const [titleExpanded, setTitleExpanded] = React.useState(false);
@@ -327,7 +388,9 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
     // ✅ image error handling (broken URL, etc.)
     const [imgError, setImgError] = React.useState(false);
 
-    const activeImageSrc = activeItem ? resolveSectionImage(activeItem.image_path) : null;
+    const activeImageSrc = activeItem
+        ? resolveSectionImage(activeItem.image_path)
+        : null;
     const activeReadMoreLink = activeItem?.link?.trim() || null;
 
     React.useEffect(() => {
@@ -350,7 +413,6 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
         if (!stillExists) setActiveVenueId(firstVenueId);
     }, [firstVenueId, eventVenues, activeVenueId]);
 
-
     return (
         <>
             <Head title="Venue" />
@@ -358,9 +420,11 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
             <PublicLayout navActive="/venue">
                 <section className="relative isolate mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                     <div className="mx-auto max-w-5xl text-center">
-                        <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-5xl">
+                        <h2 className="text-3xl leading-tight font-semibold tracking-tight text-balance text-slate-900 sm:text-5xl">
                             <span className="relative inline-block">
-                                <span className="relative z-10 text-[#0033A0]">Venue</span>
+                                <span className="relative z-10 text-[#0033A0]">
+                                    Venue
+                                </span>
                                 <span className="pointer-events-none absolute inset-x-0 bottom-1 -z-0 h-2 rounded-full bg-[#0033A0]/15 blur-[1px]" />
                             </span>{' '}
                         </h2>
@@ -374,10 +438,12 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
 
                     {/* ✅ Event Tabs */}
                     <div className="mx-auto mt-10 max-w-6xl">
-                        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white/70 p-4 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-slate-900/40 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white/70 p-4 shadow-sm backdrop-blur-md sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:bg-slate-900/40">
                             <div className="min-w-0">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                                    {showAllVenues ? 'All event venues' : 'Current registration venue'}
+                                <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                    {showAllVenues
+                                        ? 'All event venues'
+                                        : 'Current registration venue'}
                                 </p>
                                 <p className="mt-1 truncate text-sm font-semibold text-slate-900 dark:text-slate-50">
                                     {showAllVenues
@@ -391,9 +457,13 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                     type="button"
                                     variant="outline"
                                     className="h-10 shrink-0 rounded-xl"
-                                    onClick={() => setShowAllVenues((value) => !value)}
+                                    onClick={() =>
+                                        setShowAllVenues((value) => !value)
+                                    }
                                 >
-                                    {showAllVenues ? 'Show current registration venue' : 'See all event venues'}
+                                    {showAllVenues
+                                        ? 'Show current registration venue'
+                                        : 'See all event venues'}
                                 </Button>
                             ) : null}
                         </div>
@@ -404,7 +474,9 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                     <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
                                         value={venueSearch}
-                                        onChange={(event) => setVenueSearch(event.target.value)}
+                                        onChange={(event) =>
+                                            setVenueSearch(event.target.value)
+                                        }
                                         placeholder="Search by event, venue, or address"
                                         className="h-11 rounded-xl bg-white pr-10 pl-9 dark:bg-slate-950"
                                     />
@@ -439,7 +511,9 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                     </div>
 
                                     <p className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                                        {showAllVenues && venueSearch.trim() ? 'No matching venues' : 'No venues yet'}
+                                        {showAllVenues && venueSearch.trim()
+                                            ? 'No matching venues'
+                                            : 'No venues yet'}
                                     </p>
 
                                     <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
@@ -452,17 +526,21 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                 </div>
                             </Card>
                         ) : (
-                            <Tabs value={activeVenueId} onValueChange={setActiveVenueId} className="w-full">
+                            <Tabs
+                                value={activeVenueId}
+                                onValueChange={setActiveVenueId}
+                                className="w-full"
+                            >
                                 <div className="flex items-center justify-center">
                                     <div className="relative w-full max-w-6xl">
                                         {/* subtle edge fades (mobile) */}
                                         <div
                                             aria-hidden
-                                            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white/90 to-transparent dark:from-slate-950/70 md:hidden"
+                                            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-white/90 to-transparent md:hidden dark:from-slate-950/70"
                                         />
                                         <div
                                             aria-hidden
-                                            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white/90 to-transparent dark:from-slate-950/70 md:hidden"
+                                            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white/90 to-transparent md:hidden dark:from-slate-950/70"
                                         />
 
                                         <TabsList
@@ -483,19 +561,19 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                                     title={ev.label}
                                                     className={[
                                                         // ✅ fixed height prevents “circle balloon” tabs
-                                                        'snap-start shrink-0',
+                                                        'shrink-0 snap-start',
                                                         'h-12 rounded-xl px-3',
                                                         // ✅ readable width on mobile, auto on desktop
                                                         'w-[11.5rem] sm:w-auto sm:max-w-[18rem]',
                                                         // ✅ allow 2-line titles (no crazy wrapping)
-                                                        'whitespace-normal text-center',
-                                                        'text-[11px] font-semibold leading-tight tracking-wide',
+                                                        'text-center whitespace-normal',
+                                                        'text-[11px] leading-tight font-semibold tracking-wide',
                                                         // ✅ states
                                                         'data-[state=inactive]:text-slate-700 data-[state=inactive]:hover:bg-slate-100/80',
                                                         'data-[state=active]:bg-[#0033A0] data-[state=active]:text-white',
                                                         'dark:data-[state=inactive]:text-slate-200 dark:data-[state=inactive]:hover:bg-white/10',
                                                         // ✅ focus
-                                                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0033A0]/35 focus-visible:ring-offset-2',
+                                                        'focus-visible:ring-2 focus-visible:ring-[#0033A0]/35 focus-visible:ring-offset-2 focus-visible:outline-none',
                                                         'ring-offset-white dark:ring-offset-slate-950',
                                                     ].join(' ')}
                                                 >
@@ -505,13 +583,12 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                                             // ✅ mobile: single line with ellipsis
                                                             'truncate',
                                                             // ✅ sm+: allow up to 2 lines (no plugin needed)
-                                                            'sm:whitespace-normal sm:overflow-hidden',
+                                                            'sm:overflow-hidden sm:whitespace-normal',
                                                             'sm:[display:-webkit-box] sm:[-webkit-box-orient:vertical] sm:[-webkit-line-clamp:2]',
                                                         ].join(' ')}
                                                     >
                                                         {ev.label}
                                                     </span>
-
                                                 </TabsTrigger>
                                             ))}
                                         </TabsList>
@@ -520,42 +597,44 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
 
                                 <div className="mt-6">
                                     {eventVenues.map((ev) => (
-                                        <TabsContent key={ev.id} value={ev.id} className="m-0 outline-none">
-                                            <div className="animate-in fade-in-0 duration-300">
+                                        <TabsContent
+                                            key={ev.id}
+                                            value={ev.id}
+                                            className="m-0 outline-none"
+                                        >
+                                            <div className="animate-in duration-300 fade-in-0">
                                                 <EventVenuePanel event={ev} />
                                             </div>
                                         </TabsContent>
                                     ))}
                                 </div>
                             </Tabs>
-
                         )}
                     </div>
 
-                    {/* Section */}
-                    <div className="mx-auto mt-12 max-w-5xl text-center mt-12">
-                        <h2 className="text-balance text-2xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-5xl">
-                            <span className="relative inline-block">
-                                <span className="relative z-10 text-[#0033A0]">{sectionTitle}</span>
-                                <span className="pointer-events-none absolute inset-x-0 bottom-1 -z-0 h-2 rounded-full bg-[#0033A0]/15 blur-[1px]" />
-                            </span>{' '}
-                        </h2>
+                    {hasVisibleSection ? (
+                        <div className="mx-auto mt-12 max-w-5xl text-center">
+                            <h2 className="text-2xl leading-tight font-semibold tracking-tight text-balance text-slate-900 sm:text-5xl">
+                                <span className="relative inline-block">
+                                    <span className="relative z-10 text-[#0033A0]">
+                                        {sectionTitle}
+                                    </span>
+                                    <span className="pointer-events-none absolute inset-x-0 bottom-1 -z-0 h-2 rounded-full bg-[#0033A0]/15 blur-[1px]" />
+                                </span>{' '}
+                            </h2>
 
-                        <div className="mx-auto mt-6 flex items-center justify-center gap-3">
-                            <span className="h-px w-12 bg-slate-200 dark:bg-slate-700" />
-                            <span className="h-2 w-2 rounded-full bg-[#FCD116] shadow-[0_0_0_6px_rgba(252,209,22,0.12)]" />
-                            <span className="h-px w-12 bg-slate-200 dark:bg-slate-700" />
-                        </div>
+                            <div className="mx-auto mt-6 flex items-center justify-center gap-3">
+                                <span className="h-px w-12 bg-slate-200 dark:bg-slate-700" />
+                                <span className="h-2 w-2 rounded-full bg-[#FCD116] shadow-[0_0_0_6px_rgba(252,209,22,0.12)]" />
+                                <span className="h-px w-12 bg-slate-200 dark:bg-slate-700" />
+                            </div>
 
-                        <div className="mx-auto mt-10 max-w-6xl">
-                            {sectionItems.length === 0 ? (
-                                <Card className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300">
-                                    No section highlights yet.
-                                </Card>
-                            ) : (
+                            <div className="mx-auto mt-10 max-w-6xl">
                                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                                     {sectionItems.map((item) => {
-                                        const imageSrc = resolveSectionImage(item.image_path);
+                                        const imageSrc = resolveSectionImage(
+                                            item.image_path,
+                                        );
                                         return (
                                             <div
                                                 key={item.id}
@@ -567,27 +646,42 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                             >
                                                 <button
                                                     type="button"
-                                                    onClick={() => setActiveItem(item)}
+                                                    onClick={() =>
+                                                        setActiveItem(item)
+                                                    }
                                                     className="block w-full text-left"
                                                     aria-label={`View details for ${item.title}`}
                                                 >
                                                     <div className="relative aspect-[4/3]">
-                                                        {imageSrc && !brokenImages[item.id] ? (
+                                                        {imageSrc &&
+                                                        !brokenImages[
+                                                            item.id
+                                                        ] ? (
                                                             <img
                                                                 src={imageSrc}
                                                                 alt={item.title}
                                                                 loading="lazy"
                                                                 decoding="async"
                                                                 className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.05]"
-                                                                draggable={false}
-                                                                onError={() => setBrokenImages((prev) => ({ ...prev, [item.id]: true }))}
+                                                                draggable={
+                                                                    false
+                                                                }
+                                                                onError={() =>
+                                                                    setBrokenImages(
+                                                                        (
+                                                                            prev,
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            [item.id]: true,
+                                                                        }),
+                                                                    )
+                                                                }
                                                             />
                                                         ) : (
                                                             <div className="grid h-full w-full place-items-center bg-slate-100 dark:bg-slate-800/40">
                                                                 <NoImageFallback />
                                                             </div>
                                                         )}
-
 
                                                         <div
                                                             aria-hidden
@@ -598,7 +692,7 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                                             <div className="min-w-0 text-left">
                                                                 <h3
                                                                     className={[
-                                                                        'line-clamp-2 break-words [overflow-wrap:anywhere] text-lg font-semibold text-white drop-shadow-sm',
+                                                                        'line-clamp-2 text-lg font-semibold [overflow-wrap:anywhere] break-words text-white drop-shadow-sm',
                                                                         // ✅ always visible on desktop
                                                                         'md:translate-y-0 md:opacity-100 md:transition md:duration-300',
                                                                     ].join(' ')}
@@ -609,21 +703,24 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                                                 {item.description ? (
                                                                     <p
                                                                         className={[
-                                                                            'mt-1 line-clamp-2 break-words [overflow-wrap:anywhere] text-sm text-white/85',
+                                                                            'mt-1 line-clamp-2 text-sm [overflow-wrap:anywhere] break-words text-white/85',
                                                                             // ✅ always visible on desktop
-                                                                            'md:translate-y-0 md:opacity-100 md:transition md:duration-300 md:delay-75',
-                                                                        ].join(' ')}
+                                                                            'md:translate-y-0 md:opacity-100 md:transition md:delay-75 md:duration-300',
+                                                                        ].join(
+                                                                            ' ',
+                                                                        )}
                                                                     >
-                                                                        {item.description}
+                                                                        {
+                                                                            item.description
+                                                                        }
                                                                     </p>
                                                                 ) : null}
-
                                                             </div>
                                                         </div>
 
                                                         <div
                                                             aria-hidden
-                                                            className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10"
+                                                            className="pointer-events-none absolute inset-0 ring-1 ring-white/10 ring-inset"
                                                         />
                                                     </div>
                                                 </button>
@@ -631,14 +728,17 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                         );
                                     })}
                                 </div>
-                            )}
+                            </div>
                         </div>
-                    </div>
+                    ) : null}
                 </section>
             </PublicLayout>
 
             {/* ✅ Section details dialog — desktop stays old, mobile gets sticky actions */}
-            <Dialog open={!!activeItem} onOpenChange={(open) => (!open ? setActiveItem(null) : null)}>
+            <Dialog
+                open={!!activeItem}
+                onOpenChange={(open) => (!open ? setActiveItem(null) : null)}
+            >
                 <DialogContent
                     className={[
                         // ✅ width
@@ -653,7 +753,9 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                     <div className="flex max-h-[90vh] flex-col">
                         {/* Header (fixed) */}
                         <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-white/10">
-                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Section details</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                Section details
+                            </p>
                         </div>
 
                         {/* Body:
@@ -661,24 +763,33 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                - Desktop: body doesn't scroll, only right panel scrolls (old behavior)
             */}
                         <div className="min-h-0 flex-1 overflow-y-auto md:overflow-hidden">
-                            <div className="grid grid-cols-1 md:grid-cols-2 md:h-full">
+                            <div className="grid grid-cols-1 md:h-full md:grid-cols-2">
                                 {/* Left: image */}
                                 <div className="bg-slate-50 p-4 sm:p-6 dark:bg-slate-950/30">
                                     <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900">
-                                        <div className="relative flex min-h-[220px] w-full items-center justify-center overflow-hidden rounded-xl bg-slate-100 p-3 dark:bg-slate-800/40 md:max-h-[60vh]">
+                                        <div className="relative flex min-h-[220px] w-full items-center justify-center overflow-hidden rounded-xl bg-slate-100 p-3 md:max-h-[60vh] dark:bg-slate-800/40">
                                             {!activeImageSrc || imgError ? (
                                                 <NoImageFallback
-                                                    label={!activeImageSrc ? 'No image uploaded' : 'Image failed to load'}
+                                                    label={
+                                                        !activeImageSrc
+                                                            ? 'No image uploaded'
+                                                            : 'Image failed to load'
+                                                    }
                                                 />
                                             ) : (
                                                 <img
                                                     src={activeImageSrc}
-                                                    alt={activeItem?.title ?? 'Section image'}
+                                                    alt={
+                                                        activeItem?.title ??
+                                                        'Section image'
+                                                    }
                                                     loading="lazy"
                                                     decoding="async"
                                                     className="max-h-[56vh] w-full object-contain"
                                                     draggable={false}
-                                                    onError={() => setImgError(true)}
+                                                    onError={() =>
+                                                        setImgError(true)
+                                                    }
                                                 />
                                             )}
                                         </div>
@@ -703,13 +814,17 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                     */}
                                 <div className="relative p-5 sm:p-6 md:max-h-[calc(90vh-52px)] md:overflow-y-auto md:pb-28">
                                     <DialogHeader className="space-y-3 text-left">
-                                        <DialogTitle className="min-w-0 text-xl font-semibold leading-snug tracking-tight text-slate-900 sm:text-2xl dark:text-slate-50">
+                                        <DialogTitle className="min-w-0 text-xl leading-snug font-semibold tracking-tight text-slate-900 sm:text-2xl dark:text-slate-50">
                                             {activeItem?.title ? (
                                                 <TruncateWithToggle
                                                     text={activeItem.title}
                                                     lines={2}
                                                     expanded={titleExpanded}
-                                                    onToggle={() => setTitleExpanded((v) => !v)}
+                                                    onToggle={() =>
+                                                        setTitleExpanded(
+                                                            (v) => !v,
+                                                        )
+                                                    }
                                                     threshold={90}
                                                     className="text-slate-900 dark:text-slate-50"
                                                 />
@@ -719,10 +834,16 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                         {activeItem?.description ? (
                                             <DialogDescription className="text-base leading-relaxed text-slate-600 dark:text-slate-300">
                                                 <TruncateWithToggle
-                                                    text={activeItem.description}
+                                                    text={
+                                                        activeItem.description
+                                                    }
                                                     lines={4}
                                                     expanded={descExpanded}
-                                                    onToggle={() => setDescExpanded((v) => !v)}
+                                                    onToggle={() =>
+                                                        setDescExpanded(
+                                                            (v) => !v,
+                                                        )
+                                                    }
                                                     threshold={160}
                                                     className="text-slate-600 dark:text-slate-300"
                                                 />
@@ -737,12 +858,18 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                                     {/* ✅ Desktop: keep old "Read more" floating bottom-right */}
                                     {activeReadMoreLink ? (
                                         <div className="hidden md:block">
-                                            <div className="absolute bottom-6 right-6">
+                                            <div className="absolute right-6 bottom-6">
                                                 <Button
                                                     asChild
                                                     className="h-9 rounded-xl bg-[#0033A0] px-3 text-xs font-semibold text-white hover:opacity-95"
                                                 >
-                                                    <a href={activeReadMoreLink} target="_blank" rel="noopener noreferrer">
+                                                    <a
+                                                        href={
+                                                            activeReadMoreLink
+                                                        }
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
                                                         Read more
                                                         <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
                                                     </a>
@@ -755,14 +882,18 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                         </div>
 
                         {/* ✅ Mobile-only sticky action bar (always visible) */}
-                        <div className="md:hidden border-t border-slate-200/70 bg-white/95 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-slate-950/75 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+                        <div className="border-t border-slate-200/70 bg-white/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] backdrop-blur md:hidden dark:border-white/10 dark:bg-slate-950/75">
                             {activeReadMoreLink ? (
                                 <div className="grid grid-cols-2 gap-3">
                                     <Button
                                         asChild
                                         className="h-11 rounded-2xl bg-[#0033A0] text-sm font-semibold text-white hover:opacity-95"
                                     >
-                                        <a href={activeReadMoreLink} target="_blank" rel="noopener noreferrer">
+                                        <a
+                                            href={activeReadMoreLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
                                             Read more
                                             <ExternalLink className="ml-2 h-4 w-4" />
                                         </a>
@@ -790,8 +921,6 @@ export default function Venue({ venues = [], all_venues = [], active_registratio
                     </div>
                 </DialogContent>
             </Dialog>
-
-
         </>
     );
 }

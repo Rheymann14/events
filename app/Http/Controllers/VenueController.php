@@ -116,7 +116,10 @@ class VenueController extends Controller
             ->with(['images' => fn ($query) => $query->orderBy('id')])
             ->first();
 
-        $sectionData = $section
+        $sectionHasTitle = filled(trim($section?->title ?? ''));
+        $sectionHasImages = ($section?->images?->isNotEmpty() ?? false);
+
+        $sectionData = $section && $sectionHasTitle && $sectionHasImages
             ? [
                 'title' => $section->title,
                 'items' => $section->images->map(fn ($image) => [
