@@ -956,7 +956,6 @@ export default function Register({
         () => isAsemme10Programme(activeProgramme),
         [activeProgramme],
     );
-    const eventDetailsStepIndex = isAsemme10Registration ? 0 : 3;
 
     const formattedProgrammeLabel = React.useMemo(() => {
         if (!activeProgramme) {
@@ -973,6 +972,13 @@ export default function Register({
             ),
         [selectedProgrammes],
     );
+    const hasEventDetailsStep =
+        isAsemme10Registration || selectedProgrammesWithFields.length > 0;
+    const eventDetailsStepIndex = hasEventDetailsStep
+        ? isAsemme10Registration
+            ? 0
+            : 3
+        : -1;
 
     const getDynamicValue = React.useCallback(
         (programmeId: number, fieldId: number) =>
@@ -1102,6 +1108,10 @@ export default function Register({
 
             if (step === 2) {
                 return ['password', 'password_confirmation'];
+            }
+
+            if (step !== eventDetailsStepIndex) {
+                return [];
             }
 
             return selectedProgrammes.flatMap((programme) =>
@@ -1364,7 +1374,7 @@ export default function Register({
                 }
             }
 
-            if (step === 3) {
+            if (step === eventDetailsStepIndex) {
                 selectedProgrammes.forEach((programme) => {
                     (programme.registration_fields ?? []).forEach((field) => {
                         if (
@@ -1461,12 +1471,20 @@ export default function Register({
                   title: 'Account',
                   description: 'Set your password.',
               },
-              {
-                  title: 'Event details',
-                  description:
-                      'Questions configured for your selected event(s).',
-              },
+              ...(hasEventDetailsStep
+                  ? [
+                        {
+                            title: 'Event details',
+                            description:
+                                'Questions configured for your selected event(s).',
+                        },
+                    ]
+                  : []),
           ];
+
+    React.useEffect(() => {
+        setCurrentStep((step) => Math.min(step, steps.length - 1));
+    }, [steps.length]);
 
     const fieldErrorKeyForAsemmeServerError = React.useCallback(
         (serverKey: string) => {
