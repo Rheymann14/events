@@ -227,9 +227,6 @@ function FlyingFlag({
 function HeroSection() {
     return (
         <section className="relative flex min-h-[90vh] items-center justify-center px-6">
-            {/* Background (soft gradient like screenshot) */}
-            <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#f8fafc] via-white to-[#eef4ff]" />
-
             <div className="mx-auto grid w-full max-w-7xl grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-16">
 
                 {/* ================= LEFT SIDE ================= */}
@@ -805,6 +802,7 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
 
     const [feedbackRating, setFeedbackRating] = React.useState(0);
     const [feedbackOpen, setFeedbackOpen] = React.useState(false);
+    const [feedbackLauncherHidden, setFeedbackLauncherHidden] = React.useState(false);
     const [includeUserExperience, setIncludeUserExperience] = React.useState(true);
     const [includeEventFeedback, setIncludeEventFeedback] = React.useState(false);
     const [recommendations, setRecommendations] = React.useState('');
@@ -946,6 +944,26 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
         };
     }, [feedbackOpen]);
 
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const updateFeedbackVisibility = () => {
+            const footer = document.querySelector('footer');
+            const shouldHide = footer ? footer.getBoundingClientRect().top <= window.innerHeight - 16 : false;
+            setFeedbackLauncherHidden(shouldHide);
+            if (shouldHide) setFeedbackOpen(false);
+        };
+
+        updateFeedbackVisibility();
+        window.addEventListener('scroll', updateFeedbackVisibility, { passive: true });
+        window.addEventListener('resize', updateFeedbackVisibility);
+
+        return () => {
+            window.removeEventListener('scroll', updateFeedbackVisibility);
+            window.removeEventListener('resize', updateFeedbackVisibility);
+        };
+    }, []);
+
     return (
         <>
             <Head title="">
@@ -960,23 +978,20 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
     background={
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
 
-            {/* Base gradient */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white via-[#f7f9ff] to-[#eef4ff]" />
+            {/* Base */}
+            <div className="absolute inset-0 bg-white" />
 
             {/* Top-left blob */}
-            <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-[#0033A0]/10 blur-[120px]" />
+            <div className="absolute -top-44 -left-44 h-[560px] w-[560px] rounded-full bg-[#0033A0]/[0.14] blur-[120px]" />
 
             {/* Top-right blob */}
-            <div className="absolute -top-32 -right-40 h-[520px] w-[520px] rounded-full bg-amber-300/10 blur-[140px]" />
+            <div className="absolute -top-36 -right-40 h-[560px] w-[560px] rounded-full bg-amber-300/[0.18] blur-[130px]" />
 
             {/* Center soft glow */}
-            <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-200/10 blur-[160px]" />
+            <div className="absolute left-1/2 top-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-200/[0.16] blur-[145px]" />
 
             {/* Bottom accent */}
-            <div className="absolute -bottom-40 left-1/3 h-[500px] w-[500px] rounded-full bg-indigo-300/10 blur-[140px]" />
-
-            {/* Light overlay for readability */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/60 to-white/80" />
+            <div className="absolute -bottom-44 left-1/3 h-[560px] w-[560px] rounded-full bg-indigo-300/[0.14] blur-[135px]" />
         </div>
     }
 >
@@ -1265,7 +1280,11 @@ export default function Welcome({ canRegister = true }: { canRegister?: boolean 
                     <Button
                         type="button"
                         onClick={() => setFeedbackOpen((open) => !open)}
-                        className="group h-10 rounded-full bg-gradient-to-r from-[#1e3c73] via-[#25468a] to-[#1e3c73] px-4 text-xs font-semibold text-white shadow-lg shadow-[#1e3c73]/30 transition hover:brightness-110"
+                        aria-hidden={feedbackLauncherHidden}
+                        className={cn(
+                            'group h-10 rounded-full bg-gradient-to-r from-[#1e3c73] via-[#25468a] to-[#1e3c73] px-4 text-xs font-semibold text-white shadow-lg shadow-[#1e3c73]/30 transition hover:brightness-110',
+                            feedbackLauncherHidden && 'pointer-events-none translate-y-3 scale-95 opacity-0',
+                        )}
                     >
                         <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15">
                             <MessageCircle className="h-3.5 w-3.5" />
