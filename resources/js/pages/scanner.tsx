@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { cn, toDateOnlyTimestamp } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import jsQR from 'jsqr';
@@ -149,26 +149,12 @@ function fmtDateTime(dateStr?: string | null) {
 }
 
 function resolveEventPhase(event: EventRow, now: number): EventRow['phase'] {
-    const start = event.starts_at;
-    if (!start) return 'upcoming';
-
-    const startDate = new Date(start);
-    if (Number.isNaN(startDate.getTime())) return 'upcoming';
-
-    const endDate = event.ends_at ? new Date(event.ends_at) : null;
-
-    const nowDate = new Date(now);
-    const nowDateTs = toDateOnlyTimestamp(nowDate);
-    const startDateTs = toDateOnlyTimestamp(startDate);
-    const endDateTs =
-        endDate && !Number.isNaN(endDate.getTime())
-            ? toDateOnlyTimestamp(endDate)
-            : null;
-
-    if (endDateTs !== null && nowDateTs > endDateTs) return 'closed';
-
-    if (nowDateTs < startDateTs) return 'upcoming';
-    return 'ongoing';
+    return resolveEventPhaseFromDates(
+        event.starts_at,
+        event.ends_at,
+        now,
+        event.is_active ?? true,
+    );
 }
 
 function phaseLabel(phase?: EventRow['phase']) {

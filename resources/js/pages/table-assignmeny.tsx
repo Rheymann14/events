@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { cn, toDateOnlyTimestamp } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import * as React from 'react';
@@ -173,16 +173,12 @@ function formatDateTime(value?: string | null) {
 type EventPhase = 'ongoing' | 'upcoming' | 'closed';
 
 function resolveEventPhase(event: EventRow, now: number): EventPhase {
-    if (!event.is_active) return 'closed';
-    const startDate = event.starts_at ? new Date(event.starts_at) : null;
-    const endDate = event.ends_at ? new Date(event.ends_at) : null;
-    const nowDateTs = toDateOnlyTimestamp(new Date(now));
-    const startDateTs = startDate ? toDateOnlyTimestamp(startDate) : null;
-    const endDateTs = endDate ? toDateOnlyTimestamp(endDate) : null;
-
-    if (startDateTs !== null && nowDateTs < startDateTs) return 'upcoming';
-    if (endDateTs !== null && nowDateTs > endDateTs) return 'closed';
-    return 'ongoing';
+    return resolveEventPhaseFromDates(
+        event.starts_at,
+        event.ends_at,
+        now,
+        event.is_active,
+    );
 }
 
 function phaseLabel(phase: EventPhase) {

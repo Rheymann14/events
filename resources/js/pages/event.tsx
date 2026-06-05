@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import PublicLayout from '@/layouts/public-layout';
-import { cn, toDateOnlyTimestamp } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { Head } from '@inertiajs/react';
 import {
     ArrowRight,
@@ -154,21 +154,7 @@ function getEventPhase(
     endsAt: string | undefined,
     nowTs: number,
 ): EventPhase {
-    const start = new Date(startsAt);
-    const end = endsAt ? new Date(endsAt) : null;
-    const nowDateTs = toDateOnlyTimestamp(new Date(nowTs));
-    const startDateTs = toDateOnlyTimestamp(start);
-    const endDateTs = end ? toDateOnlyTimestamp(end) : null;
-
-    if (endDateTs !== null) {
-        if (nowDateTs < startDateTs) return 'upcoming';
-        if (nowDateTs <= endDateTs) return 'ongoing';
-        return 'closed';
-    }
-
-    if (nowDateTs < startDateTs) return 'upcoming';
-    if (nowDateTs === startDateTs) return 'ongoing';
-    return 'closed';
+    return resolveEventPhaseFromDates(startsAt, endsAt, nowTs);
 }
 
 function BadgePill({

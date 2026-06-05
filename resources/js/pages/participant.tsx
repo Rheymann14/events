@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { splitCountriesByAsean } from '@/lib/countries';
-import { cn, toDateOnlyTimestamp } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { participant } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -655,21 +655,7 @@ function getEventPhase(
     endsAt: string | undefined,
     nowTs: number,
 ): EventPhase {
-    const start = new Date(startsAt);
-    const end = endsAt ? new Date(endsAt) : null;
-    const nowDateTs = toDateOnlyTimestamp(new Date(nowTs));
-    const startDateTs = toDateOnlyTimestamp(start);
-    const endDateTs = end ? toDateOnlyTimestamp(end) : null;
-
-    if (endDateTs !== null) {
-        if (nowDateTs < startDateTs) return 'upcoming';
-        if (nowDateTs <= endDateTs) return 'ongoing';
-        return 'closed';
-    }
-
-    if (nowDateTs < startDateTs) return 'upcoming';
-    if (nowDateTs === startDateTs) return 'ongoing';
-    return 'closed';
+    return resolveEventPhaseFromDates(startsAt, endsAt, nowTs);
 }
 
 function phaseBadgeClass(phase: EventPhase) {

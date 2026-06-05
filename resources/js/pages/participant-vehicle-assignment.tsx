@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn, toDateOnlyTimestamp } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { Bus, CalendarDays, Check, ChevronsUpDown, MapPin, Phone, User2 } from 'lucide-react';
 
 type VehicleAssignment = {
@@ -60,23 +60,7 @@ function formatEventWindow(startsAt?: string | null, endsAt?: string | null) {
 }
 
 function getEventPhase(startsAt: string | null | undefined, endsAt: string | null | undefined, nowTs: number): EventPhase {
-    if (!startsAt) return 'upcoming';
-
-    const start = new Date(startsAt);
-    const end = endsAt ? new Date(endsAt) : null;
-    const nowDateTs = toDateOnlyTimestamp(new Date(nowTs));
-    const startDateTs = toDateOnlyTimestamp(start);
-    const endDateTs = end ? toDateOnlyTimestamp(end) : null;
-
-    if (endDateTs !== null) {
-        if (nowDateTs < startDateTs) return 'upcoming';
-        if (nowDateTs <= endDateTs) return 'ongoing';
-        return 'closed';
-    }
-
-    if (nowDateTs < startDateTs) return 'upcoming';
-    if (nowDateTs === startDateTs) return 'ongoing';
-    return 'closed';
+    return resolveEventPhaseFromDates(startsAt, endsAt, nowTs);
 }
 
 function phaseLabel(phase: EventPhase) {

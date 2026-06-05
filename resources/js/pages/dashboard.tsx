@@ -48,7 +48,7 @@ import {
     YAxis,
 } from 'recharts';
 
-import { cn } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import {
     CalendarFold,
     Check,
@@ -158,15 +158,7 @@ function formatTime(dateString?: string | null) {
 type EventStatus = 'ongoing' | 'upcoming' | 'closed';
 
 function getEventStatus(event: DashboardEvent): EventStatus {
-    const now = new Date();
-    const startsAt = event.starts_at ? new Date(event.starts_at) : null;
-    const endsAt = event.ends_at ? new Date(event.ends_at) : null;
-
-    if (startsAt && startsAt > now) return 'upcoming';
-    if (endsAt && endsAt < now) return 'closed';
-    if (!endsAt && startsAt && startsAt < now) return 'closed';
-
-    return 'ongoing';
+    return resolveEventPhaseFromDates(event.starts_at, event.ends_at);
 }
 
 function getEventStatusClassName(status: EventStatus) {

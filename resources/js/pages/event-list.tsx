@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn, toDateOnlyTimestamp } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { CalendarDays, ImageOff, MapPin, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -105,21 +105,7 @@ function formatEventWindow(startsAt: string, endsAt?: string) {
 }
 
 function getEventPhase(startsAt: string, endsAt: string | undefined, nowTs: number): EventPhase {
-    const start = new Date(startsAt);
-    const end = endsAt ? new Date(endsAt) : null;
-    const nowDateTs = toDateOnlyTimestamp(new Date(nowTs));
-    const startDateTs = toDateOnlyTimestamp(start);
-    const endDateTs = end ? toDateOnlyTimestamp(end) : null;
-
-    if (endDateTs !== null) {
-        if (nowDateTs < startDateTs) return 'upcoming';
-        if (nowDateTs <= endDateTs) return 'ongoing';
-        return 'closed';
-    }
-
-    if (nowDateTs < startDateTs) return 'upcoming';
-    if (nowDateTs === startDateTs) return 'ongoing';
-    return 'closed';
+    return resolveEventPhaseFromDates(startsAt, endsAt, nowTs);
 }
 
 function normalizeProgrammes(programmes: ProgrammeRow[], nowTs: number): EventItem[] {

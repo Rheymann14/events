@@ -276,32 +276,32 @@ class FortifyServiceProvider extends ServiceProvider
 
     private function nearestOpenProgramme($programmes): ?Programme
     {
-        $today = now()->startOfDay();
+        $now = now();
 
         return $programmes
-            ->map(function (Programme $programme) use ($today) {
-                $startsAt = $programme->starts_at?->copy()->startOfDay();
-                $endsAt = $programme->ends_at?->copy()->startOfDay();
+            ->map(function (Programme $programme) use ($now) {
+                $startsAt = $programme->starts_at;
+                $endsAt = $programme->ends_at;
 
                 if (! $startsAt) {
                     return ['programme' => $programme, 'priority' => 2, 'distance' => PHP_INT_MAX];
                 }
 
                 $isClosed = $endsAt
-                    ? $today->greaterThan($endsAt)
-                    : $today->greaterThan($startsAt);
+                    ? $now->greaterThan($endsAt)
+                    : $now->greaterThan($startsAt) && ! $now->isSameDay($startsAt);
 
                 if ($isClosed) {
                     return null;
                 }
 
-                $isOngoing = $today->greaterThanOrEqualTo($startsAt)
-                    && (! $endsAt || $today->lessThanOrEqualTo($endsAt));
+                $isOngoing = $now->greaterThanOrEqualTo($startsAt)
+                    && ($endsAt ? $now->lessThanOrEqualTo($endsAt) : $now->isSameDay($startsAt));
 
                 return [
                     'programme' => $programme,
                     'priority' => $isOngoing ? 0 : 1,
-                    'distance' => abs($today->diffInDays($startsAt, false)),
+                    'distance' => abs($now->copy()->startOfDay()->diffInDays($startsAt->copy()->startOfDay(), false)),
                 ];
             })
             ->filter()

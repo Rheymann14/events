@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { cn, toDateOnlyTimestamp } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import * as React from 'react';
@@ -479,20 +479,7 @@ function resolveImageUrl(imageUrl?: string | null) {
 }
 
 function getEventStatus(starts_at?: string | null, ends_at?: string | null) {
-    if (!starts_at) return 'upcoming';
-    const start = new Date(starts_at);
-    if (Number.isNaN(start.getTime())) return 'upcoming';
-
-    const end = ends_at ? new Date(ends_at) : null;
-    const now = new Date();
-    const nowDateTs = toDateOnlyTimestamp(now);
-    const startDateTs = toDateOnlyTimestamp(start);
-    const endDateTs =
-        end && !Number.isNaN(end.getTime()) ? toDateOnlyTimestamp(end) : null;
-
-    if (endDateTs !== null && nowDateTs > endDateTs) return 'closed';
-    if (nowDateTs < startDateTs) return 'upcoming';
-    return 'ongoing';
+    return resolveEventPhaseFromDates(starts_at, ends_at);
 }
 
 function StatusBadge({ active }: { active: boolean }) {

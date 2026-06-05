@@ -31,7 +31,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { cn, toDateOnlyTimestamp } from '@/lib/utils';
+import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import {
@@ -153,18 +153,12 @@ function getCsrfTokens() {
 }
 
 function resolveEventPhase(event: EventRow, nowTs: number): EventPhase {
-    if (!event.is_active) return 'closed';
-
-    const startDate = event.starts_at ? new Date(event.starts_at) : null;
-    const endDate = event.ends_at ? new Date(event.ends_at) : null;
-
-    const todayTs = toDateOnlyTimestamp(new Date(nowTs));
-    const startTs = startDate ? toDateOnlyTimestamp(startDate) : null;
-    const endTs = endDate ? toDateOnlyTimestamp(endDate) : null;
-
-    if (startTs !== null && todayTs < startTs) return 'upcoming';
-    if (endTs !== null && todayTs > endTs) return 'closed';
-    return 'ongoing';
+    return resolveEventPhaseFromDates(
+        event.starts_at,
+        event.ends_at,
+        nowTs,
+        event.is_active,
+    );
 }
 
 function phaseLabel(phase: EventPhase) {
