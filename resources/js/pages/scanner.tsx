@@ -1,5 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
-import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
+import {
+    cn,
+    resolveEventPhaseFromDates,
+    toDateOnlyTimestamp,
+} from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import jsQR from 'jsqr';
@@ -155,6 +159,28 @@ function resolveEventPhase(event: EventRow, now: number): EventRow['phase'] {
         now,
         event.is_active ?? true,
     );
+}
+
+function isEventOpenForScanning(event: EventRow, now: number) {
+    if (event.is_active === false) return false;
+
+    const start = event.starts_at ? new Date(event.starts_at) : null;
+    const end = event.ends_at ? new Date(event.ends_at) : null;
+    const nowDate = new Date(now);
+
+    if (
+        end &&
+        !Number.isNaN(end.getTime()) &&
+        nowDate.getTime() > end.getTime()
+    ) {
+        return false;
+    }
+
+    if (start && !Number.isNaN(start.getTime())) {
+        return toDateOnlyTimestamp(nowDate) >= toDateOnlyTimestamp(start);
+    }
+
+    return true;
 }
 
 function phaseLabel(phase?: EventRow['phase']) {
@@ -1095,8 +1121,9 @@ export default function Scanner(props: PageProps) {
     const selectedEventPhase = selectedEvent
         ? resolveEventPhase(selectedEvent, nowTs)
         : undefined;
-    const isEventBlocked =
-        !!selectedEventPhase && selectedEventPhase !== 'ongoing';
+    const isEventBlocked = selectedEvent
+        ? !isEventOpenForScanning(selectedEvent, nowTs)
+        : false;
     function ensureEventSelected() {
         if (!selectedEventId) {
             const data = {
@@ -1107,12 +1134,12 @@ export default function Scanner(props: PageProps) {
                 void openResultDialog(data);
             return false;
         }
-        if (selectedEventPhase && selectedEventPhase !== 'ongoing') {
+        if (selectedEvent && !isEventOpenForScanning(selectedEvent, nowTs)) {
             const data = {
                 ok: false,
                 message:
                     selectedEventPhase === 'upcoming'
-                        ? 'This event has not started yet. Scanning will open once it is ongoing.'
+                        ? 'Early check-in opens on the event day.'
                         : 'This event is no longer open for scanning.',
             } as ScanResponse;
             if (!resultOpen && !resultLatchRef.current)

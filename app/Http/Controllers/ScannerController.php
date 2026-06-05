@@ -60,6 +60,15 @@ class ScannerController extends Controller
             ]);
         }
 
+        $now = now();
+
+        if (! $this->isOpenForScanning($event, $now)) {
+            return response()->json([
+                'ok' => false,
+                'message' => $this->scanClosedMessage($event, $now),
+            ]);
+        }
+
         $participant = $this->resolveParticipant($validated['code']);
         if (! $participant) {
             return response()->json([
@@ -100,27 +109,26 @@ class ScannerController extends Controller
         }
 
         $participant->loadMissing(['country', 'userType', 'joinedProgrammes']);
-        
-            $rawProfilePath = $participant->profile_image_path
+
+        $rawProfilePath = $participant->profile_image_path
         ?? $participant->profile_image
         ?? $participant->profile_photo_path
         ?? null;
 
-    $profileImageUrl = null;
-    if ($rawProfilePath) {
-        $rawProfilePath = ltrim((string) $rawProfilePath, '/');
+        $profileImageUrl = null;
+        if ($rawProfilePath) {
+            $rawProfilePath = ltrim((string) $rawProfilePath, '/');
 
-        if (str_starts_with($rawProfilePath, 'http://') || str_starts_with($rawProfilePath, 'https://')) {
-            $profileImageUrl = $rawProfilePath;
-        } else {
-            $relative = str_starts_with($rawProfilePath, 'profile-image/')
-                ? $rawProfilePath
-                : 'profile-image/' . $rawProfilePath;
+            if (str_starts_with($rawProfilePath, 'http://') || str_starts_with($rawProfilePath, 'https://')) {
+                $profileImageUrl = $rawProfilePath;
+            } else {
+                $relative = str_starts_with($rawProfilePath, 'profile-image/')
+                    ? $rawProfilePath
+                    : 'profile-image/'.$rawProfilePath;
 
-            $profileImageUrl = asset($relative);
+                $profileImageUrl = asset($relative);
+            }
         }
-    }
-
 
         return response()->json([
             'ok' => true,
@@ -200,5 +208,36 @@ class ScannerController extends Controller
         }
 
         return $now->isSameDay($start) ? 'ongoing' : 'closed';
+    }
+
+    private function isOpenForScanning(Programme $programme, Carbon $now): bool
+    {
+        if (! $programme->is_active) {
+            return false;
+        }
+
+        if ($programme->ends_at && $now->greaterThan($programme->ends_at)) {
+            return false;
+        }
+
+        if ($programme->starts_at) {
+            return $now->copy()->startOfDay()->greaterThanOrEqualTo(
+                $programme->starts_at->copy()->startOfDay()
+            );
+        }
+
+        return true;
+    }
+
+    private function scanClosedMessage(Programme $programme, Carbon $now): string
+    {
+        if (
+            $programme->starts_at
+            && $now->copy()->startOfDay()->lessThan($programme->starts_at->copy()->startOfDay())
+        ) {
+            return 'Early check-in opens on the event day.';
+        }
+
+        return 'This event is no longer open for scanning.';
     }
 }
