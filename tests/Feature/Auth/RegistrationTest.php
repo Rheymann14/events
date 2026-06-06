@@ -163,7 +163,16 @@ test('new users can register', function () {
     $response->assertSessionHas('status', 'registered');
 
     $participant = User::query()->where('email', 'test@example.com')->firstOrFail();
+    $response->assertSessionHas('registeredParticipant.display_id', $participant->display_id);
     expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
+
+    $this->get(route('register'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('auth/register')
+            ->where('status', 'registered')
+            ->where('registeredParticipant.display_id', $participant->display_id)
+        );
 });
 
 test('existing users can join selected event from registration form', function () {

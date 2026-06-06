@@ -979,7 +979,6 @@ class ParticipantController extends Controller
         $displayId = $this->pdfText((string) $participant['display_id']);
         $qrPayload = (string) ($participant['qr_payload'] ?? $participant['display_id']);
         $photoPath = $participant['photo_path'] ?? null;
-
         $bodyTop = $top - $pad - 43.0;
         $this->drawText($pdf, 'PARTICIPANT', $x + $pad, $bodyTop, $isLandscape ? 6.4 : 7.0, [0.39, 0.46, 0.57]);
 
@@ -1061,8 +1060,7 @@ class ParticipantController extends Controller
         bool $compact,
         string $countryCode = '',
         string $name = ''
-    ): void
-    {
+    ): void {
         $radius = $compact ? 11.0 : 15.0;
         $this->filledRoundedRectangle($pdf, $x, $y, $width, $height, $radius);
         $pdf->setStrokeColor([0.82, 0.88, 0.96]);

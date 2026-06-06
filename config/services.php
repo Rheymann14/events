@@ -43,12 +43,6 @@ return [
         'max_length' => env('SEMAPHORE_MAX_LENGTH', 459),
     ],
 
-    'brevo' => [
-        'api_key' => env('BREVO_API_KEY'),
-        'sender_email' => env('BREVO_SENDER_EMAIL', 'noreply@ched.gov.ph'),
-        'sender_name' => env('BREVO_SENDER_NAME', 'CHED Events'),
-    ],
-
     'registration' => [
         'public_event_id' => env('PUBLIC_REGISTRATION_EVENT_ID', env('ASEMME10_EVENT_ID')),
         'welcome_dinner_enabled' => env('WELCOME_DINNER_REGISTRATION_ENABLED', false),

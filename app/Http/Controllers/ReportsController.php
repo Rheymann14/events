@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AssignmentNotificationMail;
 use App\Models\AssignmentNotificationLog;
 use App\Models\EventRegistrationAttendee;
 use App\Models\ParticipantAttendance;
@@ -15,8 +16,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -89,27 +90,9 @@ class ReportsController extends Controller
         $participantName = trim($user->name ?: collect([$user->given_name, $user->family_name, $user->suffix])->filter()->implode(' '));
         $participantName = $participantName !== '' ? $participantName : 'Participant';
 
-        $textContent = "Hi {$participantName}
-
-Please be informed of the following:
-
-"
-            .'Participant ID: '.($user->display_id ?: $user->id)."\n"
-            ."Event Title: {$event->title}
-"
-            .'Event Date: '.($eventDate ?: 'TBA').'
-'
-            ."Vehicle: {$vehicleName}
-"
-            ."Vehicle Plate Number: {$vehiclePlateNumber}
-"
-            ."Table Number: {$tableNumber}
-
-"
-            .'Thank you!';
-
         $appUrl = rtrim((string) config('app.url', 'https://events.ched.gov.ph'), '/');
-        $htmlContent = $this->minifyHtml(view('emails.assignment-notification-brevo', [
+
+        $mailDetails = [
             'bannerUrl' => $appUrl.'/img/ched_banner.png',
             'logoUrl' => $appUrl.'/img/ched_logo.png',
             'participantName' => $participantName,
@@ -119,56 +102,10 @@ Please be informed of the following:
             'vehicleName' => $vehicleName,
             'vehiclePlateNumber' => $vehiclePlateNumber,
             'tableNumber' => $tableNumber,
-        ])->render());
-
-        $apiKey = config('services.brevo.api_key');
-
-        if (! $apiKey) {
-            Log::warning('Assignment email skipped: BREVO_API_KEY missing.', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'event_id' => $event->id,
-            ]);
-
-            return response()->json([
-                'message' => 'Notification could not be sent because BREVO API key is missing.',
-            ], 500);
-        }
+        ];
 
         try {
-            $response = Http::timeout(20)
-                ->withHeaders([
-                    'api-key' => $apiKey,
-                    'accept' => 'application/json',
-                    'content-type' => 'application/json',
-                ])
-                ->post('https://api.brevo.com/v3/smtp/email', [
-                    'sender' => [
-                        'name' => config('services.brevo.sender_name', config('mail.from.name', 'CHED Events')),
-                        'email' => config('services.brevo.sender_email', config('mail.from.address', 'noreply@ched.gov.ph')),
-                    ],
-                    'to' => [[
-                        'email' => $user->email,
-                        'name' => $participantName,
-                    ]],
-                    'subject' => 'CHED Events Assignment Notification',
-                    'htmlContent' => $htmlContent,
-                    'textContent' => $textContent,
-                ]);
-
-            if ($response->failed()) {
-                Log::error('Assignment email via Brevo API failed.', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'event_id' => $event->id,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-
-                return response()->json([
-                    'message' => 'Failed to send notification.',
-                ], 500);
-            }
+            Mail::to($user->email, $participantName)->send(new AssignmentNotificationMail($mailDetails));
 
             $sentAt = now();
 
@@ -189,19 +126,17 @@ Please be informed of the following:
         } catch (\Throwable $exception) {
             report($exception);
 
+            Log::error('Assignment email failed.', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'event_id' => $event->id,
+                'error' => $exception->getMessage(),
+            ]);
+
             return response()->json([
                 'message' => 'Failed to send notification.',
             ], 500);
         }
-    }
-
-    private function minifyHtml(string $html): string
-    {
-        $html = preg_replace('/<!--.*?-->/s', '', $html) ?? $html;
-        $html = preg_replace('/>\s+</', '><', $html) ?? $html;
-        $html = preg_replace('/\s{2,}/', ' ', $html) ?? $html;
-
-        return trim($html);
     }
 
     public function index()

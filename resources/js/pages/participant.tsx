@@ -625,8 +625,7 @@ function participantTableDisplayName(participant: ParticipantRow) {
 }
 
 function sexAssignedAtBirthLabel(value?: string | null) {
-    return SEX_ASSIGNED_OPTIONS.find((option) => option.value === value)
-        ?.label;
+    return SEX_ASSIGNED_OPTIONS.find((option) => option.value === value)?.label;
 }
 
 const FALLBACK_EVENT_IMAGE = '/img/ched_co.jpg';
@@ -865,11 +864,7 @@ function csrfToken() {
     );
 }
 
-function appendHiddenInput(
-    form: HTMLFormElement,
-    name: string,
-    value: string,
-) {
+function appendHiddenInput(form: HTMLFormElement, name: string, value: string) {
     const input = document.createElement('input');
 
     input.type = 'hidden';
@@ -1004,6 +999,7 @@ function ParticipantIdPrintCard({
 
     const participantImageSrc =
         resolveParticipantProfileImage(participant) || '/img/ched_logo.png';
+
     const name = participant.full_name || '—';
     const displayId = participant.display_id ?? '—';
 

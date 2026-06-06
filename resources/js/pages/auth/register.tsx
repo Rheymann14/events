@@ -21,6 +21,7 @@ import { store } from '@/routes/register';
 import { Form, Head, Link, router, useRemember } from '@inertiajs/react';
 import QRCode from 'qrcode';
 import * as React from 'react';
+import Confetti from 'react-confetti';
 import type { Crop, PixelCrop } from 'react-image-crop';
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -606,6 +607,10 @@ export default function Register({
     const [successQrDataUrl, setSuccessQrDataUrl] = React.useState<
         string | null
     >(null);
+    const [successConfettiSize, setSuccessConfettiSize] = React.useState({
+        width: 0,
+        height: 0,
+    });
     const virtualIdParticipant = React.useMemo<VirtualIdParticipant | null>(
         () =>
             registeredParticipant ??
@@ -1838,6 +1843,28 @@ export default function Register({
     }, []);
 
     React.useEffect(() => {
+        if (!successOpen) {
+            setSuccessConfettiSize({ width: 0, height: 0 });
+            return;
+        }
+
+        const updateSize = () => {
+            setSuccessConfettiSize({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
+        };
+
+        updateSize();
+
+        window.addEventListener('resize', updateSize);
+
+        return () => {
+            window.removeEventListener('resize', updateSize);
+        };
+    }, [successOpen]);
+
+    React.useEffect(() => {
         let active = true;
         const value = virtualIdParticipant?.qr_payload?.trim();
 
@@ -1908,7 +1935,7 @@ export default function Register({
             loadCanvasImage('/img/ched_logo.png'),
             loadCanvasImage('/img/bagong_pilipinas.png'),
             loadCanvasImage(virtualIdImageUrl),
-            loadCanvasImage('/img/bg2.png'),
+            loadCanvasImage('/img/id-card-bg.jpg'),
         ]);
 
         if (!qrImage) return;
@@ -2392,6 +2419,15 @@ export default function Register({
                     }
                 }}
                 onSubmitCapture={(event) => {
+                    if (currentStep < steps.length - 1) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.nativeEvent.stopImmediatePropagation?.();
+                        goNext();
+
+                        return;
+                    }
+
                     if (isAsemme10Registration) {
                         event.preventDefault();
                         event.stopPropagation();
@@ -5399,203 +5435,237 @@ export default function Register({
                                 }}
                             >
                                 <DialogContent
-                                    className="max-h-[calc(100vh-1.5rem)] w-[calc(100%-2rem)] !max-w-2xl overflow-y-auto rounded-2xl border-none bg-white p-5 text-slate-900 sm:w-full sm:p-6"
+                                    className="max-h-[calc(100vh-1.5rem)] w-[calc(100%-2rem)] !max-w-2xl overflow-y-auto rounded-2xl border-none bg-white p-0 text-slate-900 sm:w-full"
                                     style={{ colorScheme: 'light' }}
                                 >
-                                    <DialogHeader className="items-center text-center">
-                                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0033A0] text-white shadow-lg shadow-[#0033A0]/20">
-                                            <CheckCircle2 className="h-7 w-7" />
-                                        </div>
-
-                                        <DialogTitle className="text-xl text-slate-800">
-                                            Registration successful
-                                        </DialogTitle>
-
-                                        <DialogDescription className="text-sm text-slate-600">
-                                            {asemme10Submission
-                                                ? 'Your ASEMME10 registration was submitted.'
-                                                : 'Your virtual participant ID is ready. A copy was also sent to your email.'}
-                                            <span className="mt-2 block rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-                                                <span className="font-semibold">
-                                                    Please check your EMAIL.
-                                                </span>{' '}
-                                                Also check your{' '}
-                                                <span className="font-semibold">
-                                                    Spam/Junk
-                                                </span>{' '}
-                                                folder if you do not see it.
-                                            </span>
-                                        </DialogDescription>
-                                    </DialogHeader>
-
-                                    {asemme10Submission ? (
-                                        <div className="mx-auto w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-                                            <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                                                Registered participants
-                                            </p>
-                                            <div className="mt-3 grid gap-2">
-                                                {asemme10Submission.participants.map(
-                                                    (participant) => (
-                                                        <div
-                                                            key={
-                                                                participant.display_id
-                                                            }
-                                                            className="rounded-lg border border-slate-200 px-3 py-2"
-                                                        >
-                                                            <p className="font-semibold text-slate-800">
-                                                                {
-                                                                    participant.name
-                                                                }
-                                                            </p>
-                                                            <p className="text-sm text-slate-500">
-                                                                {
-                                                                    participant.display_id
-                                                                }
-                                                            </p>
-                                                        </div>
-                                                    ),
-                                                )}
-                                            </div>
+                                    {successOpen &&
+                                    successConfettiSize.width > 0 &&
+                                    successConfettiSize.height > 0 ? (
+                                        <div
+                                            className="pointer-events-none fixed inset-0 z-[60] overflow-hidden"
+                                            aria-hidden="true"
+                                        >
+                                            <Confetti
+                                                width={
+                                                    successConfettiSize.width
+                                                }
+                                                height={
+                                                    successConfettiSize.height
+                                                }
+                                                numberOfPieces={180}
+                                                recycle={false}
+                                                gravity={0.28}
+                                                tweenDuration={4500}
+                                                colors={[
+                                                    '#0033A0',
+                                                    '#FCD116',
+                                                    '#CE1126',
+                                                    '#2563EB',
+                                                    '#22C55E',
+                                                    '#FFFFFF',
+                                                ]}
+                                            />
                                         </div>
                                     ) : null}
+                                    <div className="relative z-10 grid gap-4 p-5 sm:p-6">
+                                        <DialogHeader className="items-center text-center">
+                                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0033A0] text-white shadow-lg shadow-[#0033A0]/20">
+                                                <CheckCircle2 className="h-7 w-7" />
+                                            </div>
 
-                                    {virtualIdParticipant ? (
-                                        <div
-                                            className="mx-auto aspect-[1.62/1] w-full !max-w-[390px] overflow-hidden rounded-[16px] border border-sky-100 bg-sky-50 p-3 shadow-lg shadow-slate-200/70 sm:!max-w-[440px] sm:rounded-[18px] sm:p-3"
-                                            style={{
-                                                colorScheme: 'light',
-                                                backgroundImage:
-                                                    "linear-gradient(120deg, rgba(255,255,255,0.9), rgba(225,244,255,0.78), rgba(255,255,255,0.92)), url('/img/bg2.png')",
-                                                backgroundPosition: 'center',
-                                                backgroundSize: 'cover',
-                                            }}
-                                        >
-                                            <div className="grid h-full grid-cols-[minmax(0,1fr)_33%] gap-3">
-                                                <div className="flex min-w-0 flex-col">
-                                                    <div className="flex items-start gap-2">
-                                                        <img
-                                                            src="/img/ched_logo.png"
-                                                            alt="CHED"
-                                                            className="h-6 w-6 object-contain sm:h-7 sm:w-7"
-                                                        />
-                                                        <img
-                                                            src="/img/bagong_pilipinas.png"
-                                                            alt="Bagong Pilipinas"
-                                                            className="h-6 w-auto object-contain sm:h-7"
-                                                        />
-                                                        <div className="min-w-0">
-                                                            <p className="truncate text-[11px] font-bold text-slate-700 sm:text-sm">
-                                                                CHED Events
-                                                                Registration
-                                                            </p>
-                                                            <p className="truncate text-[10px] text-slate-500 sm:text-[11px]">
-                                                                {
-                                                                    virtualIdEventTitle
+                                            <DialogTitle className="text-xl text-slate-800">
+                                                Registration successful
+                                            </DialogTitle>
+
+                                            <DialogDescription className="text-sm text-slate-600">
+                                                {asemme10Submission
+                                                    ? 'Your ASEMME10 registration was submitted.'
+                                                    : 'Your virtual participant ID is ready. A copy was also sent to your email.'}
+                                                <span className="mt-2 block rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+                                                    <span className="font-semibold">
+                                                        Please check your EMAIL.
+                                                    </span>{' '}
+                                                    Also check your{' '}
+                                                    <span className="font-semibold">
+                                                        Spam/Junk
+                                                    </span>{' '}
+                                                    folder if you do not see it.
+                                                </span>
+                                            </DialogDescription>
+                                        </DialogHeader>
+
+                                        {asemme10Submission ? (
+                                            <div className="mx-auto w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+                                                <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                                                    Registered participants
+                                                </p>
+                                                <div className="mt-3 grid gap-2">
+                                                    {asemme10Submission.participants.map(
+                                                        (participant) => (
+                                                            <div
+                                                                key={
+                                                                    participant.display_id
                                                                 }
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="mt-3 min-w-0 sm:mt-4">
-                                                        <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase sm:text-[11px]">
-                                                            Participant
-                                                        </p>
-                                                        <p className="mt-0.5 line-clamp-2 text-lg leading-tight font-bold text-slate-950 sm:text-2xl">
-                                                            {
-                                                                virtualIdParticipant.name
-                                                            }
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="mt-2.5 flex min-w-0 items-center gap-2.5 sm:mt-3">
-                                                        <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm sm:h-12 sm:w-12">
-                                                            <img
-                                                                src={
-                                                                    virtualIdImageUrl
-                                                                }
-                                                                alt="Participant"
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase sm:text-[11px]">
-                                                                Participant ID
-                                                            </p>
-                                                            <div className="mt-1 inline-flex max-w-full rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 shadow-sm">
-                                                                <p className="truncate text-[11px] font-bold text-slate-900 sm:text-xs">
+                                                                className="rounded-lg border border-slate-200 px-3 py-2"
+                                                            >
+                                                                <p className="font-semibold text-slate-800">
                                                                     {
-                                                                        virtualIdParticipant.display_id
+                                                                        participant.name
+                                                                    }
+                                                                </p>
+                                                                <p className="text-sm text-slate-500">
+                                                                    {
+                                                                        participant.display_id
+                                                                    }
+                                                                </p>
+                                                            </div>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : null}
+
+                                        {virtualIdParticipant ? (
+                                            <div
+                                                className="mx-auto aspect-[1.62/1] w-full !max-w-[390px] overflow-hidden rounded-[16px] border border-sky-100 bg-sky-50 p-3 shadow-lg shadow-slate-200/70 sm:!max-w-[440px] sm:rounded-[18px] sm:p-3"
+                                                style={{
+                                                    colorScheme: 'light',
+                                                    backgroundImage:
+                                                        "linear-gradient(to bottom, rgba(255,255,255,0.45), rgba(255,255,255,0.2), rgba(255,255,255,0.55)), url('/img/id-card-bg.jpg')",
+                                                    backgroundPosition:
+                                                        'center',
+                                                    backgroundSize: 'cover',
+                                                }}
+                                            >
+                                                <div className="grid h-full grid-cols-[minmax(0,1fr)_33%] gap-3">
+                                                    <div className="flex min-w-0 flex-col">
+                                                        <div className="flex items-start gap-2">
+                                                            <img
+                                                                src="/img/ched_logo.png"
+                                                                alt="CHED"
+                                                                className="h-6 w-6 object-contain sm:h-7 sm:w-7"
+                                                            />
+                                                            <img
+                                                                src="/img/bagong_pilipinas.png"
+                                                                alt="Bagong Pilipinas"
+                                                                className="h-6 w-auto object-contain sm:h-7"
+                                                            />
+                                                            <div className="min-w-0">
+                                                                <p className="truncate text-[11px] font-bold text-slate-700 sm:text-sm">
+                                                                    CHED Events
+                                                                    Registration
+                                                                </p>
+                                                                <p className="truncate text-[10px] text-slate-500 sm:text-[11px]">
+                                                                    {
+                                                                        virtualIdEventTitle
                                                                     }
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                    </div>
 
-                                                    <div className="mt-auto pt-2">
-                                                        <p className="hidden text-[10px] font-medium text-slate-500 sm:block">
-                                                            Scan QR for
-                                                            attendance
-                                                            verification.
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex min-w-0 items-center justify-center">
-                                                    <div className="flex h-full max-h-[94%] w-full flex-col items-center justify-center rounded-[16px] border border-slate-200/80 bg-white/90 p-2 shadow-md shadow-slate-200/80 sm:rounded-[18px]">
-                                                        <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold text-slate-600 sm:text-[11px]">
-                                                            <QrCode className="h-3 w-3" />
-                                                            QR Code
-                                                        </div>
-                                                        {successQrDataUrl ? (
-                                                            <img
-                                                                src={
-                                                                    successQrDataUrl
+                                                        <div className="mt-3 min-w-0 sm:mt-4">
+                                                            <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase sm:text-[11px]">
+                                                                Participant
+                                                            </p>
+                                                            <p className="mt-0.5 line-clamp-2 text-lg leading-tight font-bold text-slate-950 sm:text-2xl">
+                                                                {
+                                                                    virtualIdParticipant.name
                                                                 }
-                                                                alt="Participant QR code"
-                                                                className="aspect-square w-full max-w-[104px] bg-white sm:max-w-[124px]"
-                                                            />
-                                                        ) : (
-                                                            <div className="grid aspect-square w-full max-w-[104px] place-items-center bg-white text-center text-[10px] text-slate-500 sm:max-w-[124px]">
-                                                                Generating QR...
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="mt-2.5 flex min-w-0 items-center gap-2.5 sm:mt-3">
+                                                            <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm sm:h-12 sm:w-12">
+                                                                <img
+                                                                    src={
+                                                                        virtualIdImageUrl
+                                                                    }
+                                                                    alt="Participant"
+                                                                    className="h-full w-full object-cover"
+                                                                />
                                                             </div>
-                                                        )}
-                                                        <p className="mt-1.5 line-clamp-2 max-w-full text-center text-[8px] font-bold text-slate-700 sm:text-[9px]">
-                                                            {
-                                                                virtualIdParticipant.name
-                                                            }
-                                                        </p>
-                                                        <p className="mt-0.5 max-w-full truncate text-center text-[8px] font-medium text-slate-500 sm:text-[9px]">
-                                                            {
-                                                                virtualIdParticipant.display_id
-                                                            }
-                                                        </p>
+                                                            <div className="min-w-0">
+                                                                <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase sm:text-[11px]">
+                                                                    Participant
+                                                                    ID
+                                                                </p>
+                                                                <div className="mt-1 inline-flex max-w-full rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 shadow-sm">
+                                                                    <p className="truncate text-[11px] font-bold text-slate-900 sm:text-xs">
+                                                                        {
+                                                                            virtualIdParticipant.display_id
+                                                                        }
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-auto pt-2">
+                                                            <p className="hidden text-[10px] font-medium text-slate-500 sm:block">
+                                                                Scan QR for
+                                                                attendance
+                                                                verification.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex min-w-0 items-center justify-center">
+                                                        <div className="flex h-full max-h-[94%] w-full flex-col items-center justify-center rounded-[16px] border border-slate-200/80 bg-white/90 p-2 shadow-md shadow-slate-200/80 sm:rounded-[18px]">
+                                                            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold text-slate-600 sm:text-[11px]">
+                                                                <QrCode className="h-3 w-3" />
+                                                                QR Code
+                                                            </div>
+                                                            {successQrDataUrl ? (
+                                                                <img
+                                                                    src={
+                                                                        successQrDataUrl
+                                                                    }
+                                                                    alt="Participant QR code"
+                                                                    className="aspect-square w-full max-w-[104px] bg-white sm:max-w-[124px]"
+                                                                />
+                                                            ) : (
+                                                                <div className="grid aspect-square w-full max-w-[104px] place-items-center bg-white text-center text-[10px] text-slate-500 sm:max-w-[124px]">
+                                                                    Generating
+                                                                    QR...
+                                                                </div>
+                                                            )}
+                                                            <p className="mt-1.5 line-clamp-2 max-w-full text-center text-[8px] font-bold text-slate-700 sm:text-[9px]">
+                                                                {
+                                                                    virtualIdParticipant.name
+                                                                }
+                                                            </p>
+                                                            <p className="mt-0.5 max-w-full truncate text-center text-[8px] font-medium text-slate-500 sm:text-[9px]">
+                                                                {
+                                                                    virtualIdParticipant.display_id
+                                                                }
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ) : null}
+                                        ) : null}
 
-                                    <DialogFooter className="relative z-10 mt-1 gap-2 bg-white pt-1 sm:mt-2 sm:justify-center">
-                                        {virtualIdParticipant ? (
+                                        <DialogFooter className="relative z-10 mt-1 gap-2 bg-white pt-1 sm:mt-2 sm:justify-center">
+                                            {virtualIdParticipant ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="rounded-full px-6"
+                                                    onClick={downloadVirtualId}
+                                                    disabled={!successQrDataUrl}
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                    Download JPG
+                                                </Button>
+                                            ) : null}
                                             <Button
                                                 type="button"
-                                                variant="outline"
-                                                className="rounded-full px-6"
-                                                onClick={downloadVirtualId}
-                                                disabled={!successQrDataUrl}
+                                                className="rounded-full bg-[#0033A0] px-6 text-white hover:bg-[#002b86] disabled:cursor-not-allowed disabled:opacity-60"
+                                                onClick={closeSuccessDialog}
                                             >
-                                                <Download className="h-4 w-4" />
-                                                Download JPG
+                                                Got it
                                             </Button>
-                                        ) : null}
-                                        <Button
-                                            type="button"
-                                            className="rounded-full bg-[#0033A0] px-6 text-white hover:bg-[#002b86] disabled:cursor-not-allowed disabled:opacity-60"
-                                            onClick={closeSuccessDialog}
-                                        >
-                                            Got it
-                                        </Button>
-                                    </DialogFooter>
+                                        </DialogFooter>
+                                    </div>
                                 </DialogContent>
                             </Dialog>
 

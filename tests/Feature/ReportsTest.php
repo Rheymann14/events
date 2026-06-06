@@ -1,13 +1,18 @@
 <?php
 
+use App\Mail\AssignmentNotificationMail;
+use App\Models\AssignmentNotificationLog;
 use App\Models\Country;
 use App\Models\EventRegistrationAttendee;
 use App\Models\EventRegistrationSubmission;
 use App\Models\ParticipantAttendance;
+use App\Models\ParticipantTable;
+use App\Models\ParticipantTableAssignment;
 use App\Models\Programme;
 use App\Models\User;
 use App\Models\UserType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -57,6 +62,57 @@ test('reports include active admin users with participant activity', function ()
                 && in_array($programme->id, collect($rows)->first()['joined_programme_ids'], true)
                 && in_array($programme->id, collect($rows)->first()['attended_programme_ids'], true))
         );
+});
+
+test('assignment notification sends through laravel mailer and records sent timestamp', function () {
+    Mail::fake();
+
+    $admin = User::factory()->create();
+    $participant = User::factory()->create([
+        'name' => 'Assigned Participant',
+        'email' => 'assigned@example.test',
+    ]);
+    $programme = Programme::query()->create([
+        'user_id' => $admin->id,
+        'tag' => 'TEST',
+        'title' => 'Test Event',
+        'description' => 'Programme description',
+        'location' => 'Manila',
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
+        'is_active' => true,
+    ]);
+    $table = ParticipantTable::query()->create([
+        'programme_id' => $programme->id,
+        'table_number' => 'Table 1',
+        'capacity' => 10,
+    ]);
+
+    ParticipantTableAssignment::query()->create([
+        'programme_id' => $programme->id,
+        'participant_table_id' => $table->id,
+        'seat_number' => 1,
+        'user_id' => $participant->id,
+        'assigned_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson(route('reports.assignment-notification.send', $participant), [
+            'event_id' => $programme->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('message', 'Notification sent successfully.');
+
+    Mail::assertSent(AssignmentNotificationMail::class, function (AssignmentNotificationMail $mail) use ($programme) {
+        return $mail->hasTo('assigned@example.test')
+            && $mail->details['eventTitle'] === $programme->title
+            && $mail->details['tableNumber'] === 'Table 1';
+    });
+
+    expect(AssignmentNotificationLog::query()
+        ->where('user_id', $participant->id)
+        ->where('programme_id', $programme->id)
+        ->exists())->toBeTrue();
 });
 
 test('reports count asemme10 registration attendees as selected event participants', function () {

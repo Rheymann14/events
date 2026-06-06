@@ -58,23 +58,15 @@ class ParticipantWelcomeMail extends Mailable
         $bannerPath = public_path('img/ched_banner.png');
         $logoPath = public_path('img/ched_logo.png');
         $bagongPilipinasPath = public_path('img/bagong_pilipinas.png');
-        $profilePhotoPath = $this->user->profile_photo_path
-            ? public_path($this->user->profile_photo_path)
-            : null;
-        $profilePhotoUrl = $this->user->profile_photo_path
-            ? $appUrl.'/'.ltrim($this->user->profile_photo_path, '/')
-            : $appUrl.'/img/ched_logo.png';
 
         return [
             'appUrl' => $appUrl,
-            'bannerUrl' => $appUrl . '/img/ched_banner.png',
-            'logoUrl' => $appUrl . '/img/ched_logo.png',
+            'bannerUrl' => $appUrl.'/img/ched_banner.png',
+            'logoUrl' => $appUrl.'/img/ched_logo.png',
             'bannerPath' => is_file($bannerPath) ? $bannerPath : null,
             'logoPath' => is_file($logoPath) ? $logoPath : null,
-            'bagongPilipinasUrl' => $appUrl . '/img/bagong_pilipinas.png',
+            'bagongPilipinasUrl' => $appUrl.'/img/bagong_pilipinas.png',
             'bagongPilipinasPath' => is_file($bagongPilipinasPath) ? $bagongPilipinasPath : null,
-            'profilePhotoUrl' => $profilePhotoUrl,
-            'profilePhotoPath' => $profilePhotoPath && is_file($profilePhotoPath) ? $profilePhotoPath : null,
             'events' => $events,
             'primaryEventTitle' => $events->first()['title'] ?? 'CHED Events Registration',
             'assignments' => $assignments,
@@ -83,7 +75,6 @@ class ParticipantWelcomeMail extends Mailable
             'user' => $this->user,
         ];
     }
-
 
     public function attachments(): array
     {
