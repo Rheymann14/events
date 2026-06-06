@@ -12,7 +12,10 @@
                     <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden;">
                         <tr>
                             <td style="padding: 20px 28px 8px;">
-                                <img src="{{ $bannerUrl }}" alt="CHED Events banner" style="display: block; width: 100%; max-width: 260px; height: auto;" />
+                                @php
+                                    $bannerSrc = ($bannerPath ?? null) && isset($message) ? $message->embed($bannerPath) : $bannerUrl;
+                                @endphp
+                                <img src="{{ $bannerSrc }}" alt="CHED Events banner" style="display: block; width: 100%; max-width: 260px; height: auto;" />
                             </td>
                         </tr>
                         <tr>
@@ -33,7 +36,10 @@
                                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                                 <tr>
                                                     <td style="width: 40px; vertical-align: middle;">
-                                                        <img src="{{ $logoUrl }}" alt="CHED logo" style="width: 36px; height: 36px; display: block;" />
+                                                        @php
+                                                            $logoSrc = ($logoPath ?? null) && isset($message) ? $message->embed($logoPath) : $logoUrl;
+                                                        @endphp
+                                                        <img src="{{ $logoSrc }}" alt="CHED logo" style="width: 36px; height: 36px; display: block;" />
                                                     </td>
                                                     <td style="vertical-align: middle;">
                                                         <div style="font-size: 12px; font-weight: 700; color: #0f172a;">CHED Events Registration</div>

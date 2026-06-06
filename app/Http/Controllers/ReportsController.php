@@ -91,10 +91,14 @@ class ReportsController extends Controller
         $participantName = $participantName !== '' ? $participantName : 'Participant';
 
         $appUrl = rtrim((string) config('app.url', 'https://events.ched.gov.ph'), '/');
+        $bannerPath = public_path('img/ched_banner.png');
+        $logoPath = public_path('img/ched_logo.png');
 
         $mailDetails = [
             'bannerUrl' => $appUrl.'/img/ched_banner.png',
             'logoUrl' => $appUrl.'/img/ched_logo.png',
+            'bannerPath' => is_file($bannerPath) ? $bannerPath : null,
+            'logoPath' => is_file($logoPath) ? $logoPath : null,
             'participantName' => $participantName,
             'participantId' => $user->display_id ?: $user->id,
             'eventTitle' => $event->title,
