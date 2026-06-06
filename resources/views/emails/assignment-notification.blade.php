@@ -57,7 +57,37 @@
                                                 <tr><td><strong>Event Date:</strong> {{ $eventDate }}</td></tr>
                                                 <tr><td><strong>Vehicle:</strong> {{ $vehicleName }}</td></tr>
                                                 <tr><td><strong>Vehicle Plate Number:</strong> {{ $vehiclePlateNumber }}</td></tr>
-                                                <tr><td><strong>Table Number:</strong> {{ $tableNumber }}</td></tr>
+                                                <tr>
+                                                    <td style="padding-top: 12px;">
+                                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 2px solid #00359c; border-radius: 14px; background-color: #ffffff;">
+                                                            <tr>
+                                                                <td style="padding: 14px 16px;">
+                                                                    <div style="margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: #00359c; text-transform: uppercase;">
+                                                                        Seating Assignment
+                                                                    </div>
+                                                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                                                        <tr>
+                                                                            <td style="padding: 4px 0; font-size: 14px; color: #334155;">
+                                                                                <strong>Table Number:</strong>
+                                                                            </td>
+                                                                            <td align="right" style="padding: 4px 0; font-size: 20px; font-weight: 800; color: #00359c;">
+                                                                                {{ $tableNumber }}
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <td style="padding: 4px 0; font-size: 14px; color: #334155;">
+                                                                                <strong>Seat Number:</strong>
+                                                                            </td>
+                                                                            <td align="right" style="padding: 4px 0; font-size: 20px; font-weight: 800; color: #00359c;">
+                                                                                {{ $seatNumber ?? 'N/A' }}
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </td>
+                                                </tr>
                                             </table>
                                         </td>
                                     </tr>

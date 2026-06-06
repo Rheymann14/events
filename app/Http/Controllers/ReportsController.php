@@ -55,7 +55,10 @@ class ReportsController extends Controller
             ->where('participant_table_assignments.user_id', $user->id)
             ->where('participant_table_assignments.programme_id', $event->id)
             ->orderByDesc('participant_table_assignments.assigned_at')
-            ->first(['participant_tables.table_number']);
+            ->first([
+                'participant_tables.table_number',
+                'participant_table_assignments.seat_number',
+            ]);
 
         $vehicleAssignment = VehicleAssignment::query()
             ->leftJoin('transport_vehicles', 'vehicle_assignments.vehicle_id', '=', 'transport_vehicles.id')
@@ -69,6 +72,7 @@ class ReportsController extends Controller
             ]);
 
         $tableNumber = $tableAssignment?->table_number ?: 'N/A';
+        $seatNumber = $tableAssignment?->seat_number ?: 'N/A';
         $vehicleName = $vehicleAssignment?->transport_vehicle_label ?: $vehicleAssignment?->vehicle_label ?: 'N/A';
         $vehiclePlateNumber = $vehicleAssignment?->transport_vehicle_plate_number ?: 'N/A';
 
@@ -106,6 +110,7 @@ class ReportsController extends Controller
             'vehicleName' => $vehicleName,
             'vehiclePlateNumber' => $vehiclePlateNumber,
             'tableNumber' => $tableNumber,
+            'seatNumber' => $seatNumber,
         ];
 
         try {

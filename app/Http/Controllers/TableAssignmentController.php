@@ -80,6 +80,7 @@ class TableAssignmentController extends Controller
                                     ? [
                                         'id' => $participant->id,
                                         'full_name' => $participant->name,
+                                        'position_title' => $participant->position_title,
                                         'country' => $participant->country
                                             ? [
                                                 'id' => $participant->country->id,
@@ -140,6 +141,7 @@ class TableAssignmentController extends Controller
                 return [
                     'id' => $participant->id,
                     'full_name' => $participant->name,
+                    'position_title' => $participant->position_title,
                     'country' => $participant->country
                         ? [
                             'id' => $participant->country->id,
@@ -289,6 +291,7 @@ class TableAssignmentController extends Controller
                 'required',
                 Rule::exists('participant_tables', 'id')->where('programme_id', $request->input('programme_id')),
             ],
+            'seat_number' => ['nullable', 'integer', 'min:1'],
             'participant_ids' => ['required', 'array', 'min:1'],
             'participant_ids.*' => ['integer', 'exists:users,id'],
         ]);
@@ -346,16 +349,53 @@ class TableAssignmentController extends Controller
             ]);
         }
 
-        $now = now();
-        $startingSeatNumber = ParticipantTableAssignment::query()
+        $occupiedSeats = ParticipantTableAssignment::query()
             ->where('participant_table_id', $table->id)
-            ->max('seat_number') ?? 0;
+            ->pluck('seat_number')
+            ->map(fn ($seatNumber) => (int) $seatNumber)
+            ->all();
 
-        $payload = $newIds->values()->map(function ($id, $index) use ($validated, $table, $now, $startingSeatNumber) {
+        if (array_key_exists('seat_number', $validated) && $validated['seat_number']) {
+            if ($newIds->count() !== 1) {
+                return back()->withErrors([
+                    'seat_number' => 'Manual seat assignment is available for one participant at a time.',
+                ]);
+            }
+
+            $seatNumber = (int) $validated['seat_number'];
+
+            if ($seatNumber > $table->capacity) {
+                return back()->withErrors([
+                    'seat_number' => 'Seat number exceeds table capacity.',
+                ]);
+            }
+
+            if (in_array($seatNumber, $occupiedSeats, true)) {
+                return back()->withErrors([
+                    'seat_number' => 'Seat is already occupied.',
+                ]);
+            }
+
+            $availableSeatNumbers = collect([$seatNumber]);
+        } else {
+            $availableSeatNumbers = collect(range(1, max($table->capacity, 0)))
+                ->reject(fn ($seatNumber) => in_array($seatNumber, $occupiedSeats, true))
+                ->values();
+        }
+
+        if ($availableSeatNumbers->count() < $newIds->count()) {
+            return back()->withErrors([
+                'participant_ids' => 'Not enough available seats for this table.',
+            ]);
+        }
+
+        $now = now();
+
+        $payload = $newIds->values()->map(function ($id, $index) use ($validated, $table, $now, $availableSeatNumbers) {
             return [
                 'programme_id' => $validated['programme_id'],
                 'participant_table_id' => $table->id,
-                'seat_number' => $startingSeatNumber + $index + 1,
+                'seat_number' => $availableSeatNumbers[$index],
                 'user_id' => $id,
                 'assigned_at' => $now,
                 'created_at' => $now,
@@ -367,7 +407,6 @@ class TableAssignmentController extends Controller
 
         return back();
     }
-
 
     public function updateAssignment(Request $request, ParticipantTableAssignment $participantTableAssignment)
     {
@@ -455,7 +494,6 @@ class TableAssignmentController extends Controller
             $assignment->update(['seat_number' => $index + 1]);
         }
     }
-
 
     private function isChedAdmin(?User $user): bool
     {

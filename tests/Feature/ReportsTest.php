@@ -106,7 +106,8 @@ test('assignment notification sends through laravel mailer and records sent time
     Mail::assertSent(AssignmentNotificationMail::class, function (AssignmentNotificationMail $mail) use ($programme) {
         return $mail->hasTo('assigned@example.test')
             && $mail->details['eventTitle'] === $programme->title
-            && $mail->details['tableNumber'] === 'Table 1';
+            && $mail->details['tableNumber'] === 'Table 1'
+            && $mail->details['seatNumber'] === 1;
     });
 
     expect(AssignmentNotificationLog::query()

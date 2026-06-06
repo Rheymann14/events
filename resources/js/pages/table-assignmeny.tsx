@@ -43,6 +43,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
+    Armchair,
     Check,
     ChevronDown,
     ChevronLeft,
@@ -73,6 +74,7 @@ type UserType = {
 type Participant = {
     id: number;
     full_name: string;
+    position_title?: string | null;
     country?: Country | null;
     user_type?: UserType | null;
     has_food_restrictions?: boolean;
@@ -200,34 +202,8 @@ function phaseBadgeClass(phase: EventPhase) {
     }
 }
 
-function FlagThumb({
-    country,
-    size = 18,
-}: {
-    country: Country;
-    size?: number;
-}) {
-    const src = country.flag_url || null;
-
-    return (
-        <div
-            className="grid shrink-0 place-items-center overflow-hidden rounded-md border border-slate-200 bg-white text-[10px] font-semibold text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
-            style={{ width: size, height: size }}
-        >
-            {src ? (
-                <img
-                    src={src}
-                    alt={`${country.name} flag`}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                    draggable={false}
-                />
-            ) : (
-                <span>{country.code}</span>
-            )}
-        </div>
-    );
+function participantPositionLabel(participant?: Participant | null) {
+    return participant?.position_title?.trim() || 'Position unavailable';
 }
 
 type SearchItem = {
@@ -375,12 +351,13 @@ export default function TableAssignmenyPage(props: PageProps) {
     const [removingAssignmentIds, setRemovingAssignmentIds] = React.useState<
         number[]
     >([]);
+    const [currentTimestamp] = React.useState(() => Date.now());
     const hasHydrated = React.useRef(false);
     const selectedEvent = selectedEventId
         ? events.find((event) => String(event.id) === selectedEventId)
         : null;
     const selectedEventPhase = selectedEvent
-        ? resolveEventPhase(selectedEvent, Date.now())
+        ? resolveEventPhase(selectedEvent, currentTimestamp)
         : null;
     const isEventClosed = selectedEventPhase === 'closed';
 
@@ -533,7 +510,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                                           ...events.map((event) => {
                                               const phase = resolveEventPhase(
                                                   event,
-                                                  Date.now(),
+                                                  currentTimestamp,
                                               );
                                               const when = event.starts_at
                                                   ? formatDateTime(
@@ -683,17 +660,45 @@ export default function TableAssignmenyPage(props: PageProps) {
         return result;
     }, [tables]);
 
+    const tableById = React.useMemo(() => {
+        return new Map(tables.map((table) => [table.id, table]));
+    }, [tables]);
+
+    const assignmentsByTableId = React.useMemo(() => {
+        const next = new Map<number, Map<number, TableAssignment>>();
+
+        tables.forEach((table) => {
+            const seats = new Map<number, TableAssignment>();
+            table.assignments.forEach((assignment) => {
+                seats.set(assignment.seat_number, assignment);
+            });
+            next.set(table.id, seats);
+        });
+
+        return next;
+    }, [tables]);
+
     // Track inline table reassignment drafts
     const [tableDrafts, setTableDrafts] = React.useState<
         Record<number, string>
     >({});
+    const [seatDrafts, setSeatDrafts] = React.useState<Record<number, string>>(
+        {},
+    );
+    const [participantAssignmentDrafts, setParticipantAssignmentDrafts] =
+        React.useState<Record<number, { tableId: string; seatNumber: string }>>(
+            {},
+        );
 
     React.useEffect(() => {
         const next: Record<number, string> = {};
+        const nextSeatDrafts: Record<number, string> = {};
         allAssignments.forEach((a) => {
             next[a.id] = String(a.table_id);
+            nextSeatDrafts[a.id] = String(a.seat_number);
         });
         setTableDrafts(next);
+        setSeatDrafts(nextSeatDrafts);
     }, [allAssignments]);
 
     // Helper: get CSRF token for fetch calls
@@ -771,7 +776,7 @@ export default function TableAssignmenyPage(props: PageProps) {
 
         // Build assignment plan: distribute participants across tables
         const plan: Array<{ tableId: number; participantIds: number[] }> = [];
-        let remaining = [...participants];
+        const remaining = [...participants];
 
         for (const table of tables) {
             if (remaining.length === 0) break;
@@ -836,17 +841,43 @@ export default function TableAssignmenyPage(props: PageProps) {
             });
     }
 
-    function assignParticipantToTable(participantId: number, tableId: string) {
+    function assignParticipantToTable(
+        participantId: number,
+        tableId: string,
+        seatNumber?: string,
+    ) {
         if (!selectedEventId || isEventClosed) return;
 
         const targetTable = tables.find((t) => String(t.id) === tableId);
         if (!targetTable) return;
+        const manualSeatNumber = seatNumber ? Number(seatNumber) : null;
 
-        if (targetTable.assigned_count >= targetTable.capacity) {
+        if (
+            !manualSeatNumber &&
+            targetTable.assigned_count >= targetTable.capacity
+        ) {
             toast.error(
                 `${targetTable.table_number} is full (${targetTable.assigned_count}/${targetTable.capacity}).`,
             );
             return;
+        }
+
+        if (manualSeatNumber) {
+            const occupiedSeats = assignmentsByTableId.get(targetTable.id);
+
+            if (
+                !Number.isInteger(manualSeatNumber) ||
+                manualSeatNumber < 1 ||
+                manualSeatNumber > targetTable.capacity
+            ) {
+                toast.error('Select a valid seat for this table.');
+                return;
+            }
+
+            if (occupiedSeats?.has(manualSeatNumber)) {
+                toast.error('Seat is already occupied.');
+                return;
+            }
         }
 
         router.post(
@@ -854,12 +885,20 @@ export default function TableAssignmenyPage(props: PageProps) {
             {
                 programme_id: selectedEventId,
                 participant_table_id: tableId,
+                ...(manualSeatNumber ? { seat_number: manualSeatNumber } : {}),
                 participant_ids: [participantId],
             },
             {
                 preserveScroll: true,
-                onSuccess: () =>
-                    toast.success('Participant assigned to table.'),
+                onSuccess: () => {
+                    setParticipantAssignmentDrafts((prev) => {
+                        const next = { ...prev };
+                        delete next[participantId];
+
+                        return next;
+                    });
+                    toast.success('Participant assigned to table.');
+                },
                 onError: () => toast.error('Unable to assign participant.'),
             },
         );
@@ -914,6 +953,68 @@ export default function TableAssignmenyPage(props: PageProps) {
     }
 
     // Check if any table still has room — used to label unassigned rows
+    function seatItemsForTable(tableId: number, currentAssignmentId?: number) {
+        const table = tableById.get(tableId);
+        const occupiedSeats = assignmentsByTableId.get(tableId);
+
+        if (!table || table.capacity <= 0) return [];
+
+        return Array.from({ length: table.capacity }, (_, index) => {
+            const seatNumber = index + 1;
+            const occupant = occupiedSeats?.get(seatNumber);
+            const isCurrent = occupant?.id === currentAssignmentId;
+
+            return {
+                value: String(seatNumber),
+                label: `Seat ${seatNumber}`,
+                description: isCurrent
+                    ? 'Current seat'
+                    : occupant?.participant?.full_name
+                      ? occupant.participant.full_name
+                      : 'Empty',
+            };
+        });
+    }
+
+    function updateAssignmentSeat(assignmentId: number, nextSeat: string) {
+        const current = allAssignments.find((a) => a.id === assignmentId);
+        const table = current ? tableById.get(current.table_id) : null;
+        const seatNumber = Number(nextSeat);
+
+        if (!current || !table) return;
+
+        if (
+            !Number.isInteger(seatNumber) ||
+            seatNumber < 1 ||
+            seatNumber > table.capacity
+        ) {
+            toast.error('Select a valid seat for this table.');
+            setSeatDrafts((prev) => ({
+                ...prev,
+                [assignmentId]: String(current.seat_number),
+            }));
+            return;
+        }
+
+        if (seatNumber === current.seat_number) return;
+
+        router.patch(
+            ENDPOINTS.assignments.update(assignmentId),
+            { seat_number: seatNumber },
+            {
+                preserveScroll: true,
+                onSuccess: () => toast.success('Seat updated.'),
+                onError: () => {
+                    toast.error('Unable to update seat.');
+                    setSeatDrafts((prev) => ({
+                        ...prev,
+                        [assignmentId]: String(current.seat_number),
+                    }));
+                },
+            },
+        );
+    }
+
     const hasAvailableCapacity = tables.some(
         (t) => t.capacity - t.assigned_count > 0,
     );
@@ -921,6 +1022,7 @@ export default function TableAssignmenyPage(props: PageProps) {
     // Total counts for display
     const totalParticipants = allAssignments.length + participants.length;
     const totalCapacity = tables.reduce((sum, t) => sum + t.capacity, 0);
+    const openSeatCount = Math.max(totalCapacity - allAssignments.length, 0);
 
     // Search, filter & pagination state
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -944,9 +1046,19 @@ export default function TableAssignmenyPage(props: PageProps) {
             // Search query
             if (!q) return true;
             const name = (a.participant?.full_name ?? '').toLowerCase();
+            const position = (
+                a.participant?.position_title ?? ''
+            ).toLowerCase();
             const role = (a.participant?.user_type?.name ?? '').toLowerCase();
             const table = a.table_number.toLowerCase();
-            return name.includes(q) || role.includes(q) || table.includes(q);
+            const seat = `seat ${a.seat_number}`;
+            return (
+                name.includes(q) ||
+                position.includes(q) ||
+                role.includes(q) ||
+                table.includes(q) ||
+                seat.includes(q)
+            );
         });
     }, [allAssignments, searchQuery, tableFilter]);
 
@@ -959,8 +1071,9 @@ export default function TableAssignmenyPage(props: PageProps) {
             // Search query
             if (!q) return true;
             const name = p.full_name.toLowerCase();
+            const position = (p.position_title ?? '').toLowerCase();
             const role = (p.user_type?.name ?? '').toLowerCase();
-            return name.includes(q) || role.includes(q);
+            return name.includes(q) || position.includes(q) || role.includes(q);
         });
     }, [participants, searchQuery, tableFilter]);
 
@@ -1007,100 +1120,98 @@ export default function TableAssignmenyPage(props: PageProps) {
         });
     }, []);
 
+    function renderParticipantDetailsPanel(p: Participant) {
+        return (
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                        Food Restrictions
+                    </div>
+                    {(p.food_restrictions ?? []).length > 0 ? (
+                        <div className="space-y-1">
+                            <div className="flex flex-wrap gap-1">
+                                {(p.food_restrictions ?? []).map((r) => {
+                                    const label =
+                                        FOOD_RESTRICTION_OPTIONS.find(
+                                            (o) => o.value === r,
+                                        )?.label ?? r;
+                                    return (
+                                        <Badge
+                                            key={r}
+                                            variant="secondary"
+                                            className="text-xs"
+                                        >
+                                            {label}
+                                        </Badge>
+                                    );
+                                })}
+                            </div>
+                            {p.dietary_allergies && (
+                                <div className="text-xs text-slate-600 dark:text-slate-400">
+                                    <span className="font-medium">
+                                        Allergies:
+                                    </span>{' '}
+                                    {p.dietary_allergies}
+                                </div>
+                            )}
+                            {p.dietary_other && (
+                                <div className="text-xs text-slate-600 dark:text-slate-400">
+                                    <span className="font-medium">Other:</span>{' '}
+                                    {p.dietary_other}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-xs text-slate-400">
+                            None specified
+                        </div>
+                    )}
+                </div>
+                <div>
+                    <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                        Accessibility Needs
+                    </div>
+                    {(p.accessibility_needs ?? []).length > 0 ? (
+                        <div className="space-y-1">
+                            <div className="flex flex-wrap gap-1">
+                                {(p.accessibility_needs ?? []).map((n) => {
+                                    const label =
+                                        ACCESSIBILITY_NEEDS_OPTIONS.find(
+                                            (o) => o.value === n,
+                                        )?.label ?? n;
+                                    return (
+                                        <Badge
+                                            key={n}
+                                            variant="secondary"
+                                            className="text-xs"
+                                        >
+                                            {label}
+                                        </Badge>
+                                    );
+                                })}
+                            </div>
+                            {p.accessibility_other && (
+                                <div className="text-xs text-slate-600 dark:text-slate-400">
+                                    <span className="font-medium">Other:</span>{' '}
+                                    {p.accessibility_other}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-xs text-slate-400">
+                            None specified
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
     function renderExpandedDetail(p: Participant) {
         return (
             <TableRow className="border-b bg-slate-50/50 dark:bg-slate-900/20">
-                <TableCell colSpan={5} className="px-6 py-3">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                Food Restrictions
-                            </div>
-                            {(p.food_restrictions ?? []).length > 0 ? (
-                                <div className="space-y-1">
-                                    <div className="flex flex-wrap gap-1">
-                                        {(p.food_restrictions ?? []).map(
-                                            (r) => {
-                                                const label =
-                                                    FOOD_RESTRICTION_OPTIONS.find(
-                                                        (o) => o.value === r,
-                                                    )?.label ?? r;
-                                                return (
-                                                    <Badge
-                                                        key={r}
-                                                        variant="secondary"
-                                                        className="text-xs"
-                                                    >
-                                                        {label}
-                                                    </Badge>
-                                                );
-                                            },
-                                        )}
-                                    </div>
-                                    {p.dietary_allergies && (
-                                        <div className="text-xs text-slate-600 dark:text-slate-400">
-                                            <span className="font-medium">
-                                                Allergies:
-                                            </span>{' '}
-                                            {p.dietary_allergies}
-                                        </div>
-                                    )}
-                                    {p.dietary_other && (
-                                        <div className="text-xs text-slate-600 dark:text-slate-400">
-                                            <span className="font-medium">
-                                                Other:
-                                            </span>{' '}
-                                            {p.dietary_other}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="text-xs text-slate-400">
-                                    None specified
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <div className="mb-1 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                Accessibility Needs
-                            </div>
-                            {(p.accessibility_needs ?? []).length > 0 ? (
-                                <div className="space-y-1">
-                                    <div className="flex flex-wrap gap-1">
-                                        {(p.accessibility_needs ?? []).map(
-                                            (n) => {
-                                                const label =
-                                                    ACCESSIBILITY_NEEDS_OPTIONS.find(
-                                                        (o) => o.value === n,
-                                                    )?.label ?? n;
-                                                return (
-                                                    <Badge
-                                                        key={n}
-                                                        variant="secondary"
-                                                        className="text-xs"
-                                                    >
-                                                        {label}
-                                                    </Badge>
-                                                );
-                                            },
-                                        )}
-                                    </div>
-                                    {p.accessibility_other && (
-                                        <div className="text-xs text-slate-600 dark:text-slate-400">
-                                            <span className="font-medium">
-                                                Other:
-                                            </span>{' '}
-                                            {p.accessibility_other}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="text-xs text-slate-400">
-                                    None specified
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                <TableCell colSpan={6} className="px-6 py-3">
+                    {renderParticipantDetailsPanel(p)}
                 </TableCell>
             </TableRow>
         );
@@ -1136,31 +1247,144 @@ export default function TableAssignmenyPage(props: PageProps) {
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* Summary bar */}
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                        <Users2 className="h-4 w-4" />
-                        <span>{totalParticipants} total participant(s)</span>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-800">
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                            <Users2 className="h-4 w-4" />
+                            Total
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100">
+                            {totalParticipants}
+                        </div>
                     </div>
-                    <Badge
-                        className={
-                            allAssignments.length === totalParticipants
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-amber-100 text-amber-700'
-                        }
-                    >
-                        {allAssignments.length} assigned
-                    </Badge>
-                    {participants.length > 0 ? (
-                        <Badge className="bg-slate-100 text-slate-600">
-                            {participants.length} not assigned
-                        </Badge>
-                    ) : null}
-                    <span className="text-xs text-slate-500">
-                        Capacity: {allAssignments.length}/{totalCapacity} across{' '}
-                        {tables.length} table(s)
-                    </span>
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 dark:border-emerald-900/70 dark:bg-emerald-950/30">
+                        <div className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            Assigned
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-emerald-800 dark:text-emerald-200">
+                            {allAssignments.length}
+                        </div>
+                    </div>
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-900/70 dark:bg-amber-950/30">
+                        <div className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                            Not assigned
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-amber-800 dark:text-amber-200">
+                            {participants.length}
+                        </div>
+                    </div>
+                    <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 dark:border-sky-900/70 dark:bg-sky-950/30">
+                        <div className="text-xs font-medium text-sky-700 dark:text-sky-300">
+                            Open seats
+                        </div>
+                        <div className="mt-1 flex items-baseline gap-2">
+                            <span className="text-xl font-semibold text-sky-800 dark:text-sky-200">
+                                {openSeatCount}
+                            </span>
+                            <span className="text-xs text-sky-700 dark:text-sky-300">
+                                of {totalCapacity}
+                            </span>
+                        </div>
+                    </div>
                 </div>
+
+                {tables.length > 0 ? (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <Armchair className="h-4 w-4 text-[#00359c]" />
+                            Seating plan
+                        </div>
+                        <div className="grid gap-3 lg:grid-cols-2">
+                            {tables.map((table) => {
+                                const occupiedSeats =
+                                    assignmentsByTableId.get(table.id) ??
+                                    new Map<number, TableAssignment>();
+
+                                return (
+                                    <div
+                                        key={table.id}
+                                        className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"
+                                    >
+                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                                    {table.table_number}
+                                                </div>
+                                                <div className="text-xs text-slate-500">
+                                                    {table.assigned_count}/
+                                                    {table.capacity} occupied
+                                                </div>
+                                            </div>
+                                            <Badge
+                                                className={
+                                                    table.assigned_count >=
+                                                    table.capacity
+                                                        ? 'bg-slate-200 text-slate-700'
+                                                        : 'bg-emerald-100 text-emerald-700'
+                                                }
+                                            >
+                                                {Math.max(
+                                                    table.capacity -
+                                                        table.assigned_count,
+                                                    0,
+                                                )}{' '}
+                                                open
+                                            </Badge>
+                                        </div>
+                                        {table.capacity > 0 ? (
+                                            <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-2">
+                                                {Array.from(
+                                                    { length: table.capacity },
+                                                    (_, index) => {
+                                                        const seatNumber =
+                                                            index + 1;
+                                                        const occupant =
+                                                            occupiedSeats.get(
+                                                                seatNumber,
+                                                            );
+
+                                                        return (
+                                                            <div
+                                                                key={seatNumber}
+                                                                title={
+                                                                    occupant
+                                                                        ?.participant
+                                                                        ?.full_name ??
+                                                                    'Empty'
+                                                                }
+                                                                className={cn(
+                                                                    'min-h-14 rounded-md border px-2 py-1.5',
+                                                                    occupant
+                                                                        ? 'border-[#00359c]/30 bg-[#00359c]/5 text-slate-900 dark:bg-[#00359c]/20 dark:text-slate-100'
+                                                                        : 'border-dashed border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/40',
+                                                                )}
+                                                            >
+                                                                <div className="text-[11px] font-semibold">
+                                                                    Seat{' '}
+                                                                    {seatNumber}
+                                                                </div>
+                                                                <div className="line-clamp-2 text-xs">
+                                                                    {occupant
+                                                                        ?.participant
+                                                                        ?.full_name ??
+                                                                        'Empty'}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    },
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="rounded-md border border-dashed border-slate-300 px-3 py-4 text-center text-xs text-slate-500 dark:border-slate-700">
+                                                No seats configured
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ) : null}
 
                 {/* Pagination controls & Search bar */}
                 <div className="flex flex-col gap-3">
@@ -1236,7 +1460,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                             <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
                                 type="text"
-                                placeholder="Search by name, role, or table..."
+                                placeholder="Search by name, position, role, or table..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-9"
@@ -1267,9 +1491,412 @@ export default function TableAssignmenyPage(props: PageProps) {
                     </div>
                 </div>
 
+                <div className="space-y-3 lg:hidden">
+                    {totalFilteredRows === 0 ? (
+                        <div className="rounded-lg border border-slate-200 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-800">
+                            {searchQuery || tableFilter !== 'all'
+                                ? 'No participants match your search or filter.'
+                                : 'No participants for this event.'}
+                        </div>
+                    ) : (
+                        <>
+                            {paginatedData.pagedAssigned.map((assignment) => {
+                                const rowKey = `assigned-${assignment.id}`;
+                                const isExpanded = expandedRowIds.has(rowKey);
+
+                                return (
+                                    <div
+                                        key={rowKey}
+                                        className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <button
+                                                type="button"
+                                                className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                                                onClick={() =>
+                                                    toggleRowExpand(rowKey)
+                                                }
+                                            >
+                                                <ChevronDown
+                                                    className={cn(
+                                                        'mt-1 h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform',
+                                                        isExpanded &&
+                                                            'rotate-180',
+                                                    )}
+                                                />
+                                                <span className="min-w-0">
+                                                    <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                                                        {assignment.participant
+                                                            ?.full_name ??
+                                                            'Participant removed'}
+                                                    </span>
+                                                    <span className="block text-xs text-slate-500">
+                                                        {participantPositionLabel(
+                                                            assignment.participant,
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() =>
+                                                    removeAssignment(
+                                                        assignment.id,
+                                                    )
+                                                }
+                                                aria-label="Remove participant"
+                                                disabled={
+                                                    isEventClosed ||
+                                                    removingAssignmentIds.includes(
+                                                        assignment.id,
+                                                    )
+                                                }
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <XCircle className="h-4 w-4 text-rose-500" />
+                                            </Button>
+                                        </div>
+
+                                        <div className="mt-3 grid gap-3">
+                                            <div>
+                                                <div className="mb-1 text-xs font-medium text-slate-500">
+                                                    Table
+                                                </div>
+                                                <SearchableDropdown
+                                                    value={
+                                                        tableDrafts[
+                                                            assignment.id
+                                                        ] ??
+                                                        String(
+                                                            assignment.table_id,
+                                                        )
+                                                    }
+                                                    onValueChange={(v) => {
+                                                        setTableDrafts(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                [assignment.id]:
+                                                                    v,
+                                                            }),
+                                                        );
+                                                        reassignToTable(
+                                                            assignment.id,
+                                                            v,
+                                                        );
+                                                    }}
+                                                    placeholder="Table"
+                                                    searchPlaceholder="Search tables..."
+                                                    emptyText="No tables."
+                                                    disabled={isEventClosed}
+                                                    buttonClassName="h-9 text-xs"
+                                                    items={tables.map(
+                                                        (table) => {
+                                                            const left =
+                                                                table.capacity -
+                                                                table.assigned_count;
+                                                            return {
+                                                                value: String(
+                                                                    table.id,
+                                                                ),
+                                                                label: table.table_number,
+                                                                description:
+                                                                    left > 0
+                                                                        ? `${left} seats left`
+                                                                        : 'Full',
+                                                            };
+                                                        },
+                                                    )}
+                                                />
+                                            </div>
+                                            <div>
+                                                <div className="mb-1 text-xs font-medium text-slate-500">
+                                                    Seat
+                                                </div>
+                                                <SearchableDropdown
+                                                    value={
+                                                        seatDrafts[
+                                                            assignment.id
+                                                        ] ??
+                                                        String(
+                                                            assignment.seat_number,
+                                                        )
+                                                    }
+                                                    onValueChange={(v) => {
+                                                        setSeatDrafts(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                [assignment.id]:
+                                                                    v,
+                                                            }),
+                                                        );
+                                                        updateAssignmentSeat(
+                                                            assignment.id,
+                                                            v,
+                                                        );
+                                                    }}
+                                                    placeholder="Seat"
+                                                    searchPlaceholder="Search seats..."
+                                                    emptyText="No seats."
+                                                    disabled={isEventClosed}
+                                                    buttonClassName="h-9 text-xs"
+                                                    items={seatItemsForTable(
+                                                        assignment.table_id,
+                                                        assignment.id,
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Badge variant="secondary">
+                                                    {assignment.participant
+                                                        ?.user_type?.name ??
+                                                        'Unassigned role'}
+                                                </Badge>
+                                                <span className="text-xs text-slate-500">
+                                                    {formatDateTime(
+                                                        assignment.assigned_at,
+                                                    )}
+                                                </span>
+                                            </div>
+                                            {isExpanded &&
+                                                assignment.participant && (
+                                                    <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-900/50">
+                                                        {renderParticipantDetailsPanel(
+                                                            assignment.participant,
+                                                        )}
+                                                    </div>
+                                                )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {paginatedData.pagedUnassigned.map(
+                                (participant) => {
+                                    const rowKey = `unassigned-${participant.id}`;
+                                    const isExpanded =
+                                        expandedRowIds.has(rowKey);
+                                    const assignmentDraft =
+                                        participantAssignmentDrafts[
+                                            participant.id
+                                        ] ?? {
+                                            tableId: '',
+                                            seatNumber: '',
+                                        };
+                                    const draftTable = assignmentDraft.tableId
+                                        ? tableById.get(
+                                              Number(assignmentDraft.tableId),
+                                          )
+                                        : null;
+                                    const draftOccupiedSeats = draftTable
+                                        ? assignmentsByTableId.get(
+                                              draftTable.id,
+                                          )
+                                        : null;
+
+                                    return (
+                                        <div
+                                            key={rowKey}
+                                            className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950"
+                                        >
+                                            <button
+                                                type="button"
+                                                className="flex w-full min-w-0 items-start gap-2 text-left"
+                                                onClick={() =>
+                                                    toggleRowExpand(rowKey)
+                                                }
+                                            >
+                                                <ChevronDown
+                                                    className={cn(
+                                                        'mt-1 h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform',
+                                                        isExpanded &&
+                                                            'rotate-180',
+                                                    )}
+                                                />
+                                                <span className="min-w-0">
+                                                    <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                                                        {participant.full_name}
+                                                    </span>
+                                                    <span className="block text-xs text-slate-500">
+                                                        {participantPositionLabel(
+                                                            participant,
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </button>
+
+                                            <div className="mt-3 grid gap-3">
+                                                <div>
+                                                    <div className="mb-1 text-xs font-medium text-slate-500">
+                                                        Table
+                                                    </div>
+                                                    <SearchableDropdown
+                                                        value={
+                                                            assignmentDraft.tableId
+                                                        }
+                                                        onValueChange={(v) => {
+                                                            setParticipantAssignmentDrafts(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    [participant.id]:
+                                                                        {
+                                                                            tableId:
+                                                                                v,
+                                                                            seatNumber:
+                                                                                '',
+                                                                        },
+                                                                }),
+                                                            );
+                                                        }}
+                                                        placeholder="Select table"
+                                                        searchPlaceholder="Search tables..."
+                                                        emptyText="No tables."
+                                                        disabled={isEventClosed}
+                                                        buttonClassName="h-9 text-xs"
+                                                        items={tables.map(
+                                                            (table) => {
+                                                                const left =
+                                                                    table.capacity -
+                                                                    table.assigned_count;
+                                                                return {
+                                                                    value: String(
+                                                                        table.id,
+                                                                    ),
+                                                                    label: table.table_number,
+                                                                    description:
+                                                                        left > 0
+                                                                            ? `${left} seats left`
+                                                                            : 'Full',
+                                                                    disabled:
+                                                                        left <=
+                                                                        0,
+                                                                };
+                                                            },
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <div className="mb-1 text-xs font-medium text-slate-500">
+                                                        Seat
+                                                    </div>
+                                                    <SearchableDropdown
+                                                        value={
+                                                            assignmentDraft.seatNumber
+                                                        }
+                                                        onValueChange={(v) =>
+                                                            setParticipantAssignmentDrafts(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    [participant.id]:
+                                                                        {
+                                                                            tableId:
+                                                                                assignmentDraft.tableId,
+                                                                            seatNumber:
+                                                                                v,
+                                                                        },
+                                                                }),
+                                                            )
+                                                        }
+                                                        placeholder="Auto"
+                                                        searchPlaceholder="Search seats..."
+                                                        emptyText="No seats."
+                                                        disabled={
+                                                            isEventClosed ||
+                                                            !draftTable
+                                                        }
+                                                        buttonClassName="h-9 text-xs"
+                                                        items={
+                                                            draftTable
+                                                                ? [
+                                                                      {
+                                                                          value: '',
+                                                                          label: 'Auto',
+                                                                          description:
+                                                                              'Next open seat',
+                                                                      },
+                                                                      ...Array.from(
+                                                                          {
+                                                                              length: draftTable.capacity,
+                                                                          },
+                                                                          (
+                                                                              _,
+                                                                              index,
+                                                                          ) => {
+                                                                              const seatNumber =
+                                                                                  index +
+                                                                                  1;
+                                                                              const occupant =
+                                                                                  draftOccupiedSeats?.get(
+                                                                                      seatNumber,
+                                                                                  );
+
+                                                                              return {
+                                                                                  value: String(
+                                                                                      seatNumber,
+                                                                                  ),
+                                                                                  label: `Seat ${seatNumber}`,
+                                                                                  description:
+                                                                                      occupant
+                                                                                          ?.participant
+                                                                                          ?.full_name ??
+                                                                                      'Empty',
+                                                                                  disabled:
+                                                                                      Boolean(
+                                                                                          occupant,
+                                                                                      ),
+                                                                              };
+                                                                          },
+                                                                      ),
+                                                                  ]
+                                                                : []
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <Badge variant="secondary">
+                                                        {participant.user_type
+                                                            ?.name ??
+                                                            'Unassigned role'}
+                                                    </Badge>
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        disabled={
+                                                            isEventClosed ||
+                                                            !assignmentDraft.tableId
+                                                        }
+                                                        onClick={() =>
+                                                            assignParticipantToTable(
+                                                                participant.id,
+                                                                assignmentDraft.tableId,
+                                                                assignmentDraft.seatNumber,
+                                                            )
+                                                        }
+                                                    >
+                                                        Assign
+                                                    </Button>
+                                                </div>
+                                                {isExpanded && (
+                                                    <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-900/50">
+                                                        {renderParticipantDetailsPanel(
+                                                            participant,
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                },
+                            )}
+                        </>
+                    )}
+                </div>
+
                 {/* All assignments table */}
-                <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-                    <Table>
+                <div className="hidden overflow-x-auto rounded-lg border border-slate-200 lg:block dark:border-slate-800">
+                    <Table className="min-w-[900px]">
                         <TableHeader>
                             <TableRow className="bg-slate-50 dark:bg-slate-900/40">
                                 <TableHead>Participant</TableHead>
@@ -1277,12 +1904,15 @@ export default function TableAssignmenyPage(props: PageProps) {
                                     Table
                                 </TableHead>
                                 <TableHead className="w-[140px]">
+                                    Seat
+                                </TableHead>
+                                <TableHead className="w-[140px]">
                                     Role
                                 </TableHead>
                                 <TableHead className="w-[180px]">
                                     Assigned at
                                 </TableHead>
-                                <TableHead className="w-[80px] text-right">
+                                <TableHead className="w-[110px] text-right">
                                     Action
                                 </TableHead>
                             </TableRow>
@@ -1291,7 +1921,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                             {totalFilteredRows === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={5}
+                                        colSpan={6}
                                         className="py-6 text-center text-sm text-slate-500"
                                     >
                                         {searchQuery || tableFilter !== 'all'
@@ -1338,11 +1968,9 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                             'Participant removed'}
                                                                     </div>
                                                                     <div className="text-xs text-slate-500">
-                                                                        {assignment
-                                                                            .participant
-                                                                            ?.user_type
-                                                                            ?.name ??
-                                                                            'Participant type unavailable'}
+                                                                        {participantPositionLabel(
+                                                                            assignment.participant,
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1406,6 +2034,51 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                 )}
                                                             />
                                                         </TableCell>
+                                                        <TableCell
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                        >
+                                                            <SearchableDropdown
+                                                                value={
+                                                                    seatDrafts[
+                                                                        assignment
+                                                                            .id
+                                                                    ] ??
+                                                                    String(
+                                                                        assignment.seat_number,
+                                                                    )
+                                                                }
+                                                                onValueChange={(
+                                                                    v,
+                                                                ) => {
+                                                                    setSeatDrafts(
+                                                                        (
+                                                                            prev,
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            [assignment.id]:
+                                                                                v,
+                                                                        }),
+                                                                    );
+                                                                    updateAssignmentSeat(
+                                                                        assignment.id,
+                                                                        v,
+                                                                    );
+                                                                }}
+                                                                placeholder="Seat"
+                                                                searchPlaceholder="Search seats..."
+                                                                emptyText="No seats."
+                                                                disabled={
+                                                                    isEventClosed
+                                                                }
+                                                                buttonClassName="h-8 text-xs"
+                                                                items={seatItemsForTable(
+                                                                    assignment.table_id,
+                                                                    assignment.id,
+                                                                )}
+                                                            />
+                                                        </TableCell>
                                                         <TableCell>
                                                             <Badge variant="secondary">
                                                                 {assignment
@@ -1461,6 +2134,27 @@ export default function TableAssignmenyPage(props: PageProps) {
                                             const rowKey = `unassigned-${participant.id}`;
                                             const isExpanded =
                                                 expandedRowIds.has(rowKey);
+                                            const assignmentDraft =
+                                                participantAssignmentDrafts[
+                                                    participant.id
+                                                ] ?? {
+                                                    tableId: '',
+                                                    seatNumber: '',
+                                                };
+                                            const draftTable =
+                                                assignmentDraft.tableId
+                                                    ? tableById.get(
+                                                          Number(
+                                                              assignmentDraft.tableId,
+                                                          ),
+                                                      )
+                                                    : null;
+                                            const draftOccupiedSeats =
+                                                draftTable
+                                                    ? assignmentsByTableId.get(
+                                                          draftTable.id,
+                                                      )
+                                                    : null;
                                             return (
                                                 <React.Fragment key={rowKey}>
                                                     <TableRow
@@ -1491,10 +2185,9 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                         }
                                                                     </div>
                                                                     <div className="text-xs text-slate-500">
-                                                                        {participant
-                                                                            .user_type
-                                                                            ?.name ??
-                                                                            'Participant type unavailable'}
+                                                                        {participantPositionLabel(
+                                                                            participant,
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1505,15 +2198,26 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                             }
                                                         >
                                                             <SearchableDropdown
-                                                                value=""
+                                                                value={
+                                                                    assignmentDraft.tableId
+                                                                }
                                                                 onValueChange={(
                                                                     v,
                                                                 ) => {
-                                                                    if (v)
-                                                                        assignParticipantToTable(
-                                                                            participant.id,
-                                                                            v,
-                                                                        );
+                                                                    setParticipantAssignmentDrafts(
+                                                                        (
+                                                                            prev,
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            [participant.id]:
+                                                                                {
+                                                                                    tableId:
+                                                                                        v,
+                                                                                    seatNumber:
+                                                                                        '',
+                                                                                },
+                                                                        }),
+                                                                    );
                                                                 }}
                                                                 placeholder="Select table"
                                                                 searchPlaceholder="Search tables..."
@@ -1545,6 +2249,88 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                 )}
                                                             />
                                                         </TableCell>
+                                                        <TableCell
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                        >
+                                                            <SearchableDropdown
+                                                                value={
+                                                                    assignmentDraft.seatNumber
+                                                                }
+                                                                onValueChange={(
+                                                                    v,
+                                                                ) =>
+                                                                    setParticipantAssignmentDrafts(
+                                                                        (
+                                                                            prev,
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            [participant.id]:
+                                                                                {
+                                                                                    tableId:
+                                                                                        assignmentDraft.tableId,
+                                                                                    seatNumber:
+                                                                                        v,
+                                                                                },
+                                                                        }),
+                                                                    )
+                                                                }
+                                                                placeholder="Auto"
+                                                                searchPlaceholder="Search seats..."
+                                                                emptyText="No seats."
+                                                                disabled={
+                                                                    isEventClosed ||
+                                                                    !draftTable
+                                                                }
+                                                                buttonClassName="h-8 text-xs"
+                                                                items={
+                                                                    draftTable
+                                                                        ? [
+                                                                              {
+                                                                                  value: '',
+                                                                                  label: 'Auto',
+                                                                                  description:
+                                                                                      'Next open seat',
+                                                                              },
+                                                                              ...Array.from(
+                                                                                  {
+                                                                                      length: draftTable.capacity,
+                                                                                  },
+                                                                                  (
+                                                                                      _,
+                                                                                      index,
+                                                                                  ) => {
+                                                                                      const seatNumber =
+                                                                                          index +
+                                                                                          1;
+                                                                                      const occupant =
+                                                                                          draftOccupiedSeats?.get(
+                                                                                              seatNumber,
+                                                                                          );
+
+                                                                                      return {
+                                                                                          value: String(
+                                                                                              seatNumber,
+                                                                                          ),
+                                                                                          label: `Seat ${seatNumber}`,
+                                                                                          description:
+                                                                                              occupant
+                                                                                                  ?.participant
+                                                                                                  ?.full_name ??
+                                                                                              'Empty',
+                                                                                          disabled:
+                                                                                              Boolean(
+                                                                                                  occupant,
+                                                                                              ),
+                                                                                      };
+                                                                                  },
+                                                                              ),
+                                                                          ]
+                                                                        : []
+                                                                }
+                                                            />
+                                                        </TableCell>
                                                         <TableCell>
                                                             <Badge variant="secondary">
                                                                 {participant
@@ -1558,7 +2344,29 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                 —
                                                             </span>
                                                         </TableCell>
-                                                        <TableCell />
+                                                        <TableCell className="text-right">
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                variant="outline"
+                                                                disabled={
+                                                                    isEventClosed ||
+                                                                    !assignmentDraft.tableId
+                                                                }
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    assignParticipantToTable(
+                                                                        participant.id,
+                                                                        assignmentDraft.tableId,
+                                                                        assignmentDraft.seatNumber,
+                                                                    );
+                                                                }}
+                                                            >
+                                                                Assign
+                                                            </Button>
+                                                        </TableCell>
                                                     </TableRow>
                                                     {isExpanded &&
                                                         renderExpandedDetail(
@@ -1664,7 +2472,7 @@ export default function TableAssignmenyPage(props: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Table Assignment" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-hidden rounded-xl p-4">
                 <div className="space-y-2">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex flex-col gap-1">
@@ -1744,7 +2552,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                           const phase =
                                                                               resolveEventPhase(
                                                                                   event,
-                                                                                  Date.now(),
+                                                                                  currentTimestamp,
                                                                               );
                                                                           const when =
                                                                               event.starts_at
@@ -1835,8 +2643,102 @@ export default function TableAssignmenyPage(props: PageProps) {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-                                        <Table>
+                                    <div className="space-y-3 md:hidden">
+                                        {tables.length === 0 ? (
+                                            <div className="rounded-lg border border-slate-200 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-800">
+                                                No tables created yet.
+                                            </div>
+                                        ) : (
+                                            tables.map((table) => (
+                                                <div
+                                                    key={table.id}
+                                                    className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"
+                                                >
+                                                    <div className="grid gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-medium text-slate-500">
+                                                                Table name
+                                                            </label>
+                                                            <Input
+                                                                value={
+                                                                    tableNumberDrafts[
+                                                                        table.id
+                                                                    ] ?? ''
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setTableNumberDrafts(
+                                                                        (
+                                                                            prev,
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            [table.id]:
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                        }),
+                                                                    )
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-medium text-slate-500">
+                                                                Capacity
+                                                            </label>
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                value={
+                                                                    capacityDrafts[
+                                                                        table.id
+                                                                    ] ?? ''
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setCapacityDrafts(
+                                                                        (
+                                                                            prev,
+                                                                        ) => ({
+                                                                            ...prev,
+                                                                            [table.id]:
+                                                                                e
+                                                                                    .target
+                                                                                    .value,
+                                                                        }),
+                                                                    )
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <div className="flex flex-wrap justify-end gap-2">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    updateTableInfo(
+                                                                        table.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Update
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                className="text-rose-600 hover:text-rose-700"
+                                                                onClick={() =>
+                                                                    removeTable(
+                                                                        table.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                    <div className="hidden overflow-x-auto rounded-lg border border-slate-200 md:block dark:border-slate-800">
+                                        <Table className="min-w-[620px]">
                                             <TableHeader>
                                                 <TableRow className="bg-slate-50 dark:bg-slate-900/40">
                                                     <TableHead>
