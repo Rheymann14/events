@@ -44,7 +44,7 @@ type PageProps = {
     programmes?: ProgrammeRow[];
 };
 
-const DEFAULT_EVENT_IMAGE = '/tumbnail.png';
+const DEFAULT_EVENT_IMAGE = '/img/ched_co.jpg';
 
 type FlexHoverItem = {
     id: number;

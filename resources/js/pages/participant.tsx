@@ -600,7 +600,7 @@ function participantTableDisplayName(participant: ParticipantRow) {
     return parts.length ? parts.join(' ') : '—';
 }
 
-const FALLBACK_EVENT_IMAGE = '/img/ched_banner.png';
+const FALLBACK_EVENT_IMAGE = '/img/ched_co.jpg';
 
 type EventPhase = 'ongoing' | 'upcoming' | 'closed';
 

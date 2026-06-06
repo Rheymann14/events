@@ -9,7 +9,7 @@ import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { CalendarDays, MapPin, Users2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const FALLBACK_IMAGE = '/tumbnail.png';
+const FALLBACK_IMAGE = '/img/ched_co.jpg';
 
 type ProgrammeRow = {
     id: number;

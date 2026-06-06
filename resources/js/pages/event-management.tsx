@@ -170,7 +170,7 @@ const ENDPOINTS = {
 
 const PRIMARY_BTN =
     'bg-[#00359c] text-white hover:bg-[#00359c]/90 focus-visible:ring-[#00359c]/30 dark:bg-[#00359c] dark:hover:bg-[#00359c]/90';
-const DEFAULT_EVENT_IMAGE = '/tumbnail.png';
+const DEFAULT_EVENT_IMAGE = '/img/ched_co.jpg';
 
 const REGISTRATION_FIELD_TYPES: {
     value: RegistrationFieldType;
@@ -847,9 +847,7 @@ export default function EventManagement(props: PageProps) {
     function openEdit(item: ProgrammeRow) {
         setEditing(item);
 
-        setCurrentImageUrl(
-            item.image_url ? resolveImageUrl(item.image_url) : null,
-        );
+        setCurrentImageUrl(resolveImageUrl(item.image_url));
         setCurrentPdfUrl(resolvePdfUrl(item.pdf_url));
 
         setExistingMaterials(item.materials ?? []);
