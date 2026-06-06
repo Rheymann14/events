@@ -45,8 +45,6 @@ import {
     CheckCircle2,
     ChevronsUpDown,
     Download,
-    Eye,
-    EyeOff,
     ImagePlus,
     Loader2,
     QrCode,
@@ -604,8 +602,6 @@ export default function Register({
 
     const [countryOpen, setCountryOpen] = React.useState(false);
     const [typeOpen, setTypeOpen] = React.useState(false);
-    const [showPassword, setShowPassword] = React.useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
     const [successOpen, setSuccessOpen] = React.useState(false);
     const [successQrDataUrl, setSuccessQrDataUrl] = React.useState<
         string | null
@@ -977,7 +973,7 @@ export default function Register({
     const eventDetailsStepIndex = hasEventDetailsStep
         ? isAsemme10Registration
             ? 0
-            : 3
+            : 2
         : -1;
 
     const getDynamicValue = React.useCallback(
@@ -1104,10 +1100,6 @@ export default function Register({
                     'programme_ids',
                     'programme_ids.0',
                 ];
-            }
-
-            if (step === 2) {
-                return ['password', 'password_confirmation'];
             }
 
             if (step !== eventDetailsStepIndex) {
@@ -1354,26 +1346,6 @@ export default function Register({
                 }
             }
 
-            if (step === 2) {
-                const password = valueOf('password');
-                const passwordConfirmation = valueOf('password_confirmation');
-
-                if (!password) {
-                    nextErrors.password = 'Password is required.';
-                } else if (password.length < 8) {
-                    nextErrors.password =
-                        'Password must be at least 8 characters.';
-                }
-
-                if (!passwordConfirmation) {
-                    nextErrors.password_confirmation =
-                        'Password confirmation is required.';
-                } else if (password !== passwordConfirmation) {
-                    nextErrors.password_confirmation =
-                        'Password confirmation does not match.';
-                }
-            }
-
             if (step === eventDetailsStepIndex) {
                 selectedProgrammes.forEach((programme) => {
                     (programme.registration_fields ?? []).forEach((field) => {
@@ -1466,10 +1438,6 @@ export default function Register({
               {
                   title: 'Contact & role',
                   description: 'Organization, contact, and registrant type.',
-              },
-              {
-                  title: 'Account',
-                  description: 'Set your password.',
               },
               ...(hasEventDetailsStep
                   ? [
@@ -1810,8 +1778,6 @@ export default function Register({
         setProgrammeIds([]);
         setRegistrationResponses({});
         setDynamicOtherResponses({});
-        setShowPassword(false);
-        setShowConfirmPassword(false);
         setConsentContact(false);
         setConsentMedia(false);
         setFoodRestrictions([]);
@@ -1865,6 +1831,11 @@ export default function Register({
             resetFormState();
         }
     }, [resetFormState, status]);
+
+    const closeSuccessDialog = React.useCallback(() => {
+        setSuccessOpen(false);
+        router.visit('/');
+    }, []);
 
     React.useEffect(() => {
         let active = true;
@@ -2404,7 +2375,6 @@ export default function Register({
                 key={formKey}
                 {...store.form()}
                 encType="multipart/form-data"
-                resetOnSuccess={['password', 'password_confirmation']}
                 className="flex flex-col gap-6"
                 noValidate
                 data-test="register-form"
@@ -3737,126 +3707,6 @@ export default function Register({
                                                         )}
                                                     </div>
                                                 )}
-                                        </div>
-                                    </fieldset>
-
-                                    <fieldset
-                                        data-active={currentStep === 2}
-                                        aria-hidden={currentStep !== 2}
-                                        className={cn(
-                                            'grid gap-5 sm:grid-cols-2',
-                                            currentStep === 2 ? '' : 'hidden',
-                                        )}
-                                    >
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="password">
-                                                Password{' '}
-                                                <span className="text-[11px] font-semibold text-red-600">
-                                                    {' '}
-                                                    *
-                                                </span>
-                                            </Label>
-                                            <div className="relative">
-                                                <Input
-                                                    id="password"
-                                                    type={
-                                                        showPassword
-                                                            ? 'text'
-                                                            : 'password'
-                                                    }
-                                                    tabIndex={7}
-                                                    autoComplete="new-password"
-                                                    name="password"
-                                                    placeholder="Password"
-                                                    className={cn(
-                                                        inputClass,
-                                                        'pr-10',
-                                                    )}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setShowPassword(
-                                                            (prev) => !prev,
-                                                        )
-                                                    }
-                                                    className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-500 transition hover:text-slate-700"
-                                                    aria-label={
-                                                        showPassword
-                                                            ? 'Hide password'
-                                                            : 'Show password'
-                                                    }
-                                                >
-                                                    {showPassword ? (
-                                                        <EyeOff className="h-4 w-4" />
-                                                    ) : (
-                                                        <Eye className="h-4 w-4" />
-                                                    )}
-                                                </button>
-                                            </div>
-
-                                            <InputError
-                                                message={
-                                                    err.password &&
-                                                    shouldShowError('password')
-                                                        ? err.password
-                                                        : undefined
-                                                }
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="password_confirmation">
-                                                Confirm password{' '}
-                                                <span className="text-[11px] font-semibold text-red-600">
-                                                    {' '}
-                                                    *
-                                                </span>
-                                            </Label>
-                                            <div className="relative">
-                                                <Input
-                                                    id="password_confirmation"
-                                                    type={
-                                                        showConfirmPassword
-                                                            ? 'text'
-                                                            : 'password'
-                                                    }
-                                                    tabIndex={8}
-                                                    autoComplete="new-password"
-                                                    name="password_confirmation"
-                                                    placeholder="Confirm password"
-                                                    className={cn(
-                                                        inputClass,
-                                                        'pr-10',
-                                                    )}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setShowConfirmPassword(
-                                                            (prev) => !prev,
-                                                        )
-                                                    }
-                                                    className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-500 transition hover:text-slate-700"
-                                                    aria-label={
-                                                        showConfirmPassword
-                                                            ? 'Hide password confirmation'
-                                                            : 'Show password confirmation'
-                                                    }
-                                                >
-                                                    {showConfirmPassword ? (
-                                                        <EyeOff className="h-4 w-4" />
-                                                    ) : (
-                                                        <Eye className="h-4 w-4" />
-                                                    )}
-                                                </button>
-                                            </div>
-
-                                            <InputError
-                                                message={
-                                                    err.password_confirmation
-                                                }
-                                            />
                                         </div>
                                     </fieldset>
 
@@ -5546,7 +5396,14 @@ export default function Register({
 
                             <Dialog
                                 open={successOpen}
-                                onOpenChange={setSuccessOpen}
+                                onOpenChange={(open) => {
+                                    if (open) {
+                                        setSuccessOpen(true);
+                                        return;
+                                    }
+
+                                    closeSuccessDialog();
+                                }}
                             >
                                 <DialogContent
                                     className="max-h-[calc(100vh-1.5rem)] w-[calc(100%-2rem)] !max-w-2xl overflow-y-auto rounded-2xl border-none bg-white p-5 text-slate-900 sm:w-full sm:p-6"
@@ -5750,12 +5607,7 @@ export default function Register({
                                         <Button
                                             type="button"
                                             className="rounded-full bg-[#0033A0] px-6 text-white hover:bg-[#002b86] disabled:cursor-not-allowed disabled:opacity-60"
-                                            onClick={() => {
-                                                setSuccessOpen(false);
-                                                if (!asemme10Submission) {
-                                                    router.visit(login());
-                                                }
-                                            }}
+                                            onClick={closeSuccessDialog}
                                         >
                                             Got it
                                         </Button>
@@ -5763,50 +5615,49 @@ export default function Register({
                                 </DialogContent>
                             </Dialog>
 
-                            <Dialog open={false} onOpenChange={setSuccessOpen}>
-                                <DialogContent className="w-[calc(100%-2rem)] max-w-3xl rounded-2xl border-none bg-gradient-to-br from-[#E8F0FF] via-white to-[#F5FBFF] sm:w-full">
-                                    <DialogHeader className="items-center text-center">
-                                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0033A0] text-white shadow-lg shadow-[#0033A0]/20">
-                                            <CheckCircle2 className="h-7 w-7" />
-                                        </div>
+                            {false ? (
+                                <Dialog open={false} onOpenChange={() => {}}>
+                                    <DialogContent className="w-[calc(100%-2rem)] max-w-3xl rounded-2xl border-none bg-gradient-to-br from-[#E8F0FF] via-white to-[#F5FBFF] sm:w-full">
+                                        <DialogHeader className="items-center text-center">
+                                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0033A0] text-white shadow-lg shadow-[#0033A0]/20">
+                                                <CheckCircle2 className="h-7 w-7" />
+                                            </div>
 
-                                        <DialogTitle className="text-xl text-slate-800">
-                                            You’re all set! 🎉
-                                        </DialogTitle>
+                                            <DialogTitle className="text-xl text-slate-800">
+                                                You’re all set! 🎉
+                                            </DialogTitle>
 
-                                        <DialogDescription className="text-sm text-slate-600">
-                                            Thanks for signing up! ✨ You can
-                                            now try logging in using the email
-                                            you provided.
-                                            <span className="mt-2 block rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-                                                <span className="font-semibold">
-                                                    Please check your EMAIL.
-                                                </span>{' '}
-                                                Please find your QR code and
-                                                participant details attached.
-                                                Also check your{' '}
-                                                <span className="font-semibold">
-                                                    Spam/Junk
-                                                </span>{' '}
-                                                folder if you don’t see it.
-                                            </span>
-                                        </DialogDescription>
-                                    </DialogHeader>
+                                            <DialogDescription className="text-sm text-slate-600">
+                                                Thanks for signing up! ✨ You
+                                                can now try logging in using the
+                                                email you provided.
+                                                <span className="mt-2 block rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+                                                    <span className="font-semibold">
+                                                        Please check your EMAIL.
+                                                    </span>{' '}
+                                                    Please find your QR code and
+                                                    participant details
+                                                    attached. Also check your{' '}
+                                                    <span className="font-semibold">
+                                                        Spam/Junk
+                                                    </span>{' '}
+                                                    folder if you don’t see it.
+                                                </span>
+                                            </DialogDescription>
+                                        </DialogHeader>
 
-                                    <DialogFooter className="sm:justify-center">
-                                        <Button
-                                            type="button"
-                                            className="rounded-full bg-[#0033A0] px-6 text-white hover:bg-[#002b86] disabled:cursor-not-allowed disabled:opacity-60"
-                                            onClick={() => {
-                                                setSuccessOpen(false);
-                                                router.visit(login());
-                                            }}
-                                        >
-                                            Got it
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
+                                        <DialogFooter className="sm:justify-center">
+                                            <Button
+                                                type="button"
+                                                className="rounded-full bg-[#0033A0] px-6 text-white hover:bg-[#002b86] disabled:cursor-not-allowed disabled:opacity-60"
+                                                onClick={closeSuccessDialog}
+                                            >
+                                                Got it
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            ) : null}
                         </>
                     );
                 }}

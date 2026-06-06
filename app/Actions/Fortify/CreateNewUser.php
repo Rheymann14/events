@@ -16,8 +16,6 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
 {
-    use PasswordValidationRules;
-
     private const FOOD_RESTRICTION_OPTIONS = [
         'vegetarian',
         'vegan',
@@ -30,6 +28,8 @@ class CreateNewUser implements CreatesNewUsers
         'allergies',
         'other',
     ];
+
+    private const DEFAULT_PARTICIPANT_PASSWORD = 'chedevents2026';
 
     private const ACCESSIBILITY_NEEDS_OPTIONS = [
         'wheelchair_access',
@@ -86,7 +86,6 @@ class CreateNewUser implements CreatesNewUsers
             'emergency_contact_email' => ['nullable', 'email', 'max:255'],
             'profile_photo' => ['nullable', 'image', 'max:5120'],
             'registration_responses' => ['nullable', 'array'],
-            'password' => $this->passwordRules(),
         ])->after(function ($validator) use ($input) {
             $programmeIds = collect($input['programme_ids'] ?? [])
                 ->map(fn ($id) => (int) $id)
@@ -186,7 +185,7 @@ class CreateNewUser implements CreatesNewUsers
             'email' => $input['email'],
             'contact_country_code' => null,
             'contact_number' => $input['contact_number'],
-            'password' => $input['password'],
+            'password' => self::DEFAULT_PARTICIPANT_PASSWORD,
             'country_id' => null,
             'user_type_id' => $input['user_type_id'],
             'other_user_type' => $otherUserType,

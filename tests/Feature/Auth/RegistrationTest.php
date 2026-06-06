@@ -7,6 +7,7 @@ use App\Models\Programme;
 use App\Models\RegistrationField;
 use App\Models\User;
 use App\Models\UserType;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -155,13 +156,14 @@ test('new users can register', function () {
         'contact_number' => '09171234567',
         'country_id' => $country->id,
         'user_type_id' => $userType->id,
-        'password' => 'password',
-        'password_confirmation' => 'password',
     ]);
 
     $this->assertGuest();
     $response->assertRedirect(route('register', absolute: false));
     $response->assertSessionHas('status', 'registered');
+
+    $participant = User::query()->where('email', 'test@example.com')->firstOrFail();
+    expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
 });
 
 test('existing users can join selected event from registration form', function () {
@@ -210,8 +212,6 @@ test('existing users can join selected event from registration form', function (
         'country_id' => $country->id,
         'user_type_id' => $userType->id,
         'programme_ids' => [$programme->id],
-        'password' => 'password',
-        'password_confirmation' => 'password',
     ]);
 
     $this->assertGuest();
@@ -273,8 +273,6 @@ test('existing users already joined to selected event still receive duplicate em
         'country_id' => $country->id,
         'user_type_id' => $userType->id,
         'programme_ids' => [$programme->id],
-        'password' => 'password',
-        'password_confirmation' => 'password',
     ]);
 
     $response->assertInvalid(['email']);
@@ -380,6 +378,7 @@ test('ASEMME10 delegation registration creates scannable participants', function
     foreach ($participants as $participant) {
         expect($participant->display_id)->not->toBeNull();
         expect($participant->qr_payload)->not->toBeNull();
+        expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
         expect($participant->joinedProgrammes()->whereKey($programme->id)->exists())->toBeTrue();
     }
 });

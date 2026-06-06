@@ -15,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class Asemme10RegistrationController extends Controller
 {
+    private const DEFAULT_PARTICIPANT_PASSWORD = 'chedevents2026';
+
     private const REGISTRATION_TYPES = [
         'Country Delegation',
         'Stakeholder Delegation',
@@ -265,7 +267,7 @@ class Asemme10RegistrationController extends Controller
         $user = User::query()->create([
             'name' => $this->attendeeFullName($attendee),
             'email' => $canUseEmail ? $email : null,
-            'password' => Str::random(32),
+            'password' => self::DEFAULT_PARTICIPANT_PASSWORD,
             'country_id' => $validated['country_id'] ?? null,
             'user_type_id' => $this->participantUserTypeId(),
             'honorific_title' => $this->attendeeTitle($attendee),
