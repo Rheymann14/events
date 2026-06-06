@@ -836,29 +836,39 @@ function csrfToken() {
     );
 }
 
-function filenameFromDisposition(value: string | null) {
-    if (!value) return null;
+function appendHiddenInput(
+    form: HTMLFormElement,
+    name: string,
+    value: string,
+) {
+    const input = document.createElement('input');
 
-    const utf8Match = value.match(/filename\*=UTF-8''([^;]+)/i);
-    if (utf8Match?.[1]) return decodeURIComponent(utf8Match[1]);
-
-    const match = value.match(/filename="?([^"]+)"?/i);
-    return match?.[1] ?? null;
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
 }
 
-async function downloadPdfResponse(response: Response, fallbackName: string) {
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+function submitIdCardsPdfDownload(
+    orientation: PrintOrientation,
+    selectedIds: number[],
+) {
+    const form = document.createElement('form');
 
-    link.href = url;
-    link.download =
-        filenameFromDisposition(response.headers.get('content-disposition')) ??
-        fallbackName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    form.method = 'POST';
+    form.action = ID_CARDS_PDF_ENDPOINT;
+    form.style.display = 'none';
+
+    appendHiddenInput(form, '_token', csrfToken());
+    appendHiddenInput(form, 'orientation', orientation);
+    selectedIds.forEach((id) => appendHiddenInput(form, 'ids[]', String(id)));
+
+    document.body.appendChild(form);
+    form.submit();
+
+    window.setTimeout(() => {
+        form.remove();
+    }, 5000);
 }
 
 function resolveParticipantProfileImage(participant?: ParticipantRow | null) {
@@ -2928,7 +2938,7 @@ export default function ParticipantPage(props: PageProps) {
         setUserTypeDialogOpen(true);
     }
 
-    async function downloadIdCardsPdf(orientation: PrintOrientation) {
+    function downloadIdCardsPdf(orientation: PrintOrientation) {
         const selectedIds = selectedParticipantsPrintable
             .map((p) => p.id)
             .filter((id): id is number => Number.isInteger(id) && id > 0);
@@ -2940,37 +2950,14 @@ export default function ParticipantPage(props: PageProps) {
 
         if (isPreparingPdf) return;
 
-        setIsPreparingPdf(true);
-
         try {
-            const response = await fetch(ID_CARDS_PDF_ENDPOINT, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/pdf',
-                    'X-CSRF-TOKEN': csrfToken(),
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({
-                    orientation,
-                    ids: selectedIds,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`PDF request failed with ${response.status}`);
-            }
-
-            await downloadPdfResponse(
-                response,
-                `participant-ids-${orientation}.pdf`,
-            );
-            toast.success('Participant ID PDF downloaded.');
+            setIsPreparingPdf(true);
+            submitIdCardsPdfDownload(orientation, selectedIds);
+            toast.success('Participant ID PDF download started.');
         } catch {
             toast.error('Unable to download ID PDF. Please try again.');
         } finally {
-            setIsPreparingPdf(false);
+            window.setTimeout(() => setIsPreparingPdf(false), 1500);
         }
     }
 
