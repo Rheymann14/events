@@ -7,8 +7,8 @@ import {
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import jsQR from 'jsqr';
-import * as React from 'react';
 import QRCode from 'qrcode';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -238,6 +238,7 @@ function Pill({
 function ScannerIdCardPreview({
     participant,
     orientation,
+    verifiedSuccess = false,
 }: {
     participant: {
         name: string;
@@ -247,8 +248,10 @@ function ScannerIdCardPreview({
         is_verified?: boolean;
     };
     orientation: 'portrait' | 'landscape';
+    verifiedSuccess?: boolean;
 }) {
     const isLandscape = orientation === 'landscape';
+    const hasParticipantImage = !!participant.profile_image_url;
     const participantImageSrc =
         participant.profile_image_url ?? '/img/ched_logo.png';
     const [qrDataUrl, setQrDataUrl] = React.useState<string | null>(null);
@@ -256,6 +259,11 @@ function ScannerIdCardPreview({
     React.useEffect(() => {
         let active = true;
         const run = async () => {
+            if (verifiedSuccess) {
+                setQrDataUrl(null);
+                return;
+            }
+
             const value = participant.qr_payload?.trim() ?? '';
             if (!value) {
                 setQrDataUrl(null);
@@ -278,7 +286,7 @@ function ScannerIdCardPreview({
         return () => {
             active = false;
         };
-    }, [participant.qr_payload]);
+    }, [participant.qr_payload, verifiedSuccess]);
 
     // ✅ keep accurate print size, but DON'T force fixed aspect height on screen
     const printSize = isLandscape
@@ -460,7 +468,7 @@ function ScannerIdCardPreview({
                         </div>
                     </div>
 
-                    {/* RIGHT QR */}
+                    {/* RIGHT QR / VERIFIED PHOTO */}
                     <div
                         className={cn(
                             'flex flex-col items-center justify-center rounded-3xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/45',
@@ -472,14 +480,50 @@ function ScannerIdCardPreview({
                         <div
                             className={cn(
                                 'inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200',
-                                isLandscape ? 'mb-1 text-[10px]' : 'mb-1.5 text-[11px]',
+                                isLandscape
+                                    ? 'mb-1 text-[10px]'
+                                    : 'mb-1.5 text-[11px]',
                             )}
                         >
-                            <QrCodeIcon className={cn(isLandscape ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
-                            QR Code
+                            {verifiedSuccess ? (
+                                <CircleCheckBig
+                                    className={cn(
+                                        'text-emerald-600',
+                                        isLandscape ? 'h-3.5 w-3.5' : 'h-4 w-4',
+                                    )}
+                                />
+                            ) : (
+                                <QrCodeIcon
+                                    className={cn(
+                                        isLandscape ? 'h-3.5 w-3.5' : 'h-4 w-4',
+                                    )}
+                                />
+                            )}
+                            {verifiedSuccess ? 'Verified' : 'QR Code'}
                         </div>
 
-                        {qrDataUrl ? (
+                        {verifiedSuccess ? (
+                            <div
+                                className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-500/30 dark:bg-slate-950"
+                                style={{ width: qrSize, height: qrSize }}
+                            >
+                                <img
+                                    src={participantImageSrc}
+                                    alt="Participant profile"
+                                    className={cn(
+                                        'h-full w-full',
+                                        hasParticipantImage
+                                            ? 'object-cover'
+                                            : 'object-contain p-4',
+                                    )}
+                                    draggable={false}
+                                    loading="lazy"
+                                />
+                                <div className="absolute right-2 bottom-2 grid h-8 w-8 place-items-center rounded-full border-2 border-white bg-emerald-600 text-white shadow-sm dark:border-slate-950">
+                                    <CircleCheckBig className="h-5 w-5" />
+                                </div>
+                            </div>
+                        ) : qrDataUrl ? (
                             <img
                                 src={qrDataUrl}
                                 alt="Participant QR code"
@@ -514,7 +558,7 @@ function ScannerIdCardPreview({
                                     {participant.name}
                                 </span>
                             </div>
-                            <div className="mt-1 font-mono break-words text-[10px] text-slate-500 dark:text-slate-400">
+                            <div className="mt-1 font-mono text-[10px] break-words text-slate-500 dark:text-slate-400">
                                 {participant.display_id}
                             </div>
                         </div>
@@ -813,13 +857,15 @@ export default function Scanner(props: PageProps) {
     const [eventOpen, setEventOpen] = React.useState(false);
     const [isScanning, setIsScanning] = React.useState(false);
     const [status, setStatus] = React.useState<
-        'idle' | 'scanning' | 'verifying' | 'success' | 'error'
+        'idle' | 'scanning' | 'verifying' | 'success' | 'error' | 'camera-error'
     >('idle');
 
     const [devices, setDevices] = React.useState<
         Array<{ deviceId: string; label: string }>
     >([]);
     const [deviceId, setDeviceId] = React.useState<string>('');
+    const [deviceDiscoveryReady, setDeviceDiscoveryReady] =
+        React.useState(false);
     const [cameraError, setCameraError] = React.useState<string | null>(null);
 
     const [manualCode, setManualCode] = React.useState('');
@@ -829,6 +875,9 @@ export default function Scanner(props: PageProps) {
 
     // ✅ dialog for BOTH success and error
     const [resultOpen, setResultOpen] = React.useState(false);
+    const [resumeScanAfterResult, setResumeScanAfterResult] =
+        React.useState(false);
+    const [autoStartSuppressed, setAutoStartSuppressed] = React.useState(false);
 
     const resultLatchRef = React.useRef(false);
 
@@ -884,6 +933,10 @@ export default function Scanner(props: PageProps) {
                 setDeviceId(preferred);
             } catch {
                 // user may grant permission later
+            } finally {
+                if (mounted) {
+                    setDeviceDiscoveryReady(true);
+                }
             }
         })();
 
@@ -1253,6 +1306,7 @@ export default function Scanner(props: PageProps) {
         if (!ensureEventSelected()) return;
         if (!videoRef.current) return;
 
+        setAutoStartSuppressed(false);
         setCameraError(null);
         setResult(null);
         setStatus('scanning');
@@ -1338,7 +1392,9 @@ export default function Scanner(props: PageProps) {
 
                             pauseScanForVerification();
                             setStatus('verifying');
-                            await verifyCode(rawValue);
+                            await verifyCode(rawValue, {
+                                resumeScan: true,
+                            });
 
                             lockRef.current = false;
                             return;
@@ -1348,7 +1404,7 @@ export default function Scanner(props: PageProps) {
                         setCameraError(
                             'The camera image could not be scanned. Keep the QR code inside the frame or use manual entry.',
                         );
-                        setStatus('error');
+                        setStatus('camera-error');
                         setIsScanning(false);
                         isScanningRef.current = false;
                         setQrAim('idle');
@@ -1364,7 +1420,7 @@ export default function Scanner(props: PageProps) {
             const msg = getCameraErrorMessage(e);
             teardownScanSession();
             setCameraError(msg);
-            setStatus('error');
+            setStatus('camera-error');
             setIsScanning(false);
             isScanningRef.current = false;
             setQrAim('idle');
@@ -1383,7 +1439,18 @@ export default function Scanner(props: PageProps) {
         setStatus((s) => (s === 'scanning' ? 'idle' : s));
     }
 
-    async function verifyCode(code: string) {
+    async function verifyCode(
+        code: string,
+        {
+            resumeScan = false,
+        }: {
+            resumeScan?: boolean;
+        } = {},
+    ) {
+        setResumeScanAfterResult(resumeScan);
+        setAutoStartSuppressed(!resumeScan);
+        setCameraError(null);
+
         if (!ensureEventSelected()) return;
 
         setStatus('verifying');
@@ -1432,14 +1499,20 @@ export default function Scanner(props: PageProps) {
     }
 
     function closeResultAndScanAgain() {
+        const shouldResumeScan = resumeScanAfterResult;
+
         resultLatchRef.current = false;
         setResult(null);
         setStatus('idle');
         setQrAim('idle');
         setResultOpen(false);
+        setResumeScanAfterResult(false);
 
-        if (selectedEventId && !isEventBlocked) {
+        if (shouldResumeScan && selectedEventId && !isEventBlocked) {
+            setAutoStartSuppressed(false);
             void startScan({ preserveLastDetected: true });
+        } else {
+            setAutoStartSuppressed(true);
         }
     }
 
@@ -1450,7 +1523,9 @@ export default function Scanner(props: PageProps) {
             status !== 'idle' ||
             isEventBlocked ||
             !selectedEventId ||
-            cameraError
+            !deviceDiscoveryReady ||
+            cameraError ||
+            autoStartSuppressed
         ) {
             return;
         }
@@ -1460,11 +1535,13 @@ export default function Scanner(props: PageProps) {
     }, [
         selectedEventId,
         deviceId,
+        deviceDiscoveryReady,
         isEventBlocked,
         isScanning,
         resultOpen,
         status,
         cameraError,
+        autoStartSuppressed,
     ]);
 
     React.useEffect(() => {
@@ -1544,6 +1621,7 @@ export default function Scanner(props: PageProps) {
                                 <ScannerIdCardPreview
                                     participant={cardParticipant}
                                     orientation="landscape"
+                                    verifiedSuccess={!!result?.ok}
                                 />
                             </div>
                         ) : null}
@@ -1724,7 +1802,9 @@ export default function Scanner(props: PageProps) {
                             )}
                         >
                             <RefreshCcw className="mr-2 h-4 w-4" />
-                            Close & Scan Again
+                            {resumeScanAfterResult
+                                ? 'Close & Scan Again'
+                                : 'Close'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1753,7 +1833,8 @@ export default function Scanner(props: PageProps) {
                                 tone={
                                     status === 'success'
                                         ? 'success'
-                                        : status === 'error'
+                                        : status === 'error' ||
+                                            status === 'camera-error'
                                           ? 'danger'
                                           : 'default'
                                 }
@@ -1766,7 +1847,9 @@ export default function Scanner(props: PageProps) {
                                         ? 'Verified'
                                         : status === 'error'
                                           ? 'Rejected'
-                                          : 'Ready'}
+                                          : status === 'camera-error'
+                                            ? 'Camera error'
+                                            : 'Ready'}
                             </Pill>
                         </div>
                     </div>
@@ -1837,6 +1920,10 @@ export default function Scanner(props: PageProps) {
                                                         setEventOpen(false);
                                                         setResult(null);
                                                         setStatus('idle');
+                                                        setCameraError(null);
+                                                        setAutoStartSuppressed(
+                                                            false,
+                                                        );
                                                     }}
                                                     className="flex items-center gap-2"
                                                 >
@@ -2092,6 +2179,7 @@ export default function Scanner(props: PageProps) {
                             ) : (
                                 <Button
                                     onClick={() => {
+                                        setAutoStartSuppressed(false);
                                         setCameraError(null);
                                         void startScan();
                                     }}
@@ -2135,7 +2223,7 @@ export default function Scanner(props: PageProps) {
                                             const code = manualCode.trim();
                                             if (!code) return;
                                             await sounds.unlock();
-                                            verifyCode(code);
+                                            await verifyCode(code);
                                         }}
                                         className={cn(
                                             'h-11 rounded-2xl',

@@ -670,7 +670,7 @@ export default function EventManagement(props: PageProps) {
     const [q, setQ] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState<
         'all' | 'active' | 'inactive' | 'registration'
-    >('all');
+    >('registration');
     const [eventFilter, setEventFilter] = React.useState<
         'all' | 'upcoming' | 'ongoing' | 'closed'
     >('all');
