@@ -339,35 +339,22 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
 
                     {/* CTA */}
                     <div className="relative z-[60] mt-10 flex justify-center lg:justify-start">
-                        <Link
-                            href="/register"
-                            className="group relative z-[60] inline-flex min-h-14 w-full max-w-xs touch-manipulation items-center justify-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85] sm:w-auto lg:justify-center"
+                        <Button
+                            asChild
+                            className="group relative z-[60] min-h-14 w-full max-w-xs touch-manipulation rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85] sm:w-auto"
                         >
-                            Register Now
-
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 transition group-hover:bg-white/25">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    className="text-white"
-                                >
-                                    <path
-                                        d="M12 5v14M5 12l7 7 7-7"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </span>
-                        </Link>
+                            <Link href="/register">
+                                Register Now
+                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 transition group-hover:bg-white/25">
+                                    <ArrowRight className="h-4 w-4 text-white" />
+                                </span>
+                            </Link>
+                        </Button>
                     </div>
                 </div>
 
                 {/* ================= RIGHT SIDE ================= */}
-                <div className="flex justify-center lg:justify-end">
+                <div className="flex justify-center pb-12 lg:justify-end lg:pb-0">
                     <div className="w-full max-w-[600px] rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.25)]">
 
                         {/* HEADER */}
