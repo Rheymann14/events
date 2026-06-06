@@ -81,9 +81,20 @@
                                                         <div style="font-size: 13px; line-height: 1.6; color: #334155;">
                                                             <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b;">Participant</div>
                                                             <div style="font-weight: 700; color: #0f172a;">{{ $user->name }}</div>
-                                                            <div style="margin-top: 6px;">{{ $user->country?->name ?? 'CHED Participant' }}</div>
-                                                            <div style="margin-top: 6px; font-size: 12px; color: #475569;">Participant ID:</div>
-                                                            <div style="font-weight: 700; color: #1e40af;">{{ $user->display_id }}</div>
+                                                            @php
+                                                                $participantPhotoSrc = $profilePhotoPath && isset($message) ? $message->embed($profilePhotoPath) : $profilePhotoUrl;
+                                                            @endphp
+                                                            <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top: 8px;">
+                                                                <tr>
+                                                                    <td style="width: 46px; vertical-align: middle;">
+                                                                        <img src="{{ $participantPhotoSrc }}" alt="Participant photo" style="width: 42px; height: 42px; border-radius: 14px; border: 1px solid #dbeafe; object-fit: cover; display: block; background: #ffffff;" />
+                                                                    </td>
+                                                                    <td style="vertical-align: middle; padding-left: 8px;">
+                                                                        <div style="font-size: 12px; color: #475569;">Participant ID:</div>
+                                                                        <div style="font-weight: 700; color: #1e40af;">{{ $user->display_id }}</div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
                                                             <div style="margin-top: 8px; font-size: 11px; color: #64748b;">
                                                                 Use this landscape ID for check-in attendance verification.
                                                             </div>

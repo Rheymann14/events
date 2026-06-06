@@ -86,9 +86,17 @@
                                                         <div style="font-size: 13px; line-height: 1.6; color: #334155;">
                                                             <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b;">Participant</div>
                                                             <div style="font-weight: 700; color: #0f172a;">{{ $user->name }}</div>
-                                                            <div style="margin-top: 6px;">{{ $user->country?->name ?? 'CHED Participant' }}</div>
-                                                            <div style="margin-top: 6px; font-size: 12px; color: #475569;">Participant ID:</div>
-                                                            <div style="font-weight: 700; color: #1e40af;">{{ $user->display_id }}</div>
+                                                            <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top: 8px;">
+                                                                <tr>
+                                                                    <td style="width: 42px; vertical-align: middle;">
+                                                                        <img src="{{ $profilePhotoUrl }}" alt="Participant photo" style="width: 38px; height: 38px; border-radius: 12px; border: 1px solid #dbeafe; object-fit: cover; display: block; background: #ffffff;" />
+                                                                    </td>
+                                                                    <td style="vertical-align: middle; padding-left: 8px;">
+                                                                        <div style="font-size: 12px; color: #475569;">Participant ID:</div>
+                                                                        <div style="font-weight: 700; color: #1e40af;">{{ $user->display_id }}</div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
                                                         </div>
                                                     </td>
                                                     <td style="width: 40%; text-align: center; vertical-align: top;">
