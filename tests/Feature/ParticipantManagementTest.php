@@ -348,6 +348,31 @@ test('participant password reset stores the default password as a hash', functio
     expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
 });
 
+test('admin can download participant id cards as a pdf', function () {
+    $admin = adminUser();
+    [$country, $participantType] = participantFixture();
+
+    $participant = User::factory()->create([
+        'name' => 'Downloadable Participant',
+        'country_id' => $country->id,
+        'user_type_id' => $participantType->id,
+        'display_id' => 'EVT-0001',
+        'qr_payload' => 'EVT-0001',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->post(route('participants.id-cards.pdf'), [
+            'orientation' => 'landscape',
+            'ids' => [$participant->id],
+        ]);
+
+    $response
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+
+    expect($response->headers->get('Content-Disposition'))->toContain('participant-ids-landscape-');
+});
+
 test('dynamic registration responses are validated for required fields and option types', function () {
     $admin = adminUser();
     [$country, $participantType, $programme] = participantFixture();
