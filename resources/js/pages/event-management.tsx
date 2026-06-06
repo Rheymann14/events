@@ -670,7 +670,7 @@ export default function EventManagement(props: PageProps) {
     const [q, setQ] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState<
         'all' | 'active' | 'inactive' | 'registration'
-    >('registration');
+    >('all');
     const [eventFilter, setEventFilter] = React.useState<
         'all' | 'upcoming' | 'ongoing' | 'closed'
     >('all');
@@ -965,6 +965,11 @@ export default function EventManagement(props: PageProps) {
             preserveScroll: true,
             forceFormData: hasUploads,
             onSuccess: () => {
+                if (!editing) {
+                    setQ('');
+                    setStatusFilter('all');
+                    setEventFilter('all');
+                }
                 setDialogOpen(false);
                 setEditing(null);
                 toast.success(`Event ${editing ? 'updated' : 'created'}.`);
