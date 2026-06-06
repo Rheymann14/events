@@ -338,10 +338,10 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                     </p>
 
                     {/* CTA */}
-                    <div className="relative z-40 mt-10">
+                    <div className="relative z-[60] mt-10 flex justify-center lg:justify-start">
                         <Link
                             href="/register"
-                            className="group relative z-40 inline-flex items-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85]"
+                            className="group relative z-[60] inline-flex min-h-14 w-full max-w-xs touch-manipulation items-center justify-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85] sm:w-auto lg:justify-center"
                         >
                             Register Now
 
