@@ -998,20 +998,22 @@ class ParticipantController extends Controller
 
             $detailsY = $bodyTop - 39.0 - ((count($nameLines) - 1) * $nameLineGap);
             $photoSize = 38.0;
+            $photoX = $x + $pad;
+            $photoY = $detailsY - 30.0;
             if ($photoPath) {
-                $this->drawClippedImage($pdf, $photoPath, $x + $pad, $detailsY - 30.0, $photoSize, $photoSize, 7.0);
+                $this->drawClippedImage($pdf, $photoPath, $photoX, $photoY, $photoSize, $photoSize, 7.0);
             }
-            $idLabelX = $x + $pad;
-            $idLabelLimit = $leftLimit;
-            $this->drawText($pdf, $this->limitPdfText('PARTICIPANT ID', $this->charsForWidth($idLabelLimit, 5.5)), $idLabelX, $y + 29.0, 5.5, [0.39, 0.46, 0.57]);
-            $idText = $this->limitPdfText($displayId, $this->charsForWidth($leftLimit - 12.0, 6.8));
-            $idWidth = min($leftLimit, max(58.0, strlen($idText) * 4.5 + 12.0));
-            $idBadgeY = $y + 4.6;
+            $idLabelX = $photoX + $photoSize + 8.0;
+            $idLabelLimit = max(42.0, $leftLimit - $photoSize - 8.0);
+            $idText = $this->limitPdfText($displayId, $this->charsForWidth($idLabelLimit - 12.0, 6.8));
+            $idWidth = min($idLabelLimit, max(58.0, strlen($idText) * 4.5 + 12.0));
+            $idBadgeY = $photoY + 5.8;
             $idBadgeH = 16.5;
-            $this->filledRoundedRectangle($pdf, $x + $pad, $idBadgeY, $idWidth, $idBadgeH, 7.0);
+            $this->drawText($pdf, $this->limitPdfText('PARTICIPANT ID', $this->charsForWidth($idLabelLimit, 5.5)), $idLabelX, $idBadgeY + $idBadgeH + 8.0, 5.5, [0.39, 0.46, 0.57]);
+            $this->filledRoundedRectangle($pdf, $idLabelX, $idBadgeY, $idWidth, $idBadgeH, 7.0);
             $pdf->setStrokeColor([0.82, 0.88, 0.96]);
-            $this->roundedBorder($pdf, $x + $pad, $idBadgeY, $idWidth, $idBadgeH, 7.0);
-            $this->drawText($pdf, $idText, $x + $pad + 6.0, $idBadgeY + 5.7, 6.8, [0.02, 0.06, 0.16]);
+            $this->roundedBorder($pdf, $idLabelX, $idBadgeY, $idWidth, $idBadgeH, 7.0);
+            $this->drawText($pdf, $idText, $idLabelX + 6.0, $idBadgeY + 5.7, 6.8, [0.02, 0.06, 0.16]);
 
             $this->drawQrPanel($pdf, $displayId, $qrPayload, $qrPanelX, $qrPanelY, $qrPanelW, $qrPanelH, 54.0, true, '', $name);
 

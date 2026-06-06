@@ -1972,18 +1972,11 @@ export default function Register({
         }
         ctx.restore();
 
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '700 28px Arial, sans-serif';
-        ctx.fillText('Participant Photo', 214, 342, 420);
-        ctx.fillStyle = '#64748b';
-        ctx.font = '500 24px Arial, sans-serif';
-        ctx.fillText(virtualIdParticipant.display_id, 214, 382);
-
         ctx.fillStyle = '#475569';
         ctx.font = '700 24px Arial, sans-serif';
-        ctx.fillText('PARTICIPANT ID', 56, 490);
+        ctx.fillText('PARTICIPANT ID', 214, 336);
 
-        drawRoundedRect(ctx, 56, 512, 360, 60, 30);
+        drawRoundedRect(ctx, 214, 358, 360, 60, 30);
         ctx.fillStyle = 'rgba(255,255,255,0.9)';
         ctx.fill();
         ctx.strokeStyle = 'rgba(148,163,184,0.55)';
@@ -1991,7 +1984,7 @@ export default function Register({
         ctx.stroke();
         ctx.fillStyle = '#0f172a';
         ctx.font = '700 25px Arial, sans-serif';
-        ctx.fillText(virtualIdParticipant.display_id, 86, 552);
+        ctx.fillText(virtualIdParticipant.display_id, 244, 398);
 
         drawRoundedRect(ctx, 724, 148, 420, 520, 42);
         ctx.fillStyle = 'rgba(255,255,255,0.92)';
@@ -5525,30 +5518,21 @@ export default function Register({
                                                             />
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="truncate text-base font-bold text-slate-900 sm:text-lg">
-                                                                Participant
-                                                                Photo
+                                                            <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase sm:text-[11px]">
+                                                                Participant ID
                                                             </p>
-                                                            <p className="text-[11px] font-medium text-slate-500 sm:text-xs">
-                                                                {
-                                                                    virtualIdParticipant.display_id
-                                                                }
-                                                            </p>
+                                                            <div className="mt-1 inline-flex max-w-full rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 shadow-sm">
+                                                                <p className="truncate text-[11px] font-bold text-slate-900 sm:text-xs">
+                                                                    {
+                                                                        virtualIdParticipant.display_id
+                                                                    }
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
 
                                                     <div className="mt-auto pt-2">
-                                                        <p className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase sm:text-[11px]">
-                                                            Participant ID
-                                                        </p>
-                                                        <div className="mt-1 inline-flex max-w-full rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 shadow-sm">
-                                                            <p className="truncate text-[11px] font-bold text-slate-900 sm:text-xs">
-                                                                {
-                                                                    virtualIdParticipant.display_id
-                                                                }
-                                                            </p>
-                                                        </div>
-                                                        <p className="mt-2 hidden text-[10px] font-medium text-slate-500 sm:block">
+                                                        <p className="hidden text-[10px] font-medium text-slate-500 sm:block">
                                                             Scan QR for
                                                             attendance
                                                             verification.

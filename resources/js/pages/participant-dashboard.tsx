@@ -303,22 +303,30 @@ function IdCardPreview({
                                 />
                             </div>
 
+                            {isLandscape ? (
+                                <div className="min-w-0">
+                                    <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                        Participant ID
+                                    </div>
+
+                                    <div className="mt-1 inline-flex max-w-full whitespace-normal break-words rounded-2xl border border-slate-200/70 bg-white/80 px-2.5 py-1.5 font-mono text-[10px] leading-4 text-slate-900 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100">
+                                        {participant.display_id}
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
 
-                        <div className={cn(isLandscape ? 'mt-1.5 sm:mt-2' : 'mt-2 sm:mt-3')}>
-                            <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                                Participant ID
-                            </div>
+                        {!isLandscape ? (
+                            <div className="mt-2 sm:mt-3">
+                                <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                    Participant ID
+                                </div>
 
-                            <div
-                                className={cn(
-                                    'mt-1 inline-flex max-w-full whitespace-normal break-words rounded-2xl border border-slate-200/70 bg-white/80 px-2.5 py-1.5 font-mono text-slate-900 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100',
-                                    isLandscape ? 'text-[10px] leading-4' : 'text-[11px] leading-4',
-                                )}
-                            >
-                                {participant.display_id}
+                                <div className="mt-1 inline-flex max-w-full whitespace-normal break-words rounded-2xl border border-slate-200/70 bg-white/80 px-2.5 py-1.5 font-mono text-[11px] leading-4 text-slate-900 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100">
+                                    {participant.display_id}
+                                </div>
                             </div>
-                        </div>
+                        ) : null}
 
                         <div className={cn('text-[10px] text-slate-500 dark:text-slate-400', isLandscape ? 'mt-1' : 'mt-1.5 sm:mt-2')}>
                             Scan QR for attendance verification.

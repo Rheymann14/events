@@ -309,14 +309,14 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
                                                 className="h-full w-full object-cover"
                                             />
                                         </div>
-                                    </div>
 
-                                    <div className="mt-2">
-                                        <div className="text-[13px] font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
-                                            Participant ID
-                                        </div>
-                                        <div className="mt-1 inline-flex max-w-full rounded-2xl border border-slate-200/70 bg-white/80 px-3 py-1.5 font-mono text-[16px] leading-4 break-words whitespace-normal text-slate-900 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100">
-                                            {displayId}
+                                        <div className="min-w-0">
+                                            <div className="text-[13px] font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                Participant ID
+                                            </div>
+                                            <div className="mt-1 inline-flex max-w-full rounded-2xl border border-slate-200/70 bg-white/80 px-3 py-1.5 font-mono text-[16px] leading-4 break-words whitespace-normal text-slate-900 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100">
+                                                {displayId}
+                                            </div>
                                         </div>
                                     </div>
 
