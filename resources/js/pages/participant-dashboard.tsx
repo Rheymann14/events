@@ -19,7 +19,6 @@ import QRCode from 'qrcode';
 import {
     Copy,
     Download,
-    Flag,
     Mail,
     Pencil,
     Phone,
@@ -30,12 +29,6 @@ import {
     Upload,
     User2,
 } from 'lucide-react';
-
-type Country = {
-    code: string;
-    name: string;
-    flag_url?: string | null;
-};
 
 type Participant = {
     display_id: string; // ✅ safe display ID (NOT user.id)
@@ -52,7 +45,6 @@ type Participant = {
     family_name?: string | null;
     suffix?: string | null;
     sex_assigned_at_birth?: string | null;
-    country?: Country | null;
     organization_name?: string | null;
     position_title?: string | null;
     user_type?: string | null;
@@ -98,11 +90,16 @@ const ACCESSIBILITY_NEEDS_OPTIONS = [
 
 const HONORIFIC_LABELS: Record<string, string> = {
     mr: 'Mr.',
+    'mr.': 'Mr.',
     mrs: 'Mrs.',
+    'mrs.': 'Mrs.',
     ms: 'Ms.',
+    'ms.': 'Ms.',
     miss: 'Miss',
     dr: 'Dr.',
+    'dr.': 'Dr.',
     prof: 'Prof.',
+    'prof.': 'Prof.',
     other: 'Other',
 };
 
@@ -111,14 +108,16 @@ const SEX_ASSIGNED_LABELS: Record<string, string> = {
     female: 'Female',
 };
 
-function getFlagSrc(country?: Country | null) {
-    if (!country) return null;
-    if (country.flag_url) return country.flag_url;
+function formatHonorificTitle(title?: string | null, other?: string | null) {
+    const trimmedTitle = title?.trim();
+    if (!trimmedTitle) return undefined;
 
-    const code = (country.code || '').toLowerCase().trim();
-    if (!code) return null;
+    const normalizedTitle = trimmedTitle.toLowerCase();
+    if (normalizedTitle === 'other') {
+        return other?.trim() || 'Other';
+    }
 
-    return `/asean/${code}.png`;
+    return HONORIFIC_LABELS[normalizedTitle] ?? trimmedTitle;
 }
 
 function InfoRow({
@@ -162,13 +161,11 @@ function InfoRow({
  */
 function IdCardPreview({
     participant,
-    flagSrc,
     qrDataUrl,
     loading,
     orientation,
 }: {
     participant: Participant;
-    flagSrc: string | null;
     qrDataUrl: string | null;
     loading: boolean;
     orientation: 'portrait' | 'landscape';
@@ -387,7 +384,6 @@ function IdCardPreview({
 }
 
 export default function ParticipantDashboard({ participant }: PageProps) {
-    const flagSrc = getFlagSrc(participant.country);
     const form = useForm({
         has_food_restrictions: (participant.food_restrictions ?? []).length > 0,
         food_restrictions: participant.food_restrictions ?? [],
@@ -425,10 +421,7 @@ export default function ParticipantDashboard({ participant }: PageProps) {
 
     const uploadInputRef = React.useRef<HTMLInputElement | null>(null);
     const fullContactNumber = participant.contact_number ?? '';
-    const honorificTitle =
-        participant.honorific_title === 'other'
-            ? participant.honorific_other || 'Other'
-            : (participant.honorific_title ? HONORIFIC_LABELS[participant.honorific_title] : undefined);
+    const honorificTitle = formatHonorificTitle(participant.honorific_title, participant.honorific_other);
     const sexAssignedLabel = participant.sex_assigned_at_birth ? SEX_ASSIGNED_LABELS[participant.sex_assigned_at_birth] : undefined;
 
     const accessibilityLabels = React.useMemo(
@@ -692,39 +685,6 @@ export default function ParticipantDashboard({ participant }: PageProps) {
                                         <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white/60 backdrop-blur dark:border-white/10 dark:bg-slate-950/30">
                                             <div className="divide-y divide-slate-200/60 dark:divide-white/10">
                                                 <InfoRow
-                                                    icon={<Flag className="h-4 w-4" />}
-                                                    label="Country"
-                                                    value={
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-8 w-8 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
-                                                                {flagSrc ? (
-                                                                    <img
-                                                                        src={flagSrc}
-                                                                        alt={participant.country?.name ?? 'Country flag'}
-                                                                        className="h-full w-full object-cover"
-                                                                        loading="lazy"
-                                                                        draggable={false}
-                                                                        onError={(e) => {
-                                                                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                                                        }}
-                                                                    />
-                                                                ) : null}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <div className="truncate">
-                                                                    {participant.country?.name ?? '—'}
-                                                                </div>
-                                                                {participant.country?.code ? (
-                                                                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                                        {participant.country.code.toUpperCase()}
-                                                                    </div>
-                                                                ) : null}
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                />
-
-                                                <InfoRow
                                                     icon={<User2 className="h-4 w-4" />}
                                                     label="Name"
                                                     value={participant.name}
@@ -858,12 +818,6 @@ export default function ParticipantDashboard({ participant }: PageProps) {
                                                                 {participant.user_type || participant.other_user_type || '—'}
                                                             </dd>
                                                         </div>
-                                                        <div className="flex items-center justify-between gap-4">
-                                                            <dt className="text-slate-500 dark:text-slate-400">IP group</dt>
-                                                            <dd className="font-medium text-slate-900 dark:text-slate-100">
-                                                                {participant.ip_group_name || '—'}
-                                                            </dd>
-                                                        </div>
                                                     </dl>
                                                 </div>
 
@@ -881,27 +835,9 @@ export default function ParticipantDashboard({ participant }: PageProps) {
                                                             </dd>
                                                         </div>
                                                         <div className="flex items-center justify-between gap-4">
-                                                            <dt className="text-slate-500 dark:text-slate-400">Dietary allergies</dt>
-                                                            <dd className="font-medium text-slate-900 dark:text-slate-100">
-                                                                {participant.dietary_allergies || '—'}
-                                                            </dd>
-                                                        </div>
-                                                        <div className="flex items-center justify-between gap-4">
-                                                            <dt className="text-slate-500 dark:text-slate-400">Dietary notes</dt>
-                                                            <dd className="font-medium text-slate-900 dark:text-slate-100">
-                                                                {participant.dietary_other || '—'}
-                                                            </dd>
-                                                        </div>
-                                                        <div className="flex items-center justify-between gap-4">
                                                             <dt className="text-slate-500 dark:text-slate-400">Accessibility needs</dt>
                                                             <dd className="font-medium text-slate-900 dark:text-slate-100">
                                                                 {accessibilityLabels.length ? accessibilityLabels.join(', ') : 'None'}
-                                                            </dd>
-                                                        </div>
-                                                        <div className="flex items-center justify-between gap-4">
-                                                            <dt className="text-slate-500 dark:text-slate-400">Accessibility notes</dt>
-                                                            <dd className="font-medium text-slate-900 dark:text-slate-100">
-                                                                {participant.accessibility_other || '—'}
                                                             </dd>
                                                         </div>
                                                     </dl>
@@ -1108,7 +1044,6 @@ export default function ParticipantDashboard({ participant }: PageProps) {
                                             >
                                                 <IdCardPreview
                                                     participant={participant}
-                                                    flagSrc={flagSrc}
                                                     qrDataUrl={qrDataUrl}
                                                     loading={qrLoading}
                                                     orientation={orientation}
@@ -1220,7 +1155,6 @@ export default function ParticipantDashboard({ participant }: PageProps) {
                         <div className="rounded-2xl border border-slate-200/70 bg-white/70 p-4 dark:border-white/10 dark:bg-slate-950/40">
                             <IdCardPreview
                                 participant={participant}
-                                flagSrc={flagSrc}
                                 qrDataUrl={qrDataUrl}
                                 loading={qrLoading}
                                 orientation={orientation}

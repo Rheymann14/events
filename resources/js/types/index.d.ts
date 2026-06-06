@@ -66,7 +66,7 @@ export interface User {
         name: string;
         flag_url?: string | null;
     } | null;
-    avatar?: string;
+    avatar?: string | null;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
     user_type?: {
