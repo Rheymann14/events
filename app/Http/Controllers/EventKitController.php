@@ -123,6 +123,12 @@ class EventKitController extends Controller
             ]);
         }
 
+        if (!$this->participantCanUseProgramme($participant->id, (int) $validated['programme_id'])) {
+            return back()->withErrors([
+                'programme_id' => 'Please select an event you joined and checked into.',
+            ]);
+        }
+
         $request->session()->put('event_kit.programme_id', (int) $validated['programme_id']);
         $request->session()->put('event_kit.survey_completed', true);
 
@@ -155,17 +161,24 @@ class EventKitController extends Controller
             return redirect()->route('event-kit.survey');
         }
 
-        $attendanceEntries = ParticipantAttendance::query()
+        $eligibleProgrammeIds = ParticipantAttendance::query()
             ->select(['programme_id'])
             ->where('user_id', $participant->id)
             ->whereNotNull('scanned_at')
-            ->get();
+            ->whereExists(function ($query) use ($participant) {
+                $query
+                    ->selectRaw('1')
+                    ->from('participant_programmes')
+                    ->whereColumn('participant_programmes.programme_id', 'participant_attendances.programme_id')
+                    ->where('participant_programmes.user_id', $participant->id);
+            })
+            ->pluck('programme_id')
+            ->unique()
+            ->values();
 
-        $checkedInProgrammeIds = $attendanceEntries->pluck('programme_id')->unique()->values();
-
-        $checkedInProgrammes = Programme::query()
+        $eligibleProgrammes = Programme::query()
             ->with('materials')
-            ->whereIn('id', $checkedInProgrammeIds)
+            ->whereIn('id', $eligibleProgrammeIds)
             ->latest('starts_at')
             ->get()
             ->map(fn (Programme $programme) => [
@@ -192,10 +205,18 @@ class EventKitController extends Controller
             ->values()
             ->all();
 
-        if ($checkedInProgrammeIds->isNotEmpty() && !$checkedInProgrammeIds->contains((int) $programmeId)) {
-            $activeCheckedInProgramme = collect($checkedInProgrammes)->firstWhere('is_registration_active', true);
-            $programmeId = $activeCheckedInProgramme['id'] ?? $checkedInProgrammeIds->first();
+        if ($eligibleProgrammeIds->isNotEmpty() && !$eligibleProgrammeIds->contains((int) $programmeId)) {
+            $activeEligibleProgramme = collect($eligibleProgrammes)->firstWhere('is_registration_active', true);
+            $programmeId = $activeEligibleProgramme['id'] ?? $eligibleProgrammeIds->first();
             $request->session()->put('event_kit.programme_id', $programmeId);
+        }
+
+        if ($eligibleProgrammeIds->isEmpty()) {
+            $request->session()->forget(['event_kit.programme_id', 'event_kit.survey_completed']);
+
+            return redirect()->route('event-kit.survey')->withErrors([
+                'programme_id' => 'Please select an event you joined and checked into.',
+            ]);
         }
 
         $programme = Programme::query()
@@ -235,7 +256,7 @@ class EventKitController extends Controller
                 'signatory_title' => $programme->signatory_title,
                 'signatory_signature_url' => $programme->signatory_signature_url,
             ],
-            'checked_in_programmes' => $checkedInProgrammes,
+            'checked_in_programmes' => $eligibleProgrammes,
             'attendance' => $attendance
                 ? [
                     'scanned_at' => $attendance->scanned_at?->toISOString(),
@@ -256,15 +277,9 @@ class EventKitController extends Controller
             'programme_id' => ['required', 'integer', 'exists:programmes,id'],
         ]);
 
-        $hasAttendance = ParticipantAttendance::query()
-            ->where('user_id', $participant->id)
-            ->where('programme_id', $validated['programme_id'])
-            ->whereNotNull('scanned_at')
-            ->exists();
-
-        if (!$hasAttendance) {
+        if (!$this->participantCanUseProgramme($participant->id, (int) $validated['programme_id'])) {
             return back()->withErrors([
-                'programme_id' => 'Please select an event you checked into.',
+                'programme_id' => 'Please select an event you joined and checked into.',
             ]);
         }
 
@@ -294,6 +309,15 @@ class EventKitController extends Controller
     private function loadProgrammesAndAttendance(int $participantId): array
     {
         $programmes = Programme::query()
+            ->whereHas('participants', fn ($query) => $query->whereKey($participantId))
+            ->whereExists(function ($query) use ($participantId) {
+                $query
+                    ->selectRaw('1')
+                    ->from('participant_attendances')
+                    ->whereColumn('participant_attendances.programme_id', 'programmes.id')
+                    ->where('participant_attendances.user_id', $participantId)
+                    ->whereNotNull('participant_attendances.scanned_at');
+            })
             ->latest('starts_at')
             ->get()
             ->map(fn (Programme $programme) => [
@@ -320,5 +344,23 @@ class EventKitController extends Controller
             ->all();
 
         return [$programmes, $attendanceEntries];
+    }
+
+    private function participantCanUseProgramme(int $participantId, int $programmeId): bool
+    {
+        $joined = Programme::query()
+            ->whereKey($programmeId)
+            ->whereHas('participants', fn ($query) => $query->whereKey($participantId))
+            ->exists();
+
+        if (!$joined) {
+            return false;
+        }
+
+        return ParticipantAttendance::query()
+            ->where('user_id', $participantId)
+            ->where('programme_id', $programmeId)
+            ->whereNotNull('scanned_at')
+            ->exists();
     }
 }
