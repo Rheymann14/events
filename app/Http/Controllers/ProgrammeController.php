@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ParticipantAttendance;
 use App\Models\Programme;
+use App\Models\User;
+use Dompdf\Cpdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -155,6 +157,70 @@ class ProgrammeController extends Controller
                     ->values()
                     ->all(),
             ],
+        ]);
+    }
+
+    public function downloadParticipantCertificatesPdf(Request $request, Programme $programme)
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(180);
+
+        $validated = $request->validate([
+            'signatory_name' => ['nullable', 'string', 'max:255'],
+            'signatory_title' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $programme->load([
+            'venues' => fn ($query) => $query->where('is_active', true)->orderBy('id'),
+        ]);
+
+        $checkedInParticipantIds = ParticipantAttendance::query()
+            ->where('programme_id', $programme->id)
+            ->whereNotNull('scanned_at')
+            ->pluck('user_id')
+            ->unique()
+            ->values();
+
+        $participants = $programme->participants()
+            ->select(['users.id', 'users.name'])
+            ->whereIn('users.id', $checkedInParticipantIds)
+            ->orderBy('users.name')
+            ->get()
+            ->map(fn (User $participant) => [
+                'name' => $this->certificateParticipantName($participant->name),
+            ])
+            ->values();
+
+        if ($participants->isEmpty()) {
+            return back()->withErrors([
+                'certificates' => 'No checked-in participants to download.',
+            ]);
+        }
+
+        $venue = $programme->venues->first();
+        $venueLabel = $venue
+            ? ($venue->address ? "{$venue->name}, {$venue->address}" : $venue->name)
+            : ($programme->location ?: '-');
+
+        $pdf = $this->buildParticipantCertificatesPdf($participants, [
+            'title' => $programme->title,
+            'eventDate' => $this->formatCertificateDateRange($programme->starts_at, $programme->ends_at),
+            'givenDate' => $this->formatCertificateDate($programme->ends_at ?? $programme->starts_at),
+            'venue' => $venueLabel,
+            'signatoryName' => $validated['signatory_name'] ?? $programme->signatory_name ?? '',
+            'signatoryTitle' => $validated['signatory_title'] ?? $programme->signatory_title ?? '',
+            'signatorySignature' => $this->certificateSignaturePath($programme->signatory_signature_url),
+        ]);
+
+        $filename = sprintf(
+            'participant-certificates-%s-%s.pdf',
+            Str::slug($programme->title) ?: 'programme',
+            now()->format('Ymd-His'),
+        );
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -581,6 +647,291 @@ class ProgrammeController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function certificateParticipantName(?string $name): string
+    {
+        $normalized = trim(preg_replace('/\s+/', ' ', (string) $name) ?? '');
+
+        return Str::upper($normalized !== '' ? $normalized : 'Participant');
+    }
+
+    private function formatCertificateDateRange($startsAt, $endsAt): string
+    {
+        if (! $startsAt) {
+            return '-';
+        }
+
+        $startDate = $startsAt->format('F j, Y');
+
+        if (! $endsAt || $startsAt->toDateString() === $endsAt->toDateString()) {
+            return $startDate;
+        }
+
+        return $startDate.' - '.$endsAt->format('F j, Y');
+    }
+
+    private function formatCertificateDate($date): string
+    {
+        return $date ? $date->format('F j, Y') : '-';
+    }
+
+    private function certificateSignaturePath(?string $signatureUrl): ?string
+    {
+        if (! $signatureUrl) {
+            return null;
+        }
+
+        if (Str::startsWith($signatureUrl, ['data:', 'http://', 'https://'])) {
+            return null;
+        }
+
+        $normalized = ltrim($signatureUrl, '/');
+        $path = Str::startsWith($normalized, 'signatures/')
+            ? public_path($normalized)
+            : public_path('signatures/'.$normalized);
+
+        return File::exists($path) ? $path : null;
+    }
+
+    private function buildParticipantCertificatesPdf($participants, array $data): string
+    {
+        $pageWidth = 595.28;
+        $pageHeight = 841.89;
+        $certificateWidth = 520.0;
+        $certificateHeight = 367.7;
+        $certificateX = ($pageWidth - $certificateWidth) / 2;
+        $bottomY = 34.0;
+        $topY = $pageHeight - $bottomY - $certificateHeight;
+
+        $assets = [
+            'appearance' => public_path('img/appearance_bg.png'),
+            'participation' => public_path('img/appearance_bg1.png'),
+            'logo' => public_path('img/ched_logo_bagong_pilipinas.png'),
+        ];
+
+        $pdf = new Cpdf([0, 0, $pageWidth, $pageHeight], false);
+
+        foreach ($participants as $index => $participant) {
+            if ($index > 0) {
+                $pdf->newPage();
+            }
+
+            $this->drawCertificate(
+                $pdf,
+                $assets['appearance'],
+                $assets['logo'],
+                $certificateX,
+                $topY,
+                $certificateWidth,
+                $certificateHeight,
+                'CERTIFICATE OF APPEARANCE',
+                'This is to certify that',
+                $participant['name'],
+                [
+                    ['text' => 'has appeared during the conduct of ', 'bold' => false],
+                    ['text' => $data['title'], 'bold' => true],
+                    ['text' => ' on ', 'bold' => false],
+                    ['text' => $data['eventDate'], 'bold' => true],
+                    ['text' => ' at '.$data['venue'].'.', 'bold' => false],
+                ],
+                'Given this '.$data['givenDate'].' at '.$data['venue'].'.',
+                $data
+            );
+
+            $this->drawCertificate(
+                $pdf,
+                $assets['participation'],
+                $assets['logo'],
+                $certificateX,
+                $bottomY,
+                $certificateWidth,
+                $certificateHeight,
+                'CERTIFICATE OF PARTICIPATION',
+                'This certificate is hereby given to',
+                $participant['name'],
+                [
+                    ['text' => 'for actively participating in ', 'bold' => false],
+                    ['text' => $data['title'], 'bold' => true],
+                    ['text' => ' on ', 'bold' => false],
+                    ['text' => $data['eventDate'], 'bold' => true],
+                    ['text' => ' at '.$data['venue'].'.', 'bold' => false],
+                ],
+                'Given this '.$data['givenDate'].' at '.$data['venue'].'.',
+                $data
+            );
+        }
+
+        return $pdf->output();
+    }
+
+    private function drawCertificate(
+        Cpdf $pdf,
+        string $backgroundPath,
+        string $logoPath,
+        float $x,
+        float $y,
+        float $width,
+        float $height,
+        string $title,
+        string $lead,
+        string $recipient,
+        array $bodySegments,
+        string $given,
+        array $data
+    ): void {
+        if (File::exists($backgroundPath)) {
+            $pdf->addPngFromFile($backgroundPath, $x, $y, $width, $height);
+        }
+
+        $centerX = $x + ($width / 2);
+        $centerY = $y + ($height / 2);
+        $logoWidth = 136.0;
+        $logoHeight = 34.0;
+        $logoY = $centerY + 55.0;
+        $titleY = $centerY + 31.0;
+        $leadY = $titleY - 28.0;
+        $recipientY = $leadY - 17.0;
+        $bodyY = $recipientY - 24.0;
+        $givenY = $bodyY - 24.0;
+
+        if (File::exists($logoPath)) {
+            $pdf->addPngFromFile($logoPath, $centerX - ($logoWidth / 2), $logoY, $logoWidth, $logoHeight);
+        }
+
+        $this->drawCenteredPdfText($pdf, $title, $centerX, $titleY, 15.8, true);
+        $this->drawCenteredPdfText($pdf, $lead, $centerX, $leadY, 8.5);
+        $this->drawCenteredPdfText($pdf, $recipient, $centerX, $recipientY, 10.8, true);
+        $this->drawCenteredPdfSegments($pdf, $bodySegments, $centerX, $bodyY, 8.2, $width - 150.0);
+        $this->drawCenteredPdfText($pdf, $given, $centerX, $givenY, 7.8);
+
+        if (! empty($data['signatorySignature']) || ! empty($data['signatoryName']) || ! empty($data['signatoryTitle'])) {
+            $signatureY = $givenY - 48.0;
+            if (! empty($data['signatorySignature']) && File::exists($data['signatorySignature'])) {
+                $this->drawPdfImage($pdf, $data['signatorySignature'], $centerX - 45.0, $signatureY, 90.0, 28.0);
+            }
+
+            $this->drawCenteredPdfText($pdf, (string) ($data['signatoryName'] ?? ''), $centerX, $signatureY - 11.0, 8.8, true);
+            $this->drawCenteredPdfText($pdf, (string) ($data['signatoryTitle'] ?? ''), $centerX, $signatureY - 24.0, 7.5);
+        }
+    }
+
+    private function drawCenteredPdfSegments(Cpdf $pdf, array $segments, float $centerX, float $y, float $size, float $maxWidth): void
+    {
+        $segments = array_map(function (array $segment) {
+            $segment['text'] = preg_replace('/\s+/', ' ', (string) ($segment['text'] ?? '')) ?? '';
+
+            return $segment;
+        }, $segments);
+
+        $segments = array_values(array_filter($segments, fn (array $segment) => trim($segment['text']) !== ''));
+        $plainText = collect($segments)->pluck('text')->implode('');
+
+        while ($size > 6.5 && $this->pdfSegmentsWidth($pdf, $segments, $size) > $maxWidth) {
+            $size -= 0.3;
+        }
+
+        if ($this->pdfSegmentsWidth($pdf, $segments, $size) > $maxWidth) {
+            $plainText = $this->limitPdfText($plainText, $this->charsForWidth($maxWidth, $size));
+            $this->drawCenteredPdfText($pdf, $plainText, $centerX, $y, $size);
+
+            return;
+        }
+
+        $totalWidth = $this->pdfSegmentsWidth($pdf, $segments, $size);
+        $cursorX = $centerX - ($totalWidth / 2);
+
+        foreach ($segments as $segment) {
+            $this->selectPdfFont($pdf, ! empty($segment['bold']));
+            $text = $this->pdfSegmentText((string) $segment['text']);
+            $pdf->addText($cursorX, $y, $size, $text);
+            $cursorX += $pdf->getTextWidth($size, $text);
+        }
+    }
+
+    private function drawCenteredPdfText(Cpdf $pdf, string $text, float $centerX, float $y, float $size, bool $bold = false): void
+    {
+        $text = $this->pdfText(trim(preg_replace('/\s+/', ' ', $text) ?? ''));
+        $this->selectPdfFont($pdf, $bold);
+        $pdf->addText($centerX - ($pdf->getTextWidth($size, $text) / 2), $y, $size, $text);
+    }
+
+    private function selectPdfFont(Cpdf $pdf, bool $bold = false): void
+    {
+        $font = $bold ? 'Times-Bold.afm' : 'Times-Roman.afm';
+        $path = base_path('vendor/dompdf/dompdf/lib/fonts/'.$font);
+
+        if (File::exists($path)) {
+            $pdf->selectFont($path);
+
+            return;
+        }
+
+        $pdf->selectFont(base_path('vendor/dompdf/dompdf/lib/fonts/Helvetica.afm'));
+    }
+
+    private function drawPdfImage(Cpdf $pdf, string $path, float $x, float $y, float $width, float $height): void
+    {
+        $extension = Str::lower(pathinfo($path, PATHINFO_EXTENSION));
+
+        if ($extension === 'png') {
+            $pdf->addPngFromFile($path, $x, $y, $width, $height);
+
+            return;
+        }
+
+        if ($extension === 'svg') {
+            $pdf->addSvgFromFile($path, $x, $y, $width, $height);
+
+            return;
+        }
+
+        $pdf->addJpegFromFile($path, $x, $y, $width, $height);
+    }
+
+    private function pdfSegmentsWidth(Cpdf $pdf, array $segments, float $size): float
+    {
+        $width = 0.0;
+
+        foreach ($segments as $segment) {
+            $this->selectPdfFont($pdf, ! empty($segment['bold']));
+            $width += $pdf->getTextWidth($size, $this->pdfSegmentText((string) $segment['text']));
+        }
+
+        return $width;
+    }
+
+    private function pdfTextWidth(string $text, float $size): float
+    {
+        return strlen($text) * $size * 0.50;
+    }
+
+    private function limitPdfText(string $text, int $length): string
+    {
+        if (strlen($text) <= $length) {
+            return $text;
+        }
+
+        return rtrim(substr($text, 0, max(0, $length - 3))).'...';
+    }
+
+    private function charsForWidth(float $width, float $fontSize): int
+    {
+        return max(4, (int) floor($width / max(1.0, $fontSize * 0.52)));
+    }
+
+    private function pdfText(string $text): string
+    {
+        $text = trim(preg_replace('/\s+/', ' ', $text) ?? '');
+
+        return preg_replace('/(?<=[A-Za-z])\?(?=[a-z]{2,})/', 'ñ', $text) ?? $text;
+    }
+
+    private function pdfSegmentText(string $text): string
+    {
+        $text = preg_replace('/\s+/', ' ', $text) ?? '';
+
+        return preg_replace('/(?<=[A-Za-z])\?(?=[a-z]{2,})/', 'ñ', $text) ?? $text;
     }
 
     private function uniqueFieldKey(string $value, array $usedKeys): string

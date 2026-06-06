@@ -587,17 +587,46 @@ function uppercaseHonorificTitle(value?: string | null) {
     return title ? title.toLocaleUpperCase() : '';
 }
 
-function participantTableDisplayName(participant: ParticipantRow) {
+function participantTableHonorificTitle(participant: ParticipantRow) {
     const honorific =
         participant.honorific_title === 'other'
             ? participant.honorific_other
-            : participant.honorific_title;
+            : (HONORIFIC_OPTIONS.find(
+                  (option) => option.value === participant.honorific_title,
+              )?.label ?? participant.honorific_title);
+
+    return uppercaseHonorificTitle(honorific);
+}
+
+function buildParticipantFullName({
+    given_name,
+    middle_name,
+    family_name,
+    suffix,
+}: {
+    given_name?: string | null;
+    middle_name?: string | null;
+    family_name?: string | null;
+    suffix?: string | null;
+}) {
+    return [given_name, middle_name, family_name, suffix]
+        .map((part) => part?.trim() ?? '')
+        .filter(Boolean)
+        .join(' ');
+}
+
+function participantTableDisplayName(participant: ParticipantRow) {
     const parts = [
-        uppercaseHonorificTitle(honorific),
+        participantTableHonorificTitle(participant),
         participant.full_name?.trim(),
     ].filter(Boolean);
 
     return parts.length ? parts.join(' ') : '—';
+}
+
+function sexAssignedAtBirthLabel(value?: string | null) {
+    return SEX_ASSIGNED_OPTIONS.find((option) => option.value === value)
+        ?.label;
 }
 
 const FALLBACK_EVENT_IMAGE = '/img/ched_co.jpg';
@@ -2528,54 +2557,65 @@ export default function ParticipantPage(props: PageProps) {
             return;
         }
 
-        participantForm.transform((data) => ({
-            ...(editingParticipant ? { _method: 'patch' as const } : {}),
-            full_name: data.full_name.trim(),
-            email: data.email.trim(),
-            contact_number: data.contact_number.trim() || null,
-            user_type_id: data.user_type_id ? Number(data.user_type_id) : null,
-            other_user_type: data.other_user_type.trim() || null,
-            honorific_title: data.honorific_title.trim() || null,
-            honorific_other: data.honorific_other.trim() || null,
-            given_name: data.given_name.trim() || null,
-            middle_name: data.middle_name.trim() || null,
-            family_name: data.family_name.trim() || null,
-            suffix: data.suffix.trim() || null,
-            sex_assigned_at_birth: data.sex_assigned_at_birth.trim() || null,
-            organization_name: data.organization_name.trim() || null,
-            position_title: data.position_title.trim() || null,
-            ip_affiliation: data.ip_affiliation,
-            ip_group_name: data.ip_affiliation
-                ? data.ip_group_name.trim() || null
-                : null,
-            is_active: data.is_active,
-            food_restrictions: data.food_restrictions,
-            has_food_restrictions: data.food_restrictions.length > 0,
-            dietary_allergies: data.food_restrictions.includes('allergies')
-                ? data.dietary_allergies.trim() || null
-                : null,
-            dietary_other: data.food_restrictions.includes('other')
-                ? data.dietary_other.trim() || null
-                : null,
-            accessibility_needs: data.accessibility_needs,
-            accessibility_other: data.accessibility_needs.includes('other')
-                ? data.accessibility_other.trim() || null
-                : null,
-            emergency_contact_name: data.emergency_contact_name.trim() || null,
-            emergency_contact_relationship:
-                data.emergency_contact_relationship.trim() || null,
-            emergency_contact_phone:
-                data.emergency_contact_phone.trim() || null,
-            emergency_contact_email:
-                data.emergency_contact_email.trim() || null,
-            remove_profile_image: data.remove_profile_image,
-            programme_id: data.programme_id ? Number(data.programme_id) : null,
-            registration_responses: data.registration_responses,
-            ...(data.profile_image
-                ? { profile_image: data.profile_image }
-                : {}),
-            ...(editingParticipant ? {} : { password: data.password }),
-        }));
+        participantForm.transform((data) => {
+            const fullName =
+                buildParticipantFullName(data) || data.full_name.trim();
+
+            return {
+                ...(editingParticipant ? { _method: 'patch' as const } : {}),
+                full_name: fullName,
+                email: data.email.trim(),
+                contact_number: data.contact_number.trim() || null,
+                user_type_id: data.user_type_id
+                    ? Number(data.user_type_id)
+                    : null,
+                other_user_type: data.other_user_type.trim() || null,
+                honorific_title: data.honorific_title.trim() || null,
+                honorific_other: data.honorific_other.trim() || null,
+                given_name: data.given_name.trim() || null,
+                middle_name: data.middle_name.trim() || null,
+                family_name: data.family_name.trim() || null,
+                suffix: data.suffix.trim() || null,
+                sex_assigned_at_birth:
+                    data.sex_assigned_at_birth.trim() || null,
+                organization_name: data.organization_name.trim() || null,
+                position_title: data.position_title.trim() || null,
+                ip_affiliation: data.ip_affiliation,
+                ip_group_name: data.ip_affiliation
+                    ? data.ip_group_name.trim() || null
+                    : null,
+                is_active: data.is_active,
+                food_restrictions: data.food_restrictions,
+                has_food_restrictions: data.food_restrictions.length > 0,
+                dietary_allergies: data.food_restrictions.includes('allergies')
+                    ? data.dietary_allergies.trim() || null
+                    : null,
+                dietary_other: data.food_restrictions.includes('other')
+                    ? data.dietary_other.trim() || null
+                    : null,
+                accessibility_needs: data.accessibility_needs,
+                accessibility_other: data.accessibility_needs.includes('other')
+                    ? data.accessibility_other.trim() || null
+                    : null,
+                emergency_contact_name:
+                    data.emergency_contact_name.trim() || null,
+                emergency_contact_relationship:
+                    data.emergency_contact_relationship.trim() || null,
+                emergency_contact_phone:
+                    data.emergency_contact_phone.trim() || null,
+                emergency_contact_email:
+                    data.emergency_contact_email.trim() || null,
+                remove_profile_image: data.remove_profile_image,
+                programme_id: data.programme_id
+                    ? Number(data.programme_id)
+                    : null,
+                registration_responses: data.registration_responses,
+                ...(data.profile_image
+                    ? { profile_image: data.profile_image }
+                    : {}),
+                ...(editingParticipant ? {} : { password: data.password }),
+            };
+        });
 
         const handleSubmitError = (
             errors: Record<string, string | string[]>,
@@ -3296,8 +3336,10 @@ export default function ParticipantPage(props: PageProps) {
                                 p.contact_number,
                             )}
                             {renderMobileDetailItem(
-                                'Registration event',
-                                registrationProgramme?.title,
+                                'Sex assigned at birth',
+                                sexAssignedAtBirthLabel(
+                                    p.sex_assigned_at_birth,
+                                ),
                             )}
                         </div>
 
@@ -4560,8 +4602,10 @@ export default function ParticipantPage(props: PageProps) {
                                                                                         p.contact_number,
                                                                                     )}
                                                                                     {renderDesktopDetailItem(
-                                                                                        'Registration Event',
-                                                                                        registrationProgramme?.title,
+                                                                                        'Sex assigned at birth',
+                                                                                        sexAssignedAtBirthLabel(
+                                                                                            p.sex_assigned_at_birth,
+                                                                                        ),
                                                                                     )}
                                                                                 </div>
                                                                                 {registrationDetails.length >
@@ -6569,38 +6613,6 @@ export default function ParticipantPage(props: PageProps) {
                                 {/* Step 1: Personal Information */}
                                 {participantFormStep === 1 && (
                                     <div className="grid gap-3 sm:grid-cols-2">
-                                        <div className="space-y-1.5 sm:col-span-2">
-                                            <div className="text-sm font-medium">
-                                                Full name{' '}
-                                                <span className="text-[11px] font-semibold text-red-600">
-                                                    {' '}
-                                                    *
-                                                </span>
-                                            </div>
-                                            <Input
-                                                value={
-                                                    participantForm.data
-                                                        .full_name
-                                                }
-                                                onChange={(e) =>
-                                                    participantForm.setData(
-                                                        'full_name',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="e.g. Juan Dela Cruz"
-                                            />
-                                            {participantForm.errors
-                                                .full_name ? (
-                                                <div className="text-xs text-red-600">
-                                                    {
-                                                        participantForm.errors
-                                                            .full_name
-                                                    }
-                                                </div>
-                                            ) : null}
-                                        </div>
-
                                         <div className="space-y-2 sm:col-span-2">
                                             <div className="flex items-center justify-between">
                                                 <div className="text-sm font-medium">
@@ -6832,6 +6844,15 @@ export default function ParticipantPage(props: PageProps) {
                                                 }
                                                 placeholder="First name"
                                             />
+                                            {participantForm.errors
+                                                .given_name ||
+                                            participantForm.errors.full_name ? (
+                                                <div className="text-xs text-red-600">
+                                                    {participantForm.errors
+                                                        .given_name ??
+                                                        'Enter at least one name.'}
+                                                </div>
+                                            ) : null}
                                         </div>
 
                                         <div className="space-y-1.5">
@@ -6851,6 +6872,15 @@ export default function ParticipantPage(props: PageProps) {
                                                 }
                                                 placeholder="Middle name"
                                             />
+                                            {participantForm.errors
+                                                .middle_name ? (
+                                                <div className="text-xs text-red-600">
+                                                    {
+                                                        participantForm.errors
+                                                            .middle_name
+                                                    }
+                                                </div>
+                                            ) : null}
                                         </div>
 
                                         <div className="space-y-1.5">
@@ -6870,6 +6900,15 @@ export default function ParticipantPage(props: PageProps) {
                                                 }
                                                 placeholder="Surname"
                                             />
+                                            {participantForm.errors
+                                                .family_name ? (
+                                                <div className="text-xs text-red-600">
+                                                    {
+                                                        participantForm.errors
+                                                            .family_name
+                                                    }
+                                                </div>
+                                            ) : null}
                                         </div>
 
                                         <div className="space-y-1.5">

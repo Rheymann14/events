@@ -23,9 +23,7 @@ export const CERTIFICATE_PRINT_STYLES = `
         print-color-adjust: exact;
     }
     .certificate--participation {
-        background:
-            linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)),
-            url('/img/bg2.png') center/cover no-repeat;
+        background: url('/img/appearance_bg1.png') center/cover no-repeat;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
