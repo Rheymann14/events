@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -751,7 +752,7 @@ class ParticipantController extends Controller
         }
 
         if (array_key_exists('password', $validated) && $validated['password'] !== null) {
-            $updates['password'] = $validated['password'];
+            $updates['password'] = Hash::make($validated['password']);
         }
 
         $participant->update($updates);
@@ -975,7 +976,6 @@ class ParticipantController extends Controller
         $pdf->line($x + $pad, $top - $pad - 29, $x + $width - $pad, $top - $pad - 29);
 
         $name = $this->pdfText((string) $participant['name']);
-        $type = $this->pdfText((string) $participant['type_name']);
         $displayId = $this->pdfText((string) $participant['display_id']);
         $qrPayload = (string) ($participant['qr_payload'] ?? $participant['display_id']);
         $photoPath = $participant['photo_path'] ?? null;
@@ -1001,14 +1001,8 @@ class ParticipantController extends Controller
             if ($photoPath) {
                 $this->drawClippedImage($pdf, $photoPath, $x + $pad, $detailsY - 30.0, $photoSize, $photoSize, 7.0);
             }
-            $detailX = $photoPath ? $x + $pad + $photoSize + 7.0 : $x + $pad;
-            $detailLimit = $leftLimit - ($photoPath ? $photoSize + 7.0 : 0.0);
-            if ($type !== '') {
-                $this->drawText($pdf, $this->limitPdfText($type, $this->charsForWidth($detailLimit, 8.0)), $detailX, $detailsY - 1.0, 8.0, [0.12, 0.18, 0.27]);
-            }
-
-            $idLabelX = $photoPath ? $detailX : $x + $pad;
-            $idLabelLimit = $photoPath ? $detailLimit : $leftLimit;
+            $idLabelX = $x + $pad;
+            $idLabelLimit = $leftLimit;
             $this->drawText($pdf, $this->limitPdfText('PARTICIPANT ID', $this->charsForWidth($idLabelLimit, 5.5)), $idLabelX, $y + 29.0, 5.5, [0.39, 0.46, 0.57]);
             $idText = $this->limitPdfText($displayId, $this->charsForWidth($leftLimit - 12.0, 6.8));
             $idWidth = min($leftLimit, max(58.0, strlen($idText) * 4.5 + 12.0));
@@ -1036,11 +1030,6 @@ class ParticipantController extends Controller
         $photoSize = 42.0;
         if ($photoPath) {
             $this->drawClippedImage($pdf, $photoPath, $x + $pad, $detailsY - 32.0, $photoSize, $photoSize, 8.0);
-        }
-        $detailX = $photoPath ? $x + $pad + $photoSize + 8.0 : $x + $pad;
-        $detailLimit = $leftLimit - ($photoPath ? $photoSize + 8.0 : 0.0);
-        if ($type !== '') {
-            $this->drawText($pdf, $this->limitPdfText($type, $this->charsForWidth($detailLimit, 10.8)), $detailX, $detailsY, 10.8, [0.12, 0.18, 0.27]);
         }
         $idY = $detailsY - 64.0;
         $this->drawText($pdf, 'PARTICIPANT ID', $x + $pad, $idY + 24.0, 6.5, [0.39, 0.46, 0.57]);

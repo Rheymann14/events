@@ -8,6 +8,7 @@ use App\Models\RegistrationField;
 use App\Models\User;
 use App\Models\UserType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -322,6 +323,29 @@ test('participant update upserts and deletes dynamic registration responses', fu
     expect($participant->registrationFieldResponses()
         ->where('registration_field_id', $field->id)
         ->exists())->toBeFalse();
+});
+
+test('participant password reset stores the default password as a hash', function () {
+    $admin = adminUser();
+    [$country, $participantType] = participantFixture();
+
+    $participant = User::factory()->create([
+        'name' => 'Existing Participant',
+        'country_id' => $country->id,
+        'user_type_id' => $participantType->id,
+        'password' => 'old-password',
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('participants.update', $participant), [
+            'password' => 'chedevents2026',
+        ])
+        ->assertRedirect();
+
+    $participant->refresh();
+
+    expect($participant->password)->not->toBe('chedevents2026');
+    expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
 });
 
 test('dynamic registration responses are validated for required fields and option types', function () {

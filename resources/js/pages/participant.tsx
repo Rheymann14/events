@@ -1004,7 +1004,7 @@ function ParticipantIdPrintCard({
                                     : 'opacity-100 dark:opacity-30',
                             )}
                             style={{
-                                backgroundImage: "url('/img/bg.png')",
+                                backgroundImage: "url('/img/id-card-bg.jpg')",
                                 backgroundPosition: 'center',
                                 backgroundSize: 'cover',
                             }}
@@ -1123,29 +1123,6 @@ function ParticipantIdPrintCard({
                                         />
                                     </div>
 
-                                    <div className="min-w-0">
-                                        <div
-                                            className={cn(
-                                                'truncate font-semibold text-slate-900 dark:text-slate-100',
-                                                isLandscape
-                                                    ? 'text-[18px]'
-                                                    : 'text-[12px]',
-                                            )}
-                                        >
-                                            Participant Photo
-                                        </div>
-
-                                        <div
-                                            className={cn(
-                                                'font-medium text-slate-500 dark:text-slate-400',
-                                                isLandscape
-                                                    ? 'text-[15px]'
-                                                    : 'text-[11px]',
-                                            )}
-                                        >
-                                            {displayId}
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <div

@@ -248,7 +248,7 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
                     <div className="relative h-full w-full overflow-hidden rounded-3xl border border-slate-200/70 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
                         <div aria-hidden className="absolute inset-0">
                             <img
-                                src="/img/bg.png"
+                                src="/img/id-card-bg.jpg"
                                 alt=""
                                 className="absolute inset-0 h-full w-full object-cover opacity-100 brightness-80 contrast-150 saturate-200 filter dark:opacity-35 dark:brightness-80 dark:contrast-110"
                                 draggable={false}
@@ -308,14 +308,6 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
                                                 alt="Participant"
                                                 className="h-full w-full object-cover"
                                             />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <div className="truncate text-[14px] leading-4 font-semibold text-slate-900 dark:text-slate-100">
-                                                Participant Photo
-                                            </div>
-                                            <div className="mt-0.5 text-[12px] leading-4 text-slate-500 dark:text-slate-300">
-                                                {displayId}
-                                            </div>
                                         </div>
                                     </div>
 

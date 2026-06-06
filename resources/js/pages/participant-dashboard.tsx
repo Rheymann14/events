@@ -174,6 +174,7 @@ function IdCardPreview({
     orientation: 'portrait' | 'landscape';
 }) {
     const isLandscape = orientation === 'landscape';
+    const participantImageSrc = participant.profile_photo_url || '/img/ched_logo.png';
 
     // ✅ aspect ratio ONLY on sm+ (mobile uses natural height to avoid clipping)
     const aspect = isLandscape ? 'sm:aspect-[3.37/2.125]' : 'sm:aspect-[3.46/5.51]';
@@ -211,7 +212,7 @@ function IdCardPreview({
             {/* Background */}
             <div aria-hidden className="absolute inset-0">
                 <img
-                    src="/img/bg.png"
+                    src="/img/id-card-bg.jpg"
                     alt=""
                     className={cn(
                         'absolute inset-0 h-full w-full object-cover',
@@ -296,30 +297,15 @@ function IdCardPreview({
                                     'h-8 w-8 sm:h-9 sm:w-9',
                                 )}
                             >
-                                {flagSrc ? (
-                                    <img
-                                        src={flagSrc}
-                                        alt={participant.country?.name ?? 'Country flag'}
-                                        className="h-full w-full object-cover"
-                                        draggable={false}
-                                        loading="lazy"
-                                        onError={(e) => {
-                                            (e.currentTarget as HTMLImageElement).style.display = 'none';
-                                        }}
-                                    />
-                                ) : null}
+                                <img
+                                    src={participantImageSrc}
+                                    alt="Participant"
+                                    className="h-full w-full object-cover"
+                                    draggable={false}
+                                    loading="lazy"
+                                />
                             </div>
 
-                            <div className="min-w-0">
-                                <div className="truncate text-[12px] font-semibold text-slate-900 dark:text-slate-100">
-                                    {participant.country?.name ?? '—'}
-                                </div>
-                                {participant.country?.code ? (
-                                    <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                        {participant.country.code.toUpperCase()}
-                                    </div>
-                                ) : null}
-                            </div>
                         </div>
 
                         <div className={cn(isLandscape ? 'mt-1.5 sm:mt-2' : 'mt-2 sm:mt-3')}>
@@ -385,9 +371,7 @@ function IdCardPreview({
 
                         <div className="mt-2 w-full text-center">
                             <div className={cn('font-semibold text-slate-900 dark:text-slate-100', isLandscape ? 'text-[10px]' : 'text-[11px]')}>
-                                <span className="line-clamp-2" title={`${participant.country?.code?.toUpperCase() ?? ''} • ${participant.name}`}>
-                                    {participant.country?.code?.toUpperCase() ?? ''}
-                                    {participant.country?.code ? ' • ' : ''}
+                                <span className="line-clamp-2" title={participant.name}>
                                     {participant.name}
                                 </span>
                             </div>
@@ -631,7 +615,7 @@ export default function ParticipantDashboard({ participant }: PageProps) {
                     <Card className="overflow-hidden rounded-3xl border-slate-200/70 bg-white/70 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/40">
                         <div className="relative">
                             <img
-                                src="/img/bg.png"
+                                src="/img/id-card-bg.jpg"
                                 alt=""
                                 className="absolute inset-0 h-full w-full object-cover opacity-25 dark:opacity-20"
                                 draggable={false}

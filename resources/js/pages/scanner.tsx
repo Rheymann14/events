@@ -8,6 +8,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import jsQR from 'jsqr';
 import * as React from 'react';
+import QRCode from 'qrcode';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -241,6 +242,7 @@ function ScannerIdCardPreview({
     participant: {
         name: string;
         display_id: string;
+        qr_payload?: string | null;
         profile_image_url?: string | null;
         is_verified?: boolean;
     };
@@ -249,6 +251,34 @@ function ScannerIdCardPreview({
     const isLandscape = orientation === 'landscape';
     const participantImageSrc =
         participant.profile_image_url ?? '/img/ched_logo.png';
+    const [qrDataUrl, setQrDataUrl] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        let active = true;
+        const run = async () => {
+            const value = participant.qr_payload?.trim() ?? '';
+            if (!value) {
+                setQrDataUrl(null);
+                return;
+            }
+
+            try {
+                const url = await QRCode.toDataURL(value, {
+                    margin: 1,
+                    width: 240,
+                    errorCorrectionLevel: 'M',
+                });
+                if (active) setQrDataUrl(url);
+            } catch {
+                if (active) setQrDataUrl(null);
+            }
+        };
+
+        run();
+        return () => {
+            active = false;
+        };
+    }, [participant.qr_payload]);
 
     // ✅ keep accurate print size, but DON'T force fixed aspect height on screen
     const printSize = isLandscape
@@ -278,7 +308,7 @@ function ScannerIdCardPreview({
             {/* Background */}
             <div aria-hidden className="absolute inset-0">
                 <img
-                    src="/img/bg.png"
+                    src="/img/id-card-bg.jpg"
                     alt=""
                     className={cn(
                         'absolute inset-0 h-full w-full object-cover',
@@ -395,14 +425,6 @@ function ScannerIdCardPreview({
                                 />
                             </div>
 
-                            <div className="min-w-0">
-                                <div className="truncate text-[12px] font-semibold text-slate-900 dark:text-slate-100">
-                                    Participant Photo
-                                </div>
-                                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                    {participant.display_id}
-                                </div>
-                            </div>
                         </div>
 
                         <div className={cn(isLandscape ? 'mt-2' : 'mt-3')}>
@@ -432,7 +454,7 @@ function ScannerIdCardPreview({
                         </div>
                     </div>
 
-                    {/* RIGHT PHOTO / VERIFIED */}
+                    {/* RIGHT QR */}
                     <div
                         className={cn(
                             'flex flex-col items-center justify-center rounded-3xl border border-slate-200/70 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/45',
@@ -441,24 +463,36 @@ function ScannerIdCardPreview({
                             !isLandscape && 'mt-auto',
                         )}
                     >
-                        <img
-                            src={
-                                participant.profile_image_url ??
-                                '/img/ched_logo.png'
-                            }
-                            alt={participant.name}
-                            className="rounded-2xl object-cover"
-                            style={{ width: qrSize, height: qrSize }}
-                            draggable={false}
-                            loading="lazy"
-                        />
+                        <div
+                            className={cn(
+                                'inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-200',
+                                isLandscape ? 'mb-1 text-[10px]' : 'mb-1.5 text-[11px]',
+                            )}
+                        >
+                            <QrCodeIcon className={cn(isLandscape ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
+                            QR Code
+                        </div>
 
-                        {participant.is_verified !== false ? (
-                            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-1 text-[10px] font-semibold text-white shadow-sm">
-                                <ShieldCheck className="h-3 w-3" />
-                                Verified
-                            </span>
-                        ) : null}
+                        {qrDataUrl ? (
+                            <img
+                                src={qrDataUrl}
+                                alt="Participant QR code"
+                                className="rounded-2xl bg-white object-contain p-2"
+                                style={{ width: qrSize, height: qrSize }}
+                                draggable={false}
+                                loading="lazy"
+                            />
+                        ) : (
+                            <div
+                                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 text-center dark:border-white/10 dark:bg-slate-950/30"
+                                style={{ width: qrSize, height: qrSize }}
+                            >
+                                <QrCodeIcon className="h-7 w-7 text-slate-400" />
+                                <div className="text-[10px] font-medium text-slate-600 dark:text-slate-300">
+                                    QR unavailable
+                                </div>
+                            </div>
+                        )}
 
                         <div className="mt-2 w-full text-center">
                             <div
@@ -473,6 +507,9 @@ function ScannerIdCardPreview({
                                 >
                                     {participant.name}
                                 </span>
+                            </div>
+                            <div className="mt-1 font-mono break-words text-[10px] text-slate-500 dark:text-slate-400">
+                                {participant.display_id}
                             </div>
                         </div>
                     </div>
@@ -1459,6 +1496,7 @@ export default function Scanner(props: PageProps) {
                 code: p.country_code ?? null,
             },
             profile_image_url: p.profile_image_url ?? null,
+            qr_payload: p.qr_payload ?? null,
             is_verified: p.is_verified ?? true,
         };
     }, [participantDisplayId, result?.participant]);
