@@ -279,6 +279,7 @@ class ReportsController extends Controller
                 'participant_table_assignments.user_id',
                 'participant_table_assignments.programme_id',
                 'participant_table_assignments.assigned_at',
+                'participant_table_assignments.seat_number',
                 'participant_tables.table_number',
             ])
             ->orderBy('participant_table_assignments.assigned_at')
@@ -377,6 +378,11 @@ class ReportsController extends Controller
                 ->map(fn ($entries) => $entries->last()?->table_number)
                 ->all();
 
+            $tableSeatNumberByProgramme = $tableAssignments
+                ->groupBy('programme_id')
+                ->map(fn ($entries) => $entries->last()?->seat_number)
+                ->all();
+
             $vehicleAssignmentByProgramme = $vehicleAssignments
                 ->groupBy('programme_id')
                 ->map(function ($entries) {
@@ -451,6 +457,8 @@ class ReportsController extends Controller
                 'avail_transport_from_makati_to_peninsula' => (bool) $row->avail_transport_from_makati_to_peninsula,
                 'table_assignment' => $latestTableAssignment?->table_number,
                 'table_assignment_by_programme' => $tableAssignmentByProgramme,
+                'table_seat_number' => $latestTableAssignment?->seat_number,
+                'table_seat_number_by_programme' => $tableSeatNumberByProgramme,
                 'vehicle_assignment' => $latestVehicleAssignment?->transport_vehicle_label ?: $latestVehicleAssignment?->vehicle_label,
                 'vehicle_assignment_by_programme' => $vehicleAssignmentByProgramme,
                 'vehicle_plate_number' => $latestVehicleAssignment?->transport_vehicle_plate_number,

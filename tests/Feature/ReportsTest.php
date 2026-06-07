@@ -116,6 +116,51 @@ test('assignment notification sends through laravel mailer and records sent time
         ->exists())->toBeTrue();
 });
 
+test('reports include table seat assignment details', function () {
+    $admin = User::factory()->create();
+    $participant = User::factory()->create([
+        'name' => 'Seated Participant',
+        'is_active' => true,
+    ]);
+    $programme = Programme::query()->create([
+        'user_id' => $admin->id,
+        'tag' => 'TEST',
+        'title' => 'Test Event',
+        'description' => 'Programme description',
+        'location' => 'Manila',
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
+        'is_active' => true,
+    ]);
+    $table = ParticipantTable::query()->create([
+        'programme_id' => $programme->id,
+        'table_number' => 'Table 4',
+        'capacity' => 10,
+    ]);
+
+    $participant->joinedProgrammes()->attach($programme->id);
+
+    ParticipantTableAssignment::query()->create([
+        'programme_id' => $programme->id,
+        'participant_table_id' => $table->id,
+        'seat_number' => 7,
+        'user_id' => $participant->id,
+        'assigned_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('reports'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('reports')
+            ->where('rows', fn ($rows) => collect($rows)->contains(fn ($row) => $row['name'] === 'Seated Participant'
+                && $row['table_assignment'] === 'Table 4'
+                && $row['table_seat_number'] === 7
+                && $row['table_assignment_by_programme'][$programme->id] === 'Table 4'
+                && $row['table_seat_number_by_programme'][$programme->id] === 7))
+        );
+});
+
 test('reports count asemme10 registration attendees as selected event participants', function () {
     $adminType = UserType::query()->create([
         'name' => 'Admin',

@@ -78,6 +78,8 @@ type ReportRow = {
     avail_transport_from_makati_to_peninsula: boolean;
     table_assignment?: string | null;
     table_assignment_by_programme: Record<string, string | null>;
+    table_seat_number?: number | null;
+    table_seat_number_by_programme: Record<string, number | null>;
     vehicle_assignment?: string | null;
     vehicle_assignment_by_programme: Record<string, string | null>;
     vehicle_plate_number?: string | null;
@@ -237,10 +239,31 @@ function getTableAssignment(
     row: ReportRow,
     selectedEventId: number | null,
 ): string | null | undefined {
-    if (selectedEventId)
-        return row.table_assignment_by_programme?.[String(selectedEventId)];
+    const formatTableAssignment = (
+        tableAssignment?: string | null,
+        seatNumber?: number | null,
+    ) => {
+        const table = (tableAssignment ?? '').trim();
+        const hasSeatNumber =
+            typeof seatNumber === 'number' && Number.isFinite(seatNumber);
 
-    return row.table_assignment;
+        if (!table && !hasSeatNumber) return tableAssignment;
+        if (!table) return `Seat ${seatNumber}`;
+        if (!hasSeatNumber) return table;
+
+        return `${table} / Seat ${seatNumber}`;
+    };
+
+    if (selectedEventId) {
+        const eventKey = String(selectedEventId);
+
+        return formatTableAssignment(
+            row.table_assignment_by_programme?.[eventKey],
+            row.table_seat_number_by_programme?.[eventKey],
+        );
+    }
+
+    return formatTableAssignment(row.table_assignment, row.table_seat_number);
 }
 
 function getVehicleAssignment(
@@ -1355,6 +1378,24 @@ export default function Reports({
         return sortedRows.slice(start, start + entriesPerPage);
     }, [sortedRows, currentPage, entriesPerPage]);
 
+    const allVisibleRowsExpanded =
+        paginatedRows.length > 0 &&
+        paginatedRows.every((row) => expandedRowIds.has(row.id));
+
+    const toggleAllVisibleRows = React.useCallback(() => {
+        setExpandedRowIds((prev) => {
+            const next = new Set(prev);
+
+            if (allVisibleRowsExpanded) {
+                paginatedRows.forEach((row) => next.delete(row.id));
+            } else {
+                paginatedRows.forEach((row) => next.add(row.id));
+            }
+
+            return next;
+        });
+    }, [allVisibleRowsExpanded, paginatedRows]);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reports" />
@@ -1541,6 +1582,25 @@ export default function Reports({
                                     placeholder="Search name, registrant type, organization, or check-in"
                                     className="w-full md:w-80"
                                 />
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={toggleAllVisibleRows}
+                                    disabled={!paginatedRows.length}
+                                    className="gap-2"
+                                >
+                                    <ChevronDown
+                                        className={cn(
+                                            'h-4 w-4 transition-transform',
+                                            allVisibleRowsExpanded &&
+                                                'rotate-180',
+                                        )}
+                                    />
+                                    {allVisibleRowsExpanded
+                                        ? 'Collapse All'
+                                        : 'View All'}
+                                </Button>
 
                                 <Button
                                     type="button"
