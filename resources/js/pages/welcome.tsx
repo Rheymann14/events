@@ -299,11 +299,11 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
     const featuredSubtitle = featuredEvent ? 'Active registration event' : 'No featured event yet';
 
     return (
-        <section className="relative z-20 flex min-h-[90vh] items-center justify-center px-6">
+        <section className="relative isolate z-20 flex min-h-[90vh] items-center justify-center px-6">
             <div className="mx-auto grid w-full max-w-7xl grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-16">
 
                 {/* ================= LEFT SIDE ================= */}
-                <div className="relative z-30 text-center lg:text-left">
+                <div className="relative z-[90] text-center lg:text-left">
 
                     {/* Logos row */}
                     <div className="mb-6 flex items-center justify-center gap-3 lg:justify-start">
@@ -338,18 +338,16 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                     </p>
 
                     {/* CTA */}
-                    <div className="relative z-[60] mt-10 flex justify-center lg:justify-start">
-                        <Button
-                            asChild
-                            className="group relative z-[60] min-h-14 w-full max-w-xs touch-manipulation rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85] sm:w-auto"
+                    <div className="relative z-[100] mt-10 flex justify-center pointer-events-auto lg:justify-start">
+                        <Link
+                            href="/register"
+                            className="group relative z-[100] inline-flex min-h-14 w-full max-w-xs touch-manipulation select-none items-center justify-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85] active:scale-[0.98] sm:w-auto"
                         >
-                            <Link href="/register">
-                                Register Now
-                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 transition group-hover:bg-white/25">
-                                    <ArrowRight className="h-4 w-4 text-white" />
-                                </span>
-                            </Link>
-                        </Button>
+                            Register Now
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 transition group-hover:bg-white/25">
+                                <ArrowRight className="h-4 w-4 text-white" />
+                            </span>
+                        </Link>
                     </div>
                 </div>
 
@@ -1031,30 +1029,30 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
             </Head>
 
-      <PublicLayout
-    canRegister={canRegister}
-    navActive={activeHref}
-    onNavActiveChange={setActiveHref}
-    background={
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <PublicLayout
+                canRegister={canRegister}
+                navActive={activeHref}
+                onNavActiveChange={setActiveHref}
+                background={
+                    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
 
-            {/* Base */}
-            <div className="absolute inset-0 bg-white" />
+                        {/* Base */}
+                        <div className="absolute inset-0 bg-white" />
 
-            {/* Top-left blob */}
-            <div className="absolute -top-44 -left-44 h-[560px] w-[560px] rounded-full bg-[#0033A0]/[0.14] blur-[120px]" />
+                        {/* Top-left blob */}
+                        <div className="absolute -top-44 -left-44 h-[560px] w-[560px] rounded-full bg-[#0033A0]/[0.14] blur-[120px]" />
 
-            {/* Top-right blob */}
-            <div className="absolute -top-36 -right-40 h-[560px] w-[560px] rounded-full bg-amber-300/[0.18] blur-[130px]" />
+                        {/* Top-right blob */}
+                        <div className="absolute -top-36 -right-40 h-[560px] w-[560px] rounded-full bg-amber-300/[0.18] blur-[130px]" />
 
-            {/* Center soft glow */}
-            <div className="absolute left-1/2 top-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-200/[0.16] blur-[145px]" />
+                        {/* Center soft glow */}
+                        <div className="absolute left-1/2 top-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-200/[0.16] blur-[145px]" />
 
-            {/* Bottom accent */}
-            <div className="absolute -bottom-44 left-1/3 h-[560px] w-[560px] rounded-full bg-indigo-300/[0.14] blur-[135px]" />
-        </div>
-    }
->
+                        {/* Bottom accent */}
+                        <div className="absolute -bottom-44 left-1/3 h-[560px] w-[560px] rounded-full bg-indigo-300/[0.14] blur-[135px]" />
+                    </div>
+                }
+            >
 
 
                 {/* 1. HERO */}
@@ -1148,13 +1146,13 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                 <LeaderModal item={selectedLeader} isOpen={modalOpen} onClose={() => setModalOpen(false)} />
 
                 {/* 3. FEEDBACK FORM (UNCHANGED) */}
-                <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+                <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
                     <div
                         className={cn(
                             'w-[280px] max-w-[calc(100vw-2.5rem)] sm:w-[320px]',
                             'transition-all duration-300 ease-out',
                             feedbackOpen
-                                ? 'translate-y-0 scale-100 opacity-100'
+                                ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
                                 : 'pointer-events-none translate-y-4 scale-95 opacity-0',
                         )}
                     >
@@ -1343,7 +1341,9 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                         aria-hidden={feedbackLauncherHidden}
                         className={cn(
                             'group h-10 rounded-full bg-gradient-to-r from-[#1e3c73] via-[#25468a] to-[#1e3c73] px-4 text-xs font-semibold text-white shadow-lg shadow-[#1e3c73]/30 transition hover:brightness-110',
-                            feedbackLauncherHidden && 'pointer-events-none translate-y-3 scale-95 opacity-0',
+                            feedbackLauncherHidden
+                                ? 'pointer-events-none translate-y-3 scale-95 opacity-0'
+                                : 'pointer-events-auto',
                         )}
                     >
                         <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15">
