@@ -297,8 +297,10 @@ function ScannerIdCardPreview({
         ? 'max-w-[520px]'
         : 'max-w-[320px] sm:max-w-[360px]';
 
-    const qrPanelWidth = isLandscape ? 'w-[178px]' : '';
-    const qrSize = isLandscape ? 132 : 172;
+    const qrPanelWidth = isLandscape ? 'w-full min-[420px]:w-[178px]' : '';
+    const qrBoxClass = isLandscape
+        ? 'size-28 min-[420px]:size-[132px]'
+        : 'size-[172px]';
 
     // ✅ slightly reduce bottom padding so it feels tighter
     const pad = isLandscape ? 'px-3 pt-3 pb-2' : 'p-4 pb-3';
@@ -389,7 +391,7 @@ function ScannerIdCardPreview({
                     className={cn(
                         'min-h-0',
                         isLandscape
-                            ? 'grid grid-cols-[1fr_178px] items-start gap-3'
+                            ? 'flex flex-col gap-3 min-[420px]:grid min-[420px]:grid-cols-[1fr_178px] min-[420px]:items-start'
                             : 'flex flex-col gap-3',
                     )}
                 >
@@ -504,8 +506,10 @@ function ScannerIdCardPreview({
 
                         {verifiedSuccess ? (
                             <div
-                                className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-500/30 dark:bg-slate-950"
-                                style={{ width: qrSize, height: qrSize }}
+                                className={cn(
+                                    'relative overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-500/30 dark:bg-slate-950',
+                                    qrBoxClass,
+                                )}
                             >
                                 <img
                                     src={participantImageSrc}
@@ -527,15 +531,19 @@ function ScannerIdCardPreview({
                             <img
                                 src={qrDataUrl}
                                 alt="Participant QR code"
-                                className="rounded-2xl bg-white object-contain p-2"
-                                style={{ width: qrSize, height: qrSize }}
+                                className={cn(
+                                    'rounded-2xl bg-white object-contain p-2',
+                                    qrBoxClass,
+                                )}
                                 draggable={false}
                                 loading="lazy"
                             />
                         ) : (
                             <div
-                                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 text-center dark:border-white/10 dark:bg-slate-950/30"
-                                style={{ width: qrSize, height: qrSize }}
+                                className={cn(
+                                    'flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200/70 bg-white/60 text-center dark:border-white/10 dark:bg-slate-950/30',
+                                    qrBoxClass,
+                                )}
                             >
                                 <QrCodeIcon className="h-7 w-7 text-slate-400" />
                                 <div className="text-[10px] font-medium text-slate-600 dark:text-slate-300">
@@ -881,7 +889,9 @@ export default function Scanner(props: PageProps) {
     const [resultOpen, setResultOpen] = React.useState(false);
     const [resumeScanAfterResult, setResumeScanAfterResult] =
         React.useState(false);
-    const [autoStartSuppressed, setAutoStartSuppressed] = React.useState(false);
+    const [autoStartSuppressed, setAutoStartSuppressed] = React.useState(
+        Boolean(defaultEventId),
+    );
 
     const resultLatchRef = React.useRef(false);
 
@@ -1616,8 +1626,8 @@ export default function Scanner(props: PageProps) {
                     if (!open) closeResultAndScanAgain();
                 }}
             >
-                <DialogContent className="max-w-md overflow-hidden rounded-3xl bg-white p-0 dark:bg-slate-950">
-                    <div className="max-h-[85vh] overflow-y-auto p-5">
+                <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md gap-0 overflow-hidden rounded-2xl bg-white p-0 sm:rounded-3xl dark:bg-slate-950">
+                    <div className="max-h-[calc(100dvh-5.75rem)] overflow-y-auto p-3 sm:max-h-[85vh] sm:p-5">
                         <DialogHeader className="space-y-1">
                             <DialogTitle className="flex items-center gap-2 text-base">
                                 {result?.ok ? (
@@ -1644,26 +1654,26 @@ export default function Scanner(props: PageProps) {
                         {result ? (
                             <div
                                 className={cn(
-                                    'mt-4 rounded-3xl border p-4',
+                                    'mt-4 rounded-2xl border p-3 sm:rounded-3xl sm:p-4',
                                     result.ok
                                         ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20'
                                         : 'border-red-200 bg-red-50/60 dark:border-red-900/40 dark:bg-red-950/20',
                                 )}
                             >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-start gap-3">
+                                <div className="flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-start min-[380px]:justify-between">
+                                    <div className="flex min-w-0 items-start gap-3">
                                         <div
                                             className={cn(
-                                                'grid size-11 place-items-center rounded-2xl',
+                                                'grid size-10 shrink-0 place-items-center rounded-2xl sm:size-11',
                                                 result.ok
                                                     ? 'bg-emerald-600/10 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                                                     : 'bg-red-600/10 text-red-700 dark:bg-red-500/15 dark:text-red-300',
                                             )}
                                         >
                                             {result.ok ? (
-                                                <CircleCheckBig className="h-6 w-6" />
+                                                <CircleCheckBig className="h-5 w-5 sm:h-6 sm:w-6" />
                                             ) : (
-                                                <CircleX className="h-6 w-6" />
+                                                <CircleX className="h-5 w-5 sm:h-6 sm:w-6" />
                                             )}
                                         </div>
 
@@ -1686,16 +1696,16 @@ export default function Scanner(props: PageProps) {
                                     </div>
 
                                     {result.already_checked_in ? (
-                                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                                        <span className="shrink-0 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                                             Already checked in
                                         </span>
                                     ) : null}
                                 </div>
 
                                 {result.participant ? (
-                                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
+                                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-950">
+                                        <div className="flex flex-col gap-3 min-[380px]:flex-row min-[380px]:items-start min-[380px]:justify-between">
+                                            <div className="min-w-0 flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <UserRound className="h-4 w-4 text-slate-500" />
                                                     <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -1782,7 +1792,7 @@ export default function Scanner(props: PageProps) {
                                             </div>
 
                                             {result.checked_in_event ? (
-                                                <div className="text-right">
+                                                <div className="shrink-0 text-left min-[380px]:text-right">
                                                     <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
                                                         Checked-in:
                                                     </div>
@@ -1791,10 +1801,10 @@ export default function Scanner(props: PageProps) {
                                         </div>
 
                                         {selectedEvent ? (
-                                            <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
-                                                <ExternalLink className="h-4 w-4" />
+                                            <div className="mt-4 flex min-w-0 items-start gap-2 text-xs text-slate-500">
+                                                <ExternalLink className="mt-0.5 h-4 w-4 shrink-0" />
                                                 Checking in for:{' '}
-                                                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                                <span className="min-w-0 font-semibold break-words text-slate-700 dark:text-slate-300">
                                                     {selectedEvent.title}
                                                 </span>
                                             </div>
@@ -1805,7 +1815,7 @@ export default function Scanner(props: PageProps) {
                         ) : null}
                     </div>
 
-                    <DialogFooter className="border-t border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-950">
+                    <DialogFooter className="border-t border-slate-200 bg-white px-3 py-3 sm:px-5 sm:py-4 dark:border-slate-800 dark:bg-slate-950">
                         <Button
                             onClick={closeResultAndScanAgain}
                             className={cn(
@@ -2119,8 +2129,9 @@ export default function Scanner(props: PageProps) {
                                         Align QR inside the frame
                                     </div>
                                     <div className="mt-1 text-xs text-white/80">
-                                        Scanner starts automatically when event
-                                        is ready.
+                                        {selectedEventId
+                                            ? 'Start camera when ready to scan.'
+                                            : 'Select an event before scanning.'}
                                     </div>
                                 </div>
                             </div>
@@ -2204,7 +2215,9 @@ export default function Scanner(props: PageProps) {
                                     disabled={isEventBlocked}
                                 >
                                     <Camera className="mr-2 h-4 w-4" />
-                                    Retry Camera
+                                    {cameraError
+                                        ? 'Retry Camera'
+                                        : 'Start Camera'}
                                 </Button>
                             )}
 
