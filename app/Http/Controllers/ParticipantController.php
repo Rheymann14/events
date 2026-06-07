@@ -27,6 +27,8 @@ use Inertia\Inertia;
 
 class ParticipantController extends Controller
 {
+    private const DEFAULT_PARTICIPANT_PASSWORD = 'chedevents2026';
+
     private const FOOD_RESTRICTION_OPTIONS = [
         'vegetarian',
         'vegan',
@@ -546,7 +548,7 @@ class ParticipantController extends Controller
             'email' => $validated['email'],
             'contact_number' => $validated['contact_number'] ?? null,
             'contact_country_code' => null,
-            'password' => $validated['password'] ?? 'chedevents2026',
+            'password' => $validated['password'] ?? self::DEFAULT_PARTICIPANT_PASSWORD,
             'country_id' => $validated['country_id'] ?? null,
             'user_type_id' => $validated['user_type_id'] ?? null,
             'other_user_type' => $otherUserType,

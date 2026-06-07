@@ -264,6 +264,22 @@ test('participant create stores selected event and dynamic registration response
         ->answer)->toBe('Head');
 });
 
+test('participant create stores the default password as a hash', function () {
+    $admin = adminUser();
+    [$country, $participantType] = participantFixture();
+
+    $this->actingAs($admin)
+        ->post(route('participants.store'), participantPayload($country, $participantType, [
+            'email' => 'new-participant@example.test',
+        ]))
+        ->assertRedirect();
+
+    $participant = User::query()->where('email', 'new-participant@example.test')->firstOrFail();
+
+    expect($participant->password)->not->toBe('chedevents2026');
+    expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
+});
+
 test('participant update upserts and deletes dynamic registration responses', function () {
     $admin = adminUser();
     [$country, $participantType, $programme] = participantFixture();

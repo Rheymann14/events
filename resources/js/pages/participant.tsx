@@ -2155,6 +2155,23 @@ export default function ParticipantPage(props: PageProps) {
         : null;
     const selectedRegistrationFields =
         selectedRegistrationProgramme?.registration_fields ?? [];
+    const registrationProgrammeOptions = React.useMemo(
+        () => [
+            { value: '', label: 'No event' },
+            ...normalizedProgrammes.map((programme) => ({
+                value: String(programme.id),
+                label: programme.title,
+                description: [
+                    programme.tag,
+                    programme.location,
+                    formatEventWindow(programme.startsAt, programme.endsAt),
+                ]
+                    .filter(Boolean)
+                    .join(' - '),
+            })),
+        ],
+        [normalizedProgrammes],
+    );
 
     function defaultProgrammeId(participant?: ParticipantRow | null) {
         if (participantEventFilter !== 'all') {
@@ -7073,11 +7090,7 @@ export default function ParticipantPage(props: PageProps) {
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         <div className="space-y-1.5 sm:col-span-2">
                                             <div className="text-sm font-medium">
-                                                Contact number{' '}
-                                                <span className="text-[11px] font-semibold text-red-600">
-                                                    {' '}
-                                                    *
-                                                </span>
+                                                Contact number
                                             </div>
                                             <Input
                                                 type="tel"
@@ -7274,131 +7287,26 @@ export default function ParticipantPage(props: PageProps) {
                                 {participantFormStep === 3 && (
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         <div className="rounded-xl border border-slate-200 px-3 py-3 sm:col-span-2 dark:border-slate-800">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <div className="text-sm font-medium">
-                                                        Indigenous Peoples (IP)
-                                                        affiliation
-                                                    </div>
-                                                    <div className="text-xs text-slate-600 dark:text-slate-400">
-                                                        Is the participant part
-                                                        of an Indigenous Peoples
-                                                        group?
-                                                    </div>
-                                                </div>
-                                                <Switch
-                                                    checked={
-                                                        participantForm.data
-                                                            .ip_affiliation
-                                                    }
-                                                    onCheckedChange={(value) =>
-                                                        participantForm.setData(
-                                                            'ip_affiliation',
-                                                            !!value,
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-                                            {participantForm.data
-                                                .ip_affiliation ? (
-                                                <div className="mt-3 space-y-1.5">
-                                                    <div className="text-sm font-medium">
-                                                        IP group name
-                                                    </div>
-                                                    <Input
-                                                        value={
-                                                            participantForm.data
-                                                                .ip_group_name
-                                                        }
-                                                        onChange={(e) =>
-                                                            participantForm.setData(
-                                                                'ip_group_name',
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        placeholder="Specify IP group"
-                                                    />
-                                                </div>
-                                            ) : null}
-                                        </div>
-
-                                        <div className="rounded-xl border border-slate-200 px-3 py-3 sm:col-span-2 dark:border-slate-800">
-                                            <div className="text-sm font-medium">
-                                                Emergency contact information
-                                            </div>
-                                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                                <Input
-                                                    value={
-                                                        participantForm.data
-                                                            .emergency_contact_name
-                                                    }
-                                                    onChange={(e) =>
-                                                        participantForm.setData(
-                                                            'emergency_contact_name',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    placeholder="Name"
-                                                />
-                                                <Input
-                                                    value={
-                                                        participantForm.data
-                                                            .emergency_contact_relationship
-                                                    }
-                                                    onChange={(e) =>
-                                                        participantForm.setData(
-                                                            'emergency_contact_relationship',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    placeholder="Relationship"
-                                                />
-                                                <Input
-                                                    value={
-                                                        participantForm.data
-                                                            .emergency_contact_phone
-                                                    }
-                                                    onChange={(e) =>
-                                                        participantForm.setData(
-                                                            'emergency_contact_phone',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    placeholder="Phone number"
-                                                />
-                                                <Input
-                                                    type="email"
-                                                    value={
-                                                        participantForm.data
-                                                            .emergency_contact_email
-                                                    }
-                                                    onChange={(e) =>
-                                                        participantForm.setData(
-                                                            'emergency_contact_email',
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    placeholder="Email address"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="rounded-xl border border-slate-200 px-3 py-3 sm:col-span-2 dark:border-slate-800">
                                             <div className="grid gap-3 sm:grid-cols-2">
                                                 <div className="space-y-1.5 sm:col-span-2">
                                                     <div className="text-sm font-medium">
                                                         Event registration
                                                         fields
                                                     </div>
-                                                    <select
+                                                    <SearchableCommandSelect
                                                         value={
                                                             participantForm.data
                                                                 .programme_id
                                                         }
-                                                        onChange={(event) => {
-                                                            const programmeId =
-                                                                event.target
-                                                                    .value;
+                                                        options={
+                                                            registrationProgrammeOptions
+                                                        }
+                                                        placeholder="Select event"
+                                                        searchPlaceholder="Search events..."
+                                                        emptyText="No event found."
+                                                        onValueChange={(
+                                                            programmeId,
+                                                        ) => {
                                                             participantForm.setData(
                                                                 'programme_id',
                                                                 programmeId,
@@ -7411,28 +7319,7 @@ export default function ParticipantPage(props: PageProps) {
                                                                 ),
                                                             );
                                                         }}
-                                                        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:ring-2 focus-visible:ring-[#00359c]/30 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                                                    >
-                                                        <option value="">
-                                                            Select event
-                                                        </option>
-                                                        {normalizedProgrammes.map(
-                                                            (programme) => (
-                                                                <option
-                                                                    key={
-                                                                        programme.id
-                                                                    }
-                                                                    value={String(
-                                                                        programme.id,
-                                                                    )}
-                                                                >
-                                                                    {
-                                                                        programme.title
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
+                                                    />
                                                     {participantForm.errors
                                                         .programme_id ? (
                                                         <div className="text-xs text-red-600">
