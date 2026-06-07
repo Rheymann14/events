@@ -281,6 +281,63 @@ test('participant create stores the default password as a hash', function () {
     expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
 });
 
+test('participant create requires an email address', function () {
+    $admin = adminUser();
+    [$country, $participantType] = participantFixture();
+
+    $this->actingAs($admin)
+        ->post(route('participants.store'), participantPayload($country, $participantType, [
+            'full_name' => 'Participant Without Email',
+            'email' => '   ',
+            'given_name' => 'Participant',
+            'family_name' => 'Without Email',
+        ]))
+        ->assertSessionHasErrors(['email']);
+
+    expect(User::query()->where('name', 'Participant Without Email')->exists())->toBeFalse();
+});
+
+test('participant update can clear an existing email address', function () {
+    $admin = adminUser();
+    [$country, $participantType] = participantFixture();
+
+    $participant = User::factory()->create([
+        'name' => 'Existing Participant',
+        'email' => 'existing-participant@example.test',
+        'country_id' => $country->id,
+        'user_type_id' => $participantType->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('participants.update', $participant), [
+            'email' => '',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($participant->refresh()->email)->toBeNull();
+});
+
+test('participant create dispatches the welcome email notification', function () {
+    $admin = adminUser();
+    [$country, $participantType] = participantFixture();
+
+    $notifications = Mockery::mock(WelcomeNotificationService::class);
+    $notifications
+        ->shouldReceive('dispatch')
+        ->once()
+        ->with(Mockery::on(fn (User $user) => $user->email === 'new-participant@example.test'));
+
+    $this->app->instance(WelcomeNotificationService::class, $notifications);
+
+    $this->actingAs($admin)
+        ->post(route('participants.store'), participantPayload($country, $participantType, [
+            'email' => 'new-participant@example.test',
+        ]))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+});
+
 test('participant create succeeds when welcome notification dispatch fails', function () {
     $admin = adminUser();
     [$country, $participantType] = participantFixture();

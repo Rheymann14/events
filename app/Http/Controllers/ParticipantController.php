@@ -486,8 +486,23 @@ class ParticipantController extends Controller
         ]);
     }
 
+    private function normalizeNullableEmailInput(Request $request): void
+    {
+        if (! $request->exists('email')) {
+            return;
+        }
+
+        $email = trim((string) $request->input('email'));
+
+        $request->merge([
+            'email' => $email !== '' ? $email : null,
+        ]);
+    }
+
     public function store(Request $request)
     {
+        $this->normalizeNullableEmailInput($request);
+
         $validator = Validator::make($request->all(), [
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -592,9 +607,11 @@ class ParticipantController extends Controller
 
     public function update(Request $request, User $participant)
     {
+        $this->normalizeNullableEmailInput($request);
+
         $validator = Validator::make($request->all(), [
             'full_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'email' => ['sometimes', 'required', 'email', 'max:255', 'unique:users,email,'.$participant->id],
+            'email' => ['sometimes', 'nullable', 'email', 'max:255', 'unique:users,email,'.$participant->id],
             'contact_number' => ['sometimes', 'nullable', 'string', 'max:30'],
             'country_id' => ['nullable', 'exists:countries,id'],
             'user_type_id' => ['nullable', 'exists:user_types,id'],

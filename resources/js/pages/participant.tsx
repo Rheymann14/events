@@ -2670,7 +2670,7 @@ export default function ParticipantPage(props: PageProps) {
                 forceFormData: true,
                 onSuccess: () => {
                     setParticipantDialogOpen(false);
-                    toast.success('Participant added.');
+                    toast.success('Participant added. Welcome email queued.');
                 },
                 onError: handleSubmitError,
             });
@@ -7054,6 +7054,7 @@ export default function ParticipantPage(props: PageProps) {
                                                 </span>
                                             </div>
                                             <Input
+                                                type="email"
                                                 value={
                                                     participantForm.data.email
                                                 }
