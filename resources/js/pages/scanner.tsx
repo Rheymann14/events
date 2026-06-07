@@ -580,10 +580,9 @@ function useScanSounds() {
     const getCtx = React.useCallback(() => {
         if (typeof window === 'undefined') return null;
 
-        const AC = (window.AudioContext ||
-            (window as any).webkitAudioContext) as
-            | typeof AudioContext
-            | undefined;
+        const AC =
+            window.AudioContext ||
+            (window as WindowWithWebkitAudioContext).webkitAudioContext;
         if (!AC) return null;
 
         if (!ctxRef.current) ctxRef.current = new AC();
@@ -794,6 +793,11 @@ type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => {
     detect: (source: HTMLVideoElement) => Promise<DetectedBarcode[]>;
 };
 
+type WindowWithWebkitAudioContext = Window &
+    typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+    };
+
 declare global {
     interface Window {
         BarcodeDetector?: BarcodeDetectorConstructor;
@@ -848,7 +852,7 @@ function getCameraErrorMessage(error: unknown) {
 }
 
 export default function Scanner(props: PageProps) {
-    const events = props.events ?? [];
+    const events = React.useMemo(() => props.events ?? [], [props.events]);
     const defaultEventId = props.default_event_id
         ? String(props.default_event_id)
         : '';
@@ -978,69 +982,65 @@ export default function Scanner(props: PageProps) {
         return () => ro.disconnect();
     }, []);
 
-    // ✅ live QR detect highlight (BarcodeDetector)
-    React.useEffect(() => {
+    const clearQrOverlay = React.useCallback(() => {
         const host = scanBoxRef.current;
-        const video = videoRef.current;
         const canvas = overlayCanvasRef.current;
+        const ctx = canvas?.getContext('2d');
 
-        if (!isScanning || !host || !video || !canvas) {
-            // clear overlay when not scanning
-            const ctx = canvas?.getContext('2d');
-            if (ctx && host) {
-                const r = host.getBoundingClientRect();
-                ctx.clearRect(0, 0, r.width, r.height);
+        if (host && ctx) {
+            const r = host.getBoundingClientRect();
+            ctx.clearRect(0, 0, r.width, r.height);
+        }
+    }, []);
+
+    const updateQrAim = React.useCallback((aim: typeof qrAimRef.current) => {
+        if (aim === qrAimRef.current) {
+            return;
+        }
+
+        qrAimRef.current = aim;
+        setQrAim(aim);
+    }, []);
+
+    const drawQrOverlay = React.useCallback(
+        (barcodes: DetectedBarcode[]) => {
+            const host = scanBoxRef.current;
+            const video = videoRef.current;
+            const canvas = overlayCanvasRef.current;
+
+            if (!host || !video || !canvas) {
+                updateQrAim('searching');
+                return;
             }
-            setQrAim((s) => (s === 'idle' ? s : 'idle'));
-            return;
-        }
 
-        const AnyWindow = window as any;
-        const Detector = AnyWindow.BarcodeDetector as
-            | (new (opts: { formats: string[] }) => {
-                  detect: (src: any) => Promise<DetectedBarcode[]>;
-              })
-            | undefined;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                updateQrAim('searching');
+                return;
+            }
 
-        // Fallback: not supported (e.g. some Safari)
-        if (!Detector) {
-            setQrAim('searching');
-            return;
-        }
-
-        const detector = new Detector({ formats: ['qr_code'] });
-
-        let stopped = false;
-        let lastAim: typeof qrAimRef.current = 'idle';
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        const draw = (barcodes: DetectedBarcode[]) => {
             const rect = host.getBoundingClientRect();
             const w = rect.width;
             const h = rect.height;
 
             ctx.clearRect(0, 0, w, h);
 
-            // frame area (matches your inset-6)
             const frameX = 24;
             const frameY = 24;
             const frameW = w - 48;
             const frameH = h - 48;
 
-            // subtle dim outside frame
             ctx.save();
             ctx.fillStyle = 'rgba(0,0,0,0.16)';
             ctx.fillRect(0, 0, w, h);
             ctx.clearRect(frameX, frameY, frameW, frameH);
             ctx.restore();
 
-            // if video not ready, just show searching
             const vw = video.videoWidth || 0;
             const vh = video.videoHeight || 0;
             if (!vw || !vh) {
-                return { aim: 'searching' as const };
+                updateQrAim('searching');
+                return;
             }
 
             const { scale, offsetX, offsetY } = getCoverTransform(w, h, vw, vh);
@@ -1049,7 +1049,6 @@ export default function Scanner(props: PageProps) {
                 y: p.y * scale + offsetY,
             });
 
-            // choose best barcode (largest area)
             let best: {
                 points: { x: number; y: number }[];
                 cx: number;
@@ -1073,8 +1072,9 @@ export default function Scanner(props: PageProps) {
                     const cx = (minX + maxX) / 2;
                     const cy = (minY + maxY) / 2;
 
-                    if (!best || area > best.area)
+                    if (!best || area > best.area) {
                         best = { points: mp, cx, cy, area };
+                    }
                     continue;
                 }
 
@@ -1095,12 +1095,16 @@ export default function Scanner(props: PageProps) {
                     const cx = (x1 + x2) / 2;
                     const cy = (y1 + y2) / 2;
 
-                    if (!best || area > best.area)
+                    if (!best || area > best.area) {
                         best = { points, cx, cy, area };
+                    }
                 }
             }
 
-            if (!best) return { aim: 'searching' as const };
+            if (!best) {
+                updateQrAim('searching');
+                return;
+            }
 
             const margin = 14;
             const inFrame =
@@ -1111,7 +1115,6 @@ export default function Scanner(props: PageProps) {
 
             const aim = inFrame ? ('aligned' as const) : ('detected' as const);
 
-            // draw polygon/box
             ctx.save();
             ctx.lineWidth = 3;
             ctx.strokeStyle =
@@ -1135,43 +1138,19 @@ export default function Scanner(props: PageProps) {
             ctx.stroke();
             ctx.restore();
 
-            return { aim };
-        };
+            updateQrAim(aim);
+        },
+        [updateQrAim],
+    );
 
-        const tick = async () => {
-            if (stopped) return;
+    React.useEffect(() => {
+        if (isScanning) {
+            return;
+        }
 
-            try {
-                if (video.readyState < 2) {
-                    setTimeout(tick, 140);
-                    return;
-                }
-
-                const barcodes = await detector.detect(video);
-                if (stopped) return;
-
-                const { aim } = draw(barcodes);
-
-                if (aim !== lastAim) {
-                    lastAim = aim;
-                    setQrAim(aim);
-                }
-            } catch {
-                // ignore and continue
-            } finally {
-                if (!stopped) setTimeout(tick, 140);
-            }
-        };
-
-        setQrAim('searching');
-        tick();
-
-        return () => {
-            stopped = true;
-            const r = host.getBoundingClientRect();
-            ctx.clearRect(0, 0, r.width, r.height);
-        };
-    }, [isScanning]);
+        clearQrOverlay();
+        updateQrAim('idle');
+    }, [clearQrOverlay, isScanning, updateQrAim]);
 
     function vibrateSuccess() {
         if (navigator.vibrate) navigator.vibrate([40, 40, 90]);
@@ -1264,18 +1243,29 @@ export default function Scanner(props: PageProps) {
             const codes = await detector.detect(video);
             const rawValue = codes[0]?.rawValue?.trim();
 
+            drawQrOverlay(codes);
+
             if (rawValue) {
                 return rawValue;
             }
-        }
 
-        const width = video.videoWidth;
-        const height = video.videoHeight;
-
-        if (!width || !height) {
             return '';
         }
 
+        const sourceWidth = video.videoWidth;
+        const sourceHeight = video.videoHeight;
+
+        if (!sourceWidth || !sourceHeight) {
+            return '';
+        }
+
+        const maxScanSide = 960;
+        const scale = Math.min(
+            1,
+            maxScanSide / Math.max(sourceWidth, sourceHeight),
+        );
+        const width = Math.max(1, Math.floor(sourceWidth * scale));
+        const height = Math.max(1, Math.floor(sourceHeight * scale));
         const canvas =
             scanCanvasRef.current ?? document.createElement('canvas');
         const context = canvas.getContext('2d', {
@@ -1296,6 +1286,27 @@ export default function Scanner(props: PageProps) {
         const code = jsQR(imageData.data, width, height, {
             inversionAttempts: 'attemptBoth',
         });
+
+        if (code) {
+            const pointScaleX = sourceWidth / width;
+            const pointScaleY = sourceHeight / height;
+            drawQrOverlay([
+                {
+                    rawValue: code.data,
+                    cornerPoints: [
+                        code.location.topLeftCorner,
+                        code.location.topRightCorner,
+                        code.location.bottomRightCorner,
+                        code.location.bottomLeftCorner,
+                    ].map((point) => ({
+                        x: point.x * pointScaleX,
+                        y: point.y * pointScaleY,
+                    })),
+                },
+            ]);
+        } else {
+            drawQrOverlay([]);
+        }
 
         return code?.data?.trim() ?? '';
     }
@@ -1324,8 +1335,8 @@ export default function Scanner(props: PageProps) {
             const videoConstraints: MediaTrackConstraints = {
                 deviceId: deviceId ? { exact: deviceId } : undefined,
                 facingMode: deviceId ? undefined : { ideal: 'environment' },
-                width: { ideal: 1920 },
-                height: { ideal: 1080 },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
                 ...({
                     focusMode: 'continuous',
                     advanced: [{ focusMode: 'continuous' }, { zoom: 1 }],
@@ -1458,7 +1469,10 @@ export default function Scanner(props: PageProps) {
 
         try {
             const csrf = getCsrfToken();
-            const payload: any = { code, event_id: Number(selectedEventId) };
+            const payload: { code: string; event_id: number } = {
+                code,
+                event_id: Number(selectedEventId),
+            };
 
             const res = await fetch(ENDPOINTS.scan, {
                 method: 'POST',
@@ -1864,18 +1878,18 @@ export default function Scanner(props: PageProps) {
                                     variant="outline"
                                     role="combobox"
                                     aria-expanded={eventOpen}
-                                    className="h-11 w-100 justify-between rounded-2xl"
+                                    className="h-11 w-full min-w-0 justify-between rounded-2xl px-3"
                                 >
-                                    <span className="flex min-w-0 items-center gap-2">
+                                    <span className="flex min-w-0 flex-1 items-center gap-2">
                                         {selectedEvent ? (
                                             <>
-                                                <span className="truncate">
+                                                <span className="min-w-0 flex-1 truncate text-left">
                                                     {selectedEvent.title}
                                                 </span>
                                                 {selectedEventPhase ? (
                                                     <span
                                                         className={cn(
-                                                            'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase',
+                                                            'hidden shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase min-[380px]:inline-flex',
                                                             phaseBadgeClass(
                                                                 selectedEventPhase,
                                                             ),
@@ -1888,12 +1902,12 @@ export default function Scanner(props: PageProps) {
                                                 ) : null}
                                             </>
                                         ) : (
-                                            <span className="text-muted-foreground">
+                                            <span className="min-w-0 flex-1 truncate text-left text-muted-foreground">
                                                 Select event…
                                             </span>
                                         )}
                                     </span>
-                                    <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
 
