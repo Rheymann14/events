@@ -13,7 +13,15 @@ class WelcomeNotificationService
 {
     public function dispatch(User $user): void
     {
-        SendWelcomeNotifications::dispatchAfterResponse($user->id);
+        try {
+            SendWelcomeNotifications::dispatchAfterResponse($user->id);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            Log::warning('Welcome notification dispatch failed.', [
+                'user_id' => $user->id,
+            ]);
+        }
     }
 
     public function sendNow(User $user): void

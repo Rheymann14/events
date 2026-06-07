@@ -585,7 +585,7 @@ class ParticipantController extends Controller
 
         $this->syncSelectedProgrammeAndResponses($user, $request);
 
-        app(WelcomeNotificationService::class)->dispatch($user);
+        rescue(fn () => app(WelcomeNotificationService::class)->dispatch($user), report: true);
 
         return back();
     }

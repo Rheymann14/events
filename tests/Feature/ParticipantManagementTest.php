@@ -8,6 +8,7 @@ use App\Models\Programme;
 use App\Models\RegistrationField;
 use App\Models\User;
 use App\Models\UserType;
+use App\Services\WelcomeNotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -278,6 +279,27 @@ test('participant create stores the default password as a hash', function () {
 
     expect($participant->password)->not->toBe('chedevents2026');
     expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
+});
+
+test('participant create succeeds when welcome notification dispatch fails', function () {
+    $admin = adminUser();
+    [$country, $participantType] = participantFixture();
+
+    $notifications = Mockery::mock(WelcomeNotificationService::class);
+    $notifications
+        ->shouldReceive('dispatch')
+        ->once()
+        ->andThrow(new RuntimeException('Queue unavailable'));
+
+    $this->app->instance(WelcomeNotificationService::class, $notifications);
+
+    $this->actingAs($admin)
+        ->post(route('participants.store'), participantPayload($country, $participantType, [
+            'email' => 'notification-failure@example.test',
+        ]))
+        ->assertRedirect();
+
+    expect(User::query()->where('email', 'notification-failure@example.test')->exists())->toBeTrue();
 });
 
 test('participant update upserts and deletes dynamic registration responses', function () {
