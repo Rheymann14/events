@@ -2,6 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { splitCountriesByAsean } from '@/lib/countries';
 import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { participant } from '@/routes';
+import { pdf as idCardsPdf } from '@/routes/participants/id-cards';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import * as React from 'react';
@@ -842,8 +843,6 @@ type PrintJob = {
 const QR_BATCH_SIZE = 24;
 const QR_DATA_URL_WIDTH = 192;
 
-const ID_CARDS_PDF_ENDPOINT = '/participants/id-cards.pdf';
-
 function hasPrintableParticipantId(
     participant: ParticipantRow,
 ): participant is ParticipantRow & { id: number } {
@@ -878,9 +877,10 @@ function submitIdCardsPdfDownload(
     selectedIds: number[],
 ) {
     const form = document.createElement('form');
+    const pdfForm = idCardsPdf.form();
 
-    form.method = 'POST';
-    form.action = ID_CARDS_PDF_ENDPOINT;
+    form.method = pdfForm.method;
+    form.action = pdfForm.action;
     form.style.display = 'none';
 
     appendHiddenInput(form, '_token', csrfToken());

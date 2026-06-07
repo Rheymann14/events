@@ -8,6 +8,7 @@ import {
 } from '@/lib/certificates';
 import printJS from '@/lib/print-js';
 import { cn } from '@/lib/utils';
+import { pdf as participantCertificatesPdf } from '@/routes/event-management/participants/certificates';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { CheckCircle2, ChevronLeft, Download, Users } from 'lucide-react';
@@ -146,9 +147,10 @@ function submitCertificatesPdfDownload(
     signatoryTitle: string,
 ) {
     const form = document.createElement('form');
+    const pdfForm = participantCertificatesPdf.form(programmeId);
 
-    form.method = 'POST';
-    form.action = `/event-management/${programmeId}/participants/certificates.pdf`;
+    form.method = pdfForm.method;
+    form.action = pdfForm.action;
     form.style.display = 'none';
 
     appendHiddenInput(form, '_token', csrfToken());

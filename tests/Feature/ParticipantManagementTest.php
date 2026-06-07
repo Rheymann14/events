@@ -3,6 +3,7 @@
 use App\Models\Country;
 use App\Models\EventRegistrationAttendee;
 use App\Models\EventRegistrationSubmission;
+use App\Models\ParticipantAttendance;
 use App\Models\Programme;
 use App\Models\RegistrationField;
 use App\Models\User;
@@ -348,7 +349,7 @@ test('participant password reset stores the default password as a hash', functio
     expect(Hash::check('chedevents2026', $participant->password))->toBeTrue();
 });
 
-test('admin can download participant id cards as a pdf', function () {
+test('admin can download participant id cards as portrait and landscape pdfs', function () {
     $admin = adminUser();
     [$country, $participantType] = participantFixture();
 
@@ -360,17 +361,51 @@ test('admin can download participant id cards as a pdf', function () {
         'qr_payload' => 'EVT-0001',
     ]);
 
+    foreach (['portrait', 'landscape'] as $orientation) {
+        $response = $this->actingAs($admin)
+            ->post(route('participants.id-cards.pdf'), [
+                'orientation' => $orientation,
+                'ids' => [$participant->id],
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        expect($response->headers->get('Content-Disposition'))->toContain("participant-ids-{$orientation}-");
+    }
+});
+
+test('admin can download checked-in participant certificates as a pdf', function () {
+    $admin = adminUser();
+    [$country, $participantType, $programme] = participantFixture();
+
+    $participant = User::factory()->create([
+        'name' => 'Certified Participant',
+        'country_id' => $country->id,
+        'user_type_id' => $participantType->id,
+    ]);
+
+    $programme->participants()->attach($participant->id);
+
+    ParticipantAttendance::query()->create([
+        'user_id' => $participant->id,
+        'programme_id' => $programme->id,
+        'status' => 'checked-in',
+        'scanned_at' => now(),
+    ]);
+
     $response = $this->actingAs($admin)
-        ->post(route('participants.id-cards.pdf'), [
-            'orientation' => 'landscape',
-            'ids' => [$participant->id],
+        ->post(route('event-management.participants.certificates.pdf', $programme), [
+            'signatory_name' => 'Dr. Signatory',
+            'signatory_title' => 'Chairperson',
         ]);
 
     $response
         ->assertOk()
         ->assertHeader('Content-Type', 'application/pdf');
 
-    expect($response->headers->get('Content-Disposition'))->toContain('participant-ids-landscape-');
+    expect($response->headers->get('Content-Disposition'))->toContain('participant-certificates-asean-event-');
 });
 
 test('dynamic registration responses are validated for required fields and option types', function () {
