@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Programme extends Model
 {
@@ -27,6 +27,7 @@ class Programme extends Model
         'signatory_signature_url',
         'is_active',
         'is_registration_active',
+        'is_registration_closed',
     ];
 
     protected $casts = [
@@ -34,6 +35,7 @@ class Programme extends Model
         'ends_at' => 'datetime',
         'is_active' => 'boolean',
         'is_registration_active' => 'boolean',
+        'is_registration_closed' => 'boolean',
     ];
 
     public function user(): BelongsTo

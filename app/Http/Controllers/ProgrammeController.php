@@ -69,6 +69,7 @@ class ProgrammeController extends Controller
                     'signatory_signature_url' => $programme->signatory_signature_url,
                     'is_active' => $programme->is_active,
                     'is_registration_active' => $programme->is_registration_active,
+                    'is_registration_closed' => $programme->is_registration_closed,
                     'updated_at' => $programme->updated_at?->toISOString(),
                     'created_by' => $programme->user
                         ? [
@@ -102,6 +103,7 @@ class ProgrammeController extends Controller
                 'pdf_url' => $programme->pdf_url,
                 'is_active' => $programme->is_active,
                 'is_registration_active' => $programme->is_registration_active,
+                'is_registration_closed' => $programme->is_registration_closed,
                 'updated_at' => $programme->updated_at?->toISOString(),
             ]);
 
@@ -602,6 +604,7 @@ class ProgrammeController extends Controller
         $programme->forceFill([
             'is_active' => true,
             'is_registration_active' => true,
+            'is_registration_closed' => false,
         ])->save();
 
         return back();
@@ -611,6 +614,7 @@ class ProgrammeController extends Controller
     {
         $programme->forceFill([
             'is_registration_active' => false,
+            'is_registration_closed' => true,
         ])->save();
 
         return back();

@@ -129,6 +129,7 @@ test('admin can mark one event as active registration', function () {
 
     expect($previous->refresh()->is_registration_active)->toBeFalse()
         ->and($next->refresh()->is_registration_active)->toBeTrue()
+        ->and($next->is_registration_closed)->toBeFalse()
         ->and($next->is_active)->toBeTrue();
 });
 
@@ -152,7 +153,8 @@ test('admin can close the active registration event', function () {
         ->assertRedirect();
 
     expect($programme->refresh()->is_active)->toBeTrue()
-        ->and($programme->is_registration_active)->toBeFalse();
+        ->and($programme->is_registration_active)->toBeFalse()
+        ->and($programme->is_registration_closed)->toBeTrue();
 });
 
 test('registration screen has no event when registration is closed', function () {

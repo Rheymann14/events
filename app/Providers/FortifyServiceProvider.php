@@ -252,6 +252,7 @@ class FortifyServiceProvider extends ServiceProvider
             'starts_at' => $programme->starts_at?->toISOString(),
             'ends_at' => $programme->ends_at?->toISOString(),
             'is_registration_active' => $programme->is_registration_active,
+            'is_registration_closed' => $programme->is_registration_closed,
             'registration_fields' => $programme->registrationFields
                 ->map(fn ($field) => [
                     'id' => $field->id,

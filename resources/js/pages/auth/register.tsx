@@ -72,6 +72,7 @@ type ProgrammeOption = {
     starts_at?: string | null;
     ends_at?: string | null;
     is_registration_active?: boolean;
+    is_registration_closed?: boolean;
     registration_fields?: RegistrationFieldOption[];
 };
 

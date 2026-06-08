@@ -137,6 +137,7 @@ type ProgrammeRow = {
 
     is_active: boolean;
     is_registration_active?: boolean;
+    is_registration_closed?: boolean;
     updated_at?: string | null;
     participants?: ProgrammeParticipant[];
     participant_count?: number;

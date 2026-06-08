@@ -39,6 +39,7 @@ type ProgrammeRow = {
     pdf_url: string | null;
     is_active: boolean;
     is_registration_active?: boolean;
+    is_registration_closed?: boolean;
 };
 
 type PageProps = {
@@ -55,6 +56,7 @@ type FlexHoverItem = {
     tint: string;
     isActive: boolean;
     isRegistrationActive: boolean;
+    isRegistrationClosed: boolean;
 
     startsAt: string;
     endsAt?: string;
@@ -478,7 +480,7 @@ function EventTile({
     const isClosed = phase === 'closed';
     const isUpcoming = phase === 'upcoming';
     const isOngoing = phase === 'ongoing';
-    const isRegistrationClosed = item.isActive && !item.isRegistrationActive;
+    const isRegistrationClosed = item.isActive && item.isRegistrationClosed;
 
     return (
         <div
@@ -875,6 +877,7 @@ export default function Programme({ programmes = [] }: PageProps) {
                 tint: TINTS[index % TINTS.length],
                 isActive: programme.is_active,
                 isRegistrationActive: !!programme.is_registration_active,
+                isRegistrationClosed: !!programme.is_registration_closed,
                 startsAt,
                 endsAt: programme.ends_at ?? undefined,
                 cta: pdfUrl ? { label: 'View more', href: pdfUrl } : undefined,
