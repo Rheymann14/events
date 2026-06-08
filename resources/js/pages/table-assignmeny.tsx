@@ -50,6 +50,7 @@ import {
     ChevronRight,
     ChevronsUpDown,
     Plus,
+    Printer,
     Search,
     Table as TableIcon,
     Users2,
@@ -351,6 +352,7 @@ export default function TableAssignmenyPage(props: PageProps) {
     const [removingAssignmentIds, setRemovingAssignmentIds] = React.useState<
         number[]
     >([]);
+    const [printingSeatPlan, setPrintingSeatPlan] = React.useState(false);
     const [currentTimestamp] = React.useState(() => Date.now());
     const hasHydrated = React.useRef(false);
     const selectedEvent = selectedEventId
@@ -1120,6 +1122,24 @@ export default function TableAssignmenyPage(props: PageProps) {
         });
     }, []);
 
+    React.useEffect(() => {
+        if (!printingSeatPlan) return;
+
+        const resetPrinting = () => setPrintingSeatPlan(false);
+        window.addEventListener('afterprint', resetPrinting);
+
+        return () => window.removeEventListener('afterprint', resetPrinting);
+    }, [printingSeatPlan]);
+
+    function printSeatPlan() {
+        if (tables.length === 0) return;
+
+        setPrintingSeatPlan(true);
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => window.print());
+        });
+    }
+
     function renderParticipantDetailsPanel(p: Participant) {
         return (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1217,6 +1237,140 @@ export default function TableAssignmenyPage(props: PageProps) {
         );
     }
 
+    function renderSeatingPlan(printMode = false) {
+        if (tables.length === 0) return null;
+
+        return (
+            <div className="space-y-3">
+                <div
+                    className={cn(
+                        'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
+                        printMode && 'sm:flex-row',
+                    )}
+                >
+                    <div>
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-100">
+                            <Armchair className="h-4 w-4 text-[#00359c]" />
+                            Seating plan
+                        </div>
+                        {printMode ? (
+                            <div className="mt-1 space-y-1 text-xs text-slate-500">
+                                <div>
+                                    {selectedEvent?.title ??
+                                        'Selected event unavailable'}
+                                </div>
+                                <div>
+                                    {allAssignments.length} assigned,{' '}
+                                    {openSeatCount} open seats of{' '}
+                                    {totalCapacity}
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
+                    {!printMode ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-2 text-xs"
+                            onClick={printSeatPlan}
+                        >
+                            <Printer className="h-4 w-4" />
+                            Print seat plan
+                        </Button>
+                    ) : null}
+                </div>
+                <div className="grid gap-3 lg:grid-cols-2">
+                    {tables.map((table) => {
+                        const occupiedSeats =
+                            assignmentsByTableId.get(table.id) ??
+                            new Map<number, TableAssignment>();
+
+                        return (
+                            <div
+                                key={table.id}
+                                className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"
+                            >
+                                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                            {table.table_number}
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            {table.assigned_count}/
+                                            {table.capacity} occupied
+                                        </div>
+                                    </div>
+                                    <Badge
+                                        className={
+                                            table.assigned_count >=
+                                            table.capacity
+                                                ? 'bg-slate-200 text-slate-700'
+                                                : 'bg-emerald-100 text-emerald-700'
+                                        }
+                                    >
+                                        {Math.max(
+                                            table.capacity -
+                                                table.assigned_count,
+                                            0,
+                                        )}{' '}
+                                        open
+                                    </Badge>
+                                </div>
+                                {table.capacity > 0 ? (
+                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-2">
+                                        {Array.from(
+                                            { length: table.capacity },
+                                            (_, index) => {
+                                                const seatNumber = index + 1;
+                                                const occupant =
+                                                    occupiedSeats.get(
+                                                        seatNumber,
+                                                    );
+
+                                                return (
+                                                    <div
+                                                        key={seatNumber}
+                                                        title={
+                                                            occupant
+                                                                ?.participant
+                                                                ?.full_name ??
+                                                            'Empty'
+                                                        }
+                                                        className={cn(
+                                                            'min-h-14 rounded-md border px-2 py-1.5',
+                                                            occupant
+                                                                ? 'border-[#00359c]/30 bg-[#00359c]/5 text-slate-900 dark:bg-[#00359c]/20 dark:text-slate-100'
+                                                                : 'border-dashed border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/40',
+                                                        )}
+                                                    >
+                                                        <div className="text-[11px] font-semibold">
+                                                            Seat {seatNumber}
+                                                        </div>
+                                                        <div className="line-clamp-2 text-xs">
+                                                            {occupant
+                                                                ?.participant
+                                                                ?.full_name ??
+                                                                'Empty'}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            },
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-md border border-dashed border-slate-300 px-3 py-4 text-center text-xs text-slate-500 dark:border-slate-700">
+                                        No seats configured
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
+
     const assignParticipantsCard = (
         <Card>
             <CardHeader>
@@ -1288,103 +1442,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                     </div>
                 </div>
 
-                {tables.length > 0 ? (
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-100">
-                            <Armchair className="h-4 w-4 text-[#00359c]" />
-                            Seating plan
-                        </div>
-                        <div className="grid gap-3 lg:grid-cols-2">
-                            {tables.map((table) => {
-                                const occupiedSeats =
-                                    assignmentsByTableId.get(table.id) ??
-                                    new Map<number, TableAssignment>();
-
-                                return (
-                                    <div
-                                        key={table.id}
-                                        className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"
-                                    >
-                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                                    {table.table_number}
-                                                </div>
-                                                <div className="text-xs text-slate-500">
-                                                    {table.assigned_count}/
-                                                    {table.capacity} occupied
-                                                </div>
-                                            </div>
-                                            <Badge
-                                                className={
-                                                    table.assigned_count >=
-                                                    table.capacity
-                                                        ? 'bg-slate-200 text-slate-700'
-                                                        : 'bg-emerald-100 text-emerald-700'
-                                                }
-                                            >
-                                                {Math.max(
-                                                    table.capacity -
-                                                        table.assigned_count,
-                                                    0,
-                                                )}{' '}
-                                                open
-                                            </Badge>
-                                        </div>
-                                        {table.capacity > 0 ? (
-                                            <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-2">
-                                                {Array.from(
-                                                    { length: table.capacity },
-                                                    (_, index) => {
-                                                        const seatNumber =
-                                                            index + 1;
-                                                        const occupant =
-                                                            occupiedSeats.get(
-                                                                seatNumber,
-                                                            );
-
-                                                        return (
-                                                            <div
-                                                                key={seatNumber}
-                                                                title={
-                                                                    occupant
-                                                                        ?.participant
-                                                                        ?.full_name ??
-                                                                    'Empty'
-                                                                }
-                                                                className={cn(
-                                                                    'min-h-14 rounded-md border px-2 py-1.5',
-                                                                    occupant
-                                                                        ? 'border-[#00359c]/30 bg-[#00359c]/5 text-slate-900 dark:bg-[#00359c]/20 dark:text-slate-100'
-                                                                        : 'border-dashed border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/40',
-                                                                )}
-                                                            >
-                                                                <div className="text-[11px] font-semibold">
-                                                                    Seat{' '}
-                                                                    {seatNumber}
-                                                                </div>
-                                                                <div className="line-clamp-2 text-xs">
-                                                                    {occupant
-                                                                        ?.participant
-                                                                        ?.full_name ??
-                                                                        'Empty'}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    },
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="rounded-md border border-dashed border-slate-300 px-3 py-4 text-center text-xs text-slate-500 dark:border-slate-700">
-                                                No seats configured
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ) : null}
+                {renderSeatingPlan()}
 
                 {/* Pagination controls & Search bar */}
                 <div className="flex flex-col gap-3">
@@ -2471,6 +2529,54 @@ export default function TableAssignmenyPage(props: PageProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Table Assignment" />
+            {printingSeatPlan ? (
+                <>
+                    <style>{`
+                        @media print {
+                            @page { size: A4 landscape; margin: 12mm; }
+                            body * { visibility: hidden !important; }
+                            #seat-plan-print-root,
+                            #seat-plan-print-root * {
+                                visibility: visible !important;
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                            }
+                            #seat-plan-print-root {
+                                display: block !important;
+                                position: absolute !important;
+                                inset: 0 !important;
+                                width: 100% !important;
+                                min-height: 100% !important;
+                                padding: 0 !important;
+                                background: white !important;
+                                color: #0f172a !important;
+                            }
+                            #seat-plan-print-root .dark\\:text-slate-100,
+                            #seat-plan-print-root .dark\\:text-slate-200,
+                            #seat-plan-print-root .dark\\:text-slate-400 {
+                                color: inherit !important;
+                            }
+                            #seat-plan-print-root .dark\\:border-slate-800 {
+                                border-color: #e2e8f0 !important;
+                            }
+                            #seat-plan-print-root .dark\\:bg-slate-900\\/40,
+                            #seat-plan-print-root .dark\\:bg-slate-950 {
+                                background: white !important;
+                            }
+                            #seat-plan-print-root > div {
+                                break-inside: avoid;
+                                page-break-inside: avoid;
+                            }
+                        }
+                    `}</style>
+                    <div
+                        id="seat-plan-print-root"
+                        className="hidden bg-white text-slate-900"
+                    >
+                        {renderSeatingPlan(true)}
+                    </div>
+                </>
+            ) : null}
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-hidden rounded-xl p-4">
                 <div className="space-y-2">
