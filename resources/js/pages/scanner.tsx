@@ -120,6 +120,10 @@ const ENDPOINTS = {
     scan: '/scanner/scan',
 };
 
+const CAMERA_IDEAL_WIDTH = 1920;
+const CAMERA_IDEAL_HEIGHT = 1080;
+const MAX_QR_SCAN_SIDE = 1600;
+
 function getCsrfToken() {
     const el = document.querySelector(
         'meta[name="csrf-token"]',
@@ -1277,9 +1281,7 @@ export default function Scanner(props: PageProps) {
                 return rawValue;
             }
 
-            if (!mirrorEnabled) {
-                return '';
-            }
+            // If native detection misses a small/far QR, try the jsQR fallback.
         }
 
         const sourceWidth = video.videoWidth;
@@ -1289,10 +1291,9 @@ export default function Scanner(props: PageProps) {
             return '';
         }
 
-        const maxScanSide = 960;
         const scale = Math.min(
             1,
-            maxScanSide / Math.max(sourceWidth, sourceHeight),
+            MAX_QR_SCAN_SIDE / Math.max(sourceWidth, sourceHeight),
         );
         const width = Math.max(1, Math.floor(sourceWidth * scale));
         const height = Math.max(1, Math.floor(sourceHeight * scale));
@@ -1357,8 +1358,7 @@ export default function Scanner(props: PageProps) {
         };
 
         const result =
-            (!detector || mirrorEnabled ? scanWithJsQr(false) : null) ??
-            (mirrorEnabled ? scanWithJsQr(true) : null);
+            scanWithJsQr(false) ?? (mirrorEnabled ? scanWithJsQr(true) : null);
 
         if (result?.value) {
             drawQrOverlay([result.barcode]);
@@ -1396,8 +1396,8 @@ export default function Scanner(props: PageProps) {
             const videoConstraints: MediaTrackConstraints = {
                 deviceId: deviceId ? { exact: deviceId } : undefined,
                 facingMode: deviceId ? undefined : { ideal: 'environment' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
+                width: { ideal: CAMERA_IDEAL_WIDTH },
+                height: { ideal: CAMERA_IDEAL_HEIGHT },
                 ...({
                     focusMode: 'continuous',
                     advanced: [{ focusMode: 'continuous' }, { zoom: 1 }],
