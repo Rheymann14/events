@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Models\Programme;
 use App\Models\RegistrationField;
 use App\Models\User;
 use App\Models\UserType;
@@ -94,6 +95,21 @@ class CreateNewUser implements CreatesNewUsers
                 ->values();
 
             if ($programmeIds->isEmpty()) {
+                $validator->errors()->add('programme_ids', 'Registration is closed.');
+
+                return;
+            }
+
+            $openRegistrationProgrammeIds = Programme::query()
+                ->whereIn('id', $programmeIds)
+                ->where('is_active', true)
+                ->where('is_registration_active', true)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id);
+
+            if ($openRegistrationProgrammeIds->count() !== $programmeIds->count()) {
+                $validator->errors()->add('programme_ids', 'Registration is closed for the selected event.');
+
                 return;
             }
 

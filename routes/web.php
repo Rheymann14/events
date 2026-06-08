@@ -194,6 +194,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('programmes.registration-fields.update');
         Route::patch('programmes/{programme}/active-registration', [ProgrammeController::class, 'activateRegistration'])
             ->name('programmes.active-registration');
+        Route::patch('programmes/{programme}/close-registration', [ProgrammeController::class, 'closeRegistration'])
+            ->name('programmes.close-registration');
         Route::resource('programmes', ProgrammeController::class)->only(['store', 'update', 'destroy']);
 
         Route::get('scanner', [ScannerController::class, 'index'])->name('scanner');

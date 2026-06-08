@@ -180,11 +180,12 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::registerView(function (Request $request) {
             $activeProgrammes = Programme::query()
                 ->where('is_active', true)
+                ->where('is_registration_active', true)
                 ->with('registrationFields')
-                ->orderByDesc('is_registration_active')
+                ->latest('starts_at')
                 ->get();
 
-            $currentProgramme = $this->publicRegistrationProgramme($activeProgrammes);
+            $currentProgramme = $activeProgrammes->first();
             $programmes = $currentProgramme ? collect([$currentProgramme]) : collect();
             $countries = Country::query()
                 ->where('is_active', true)
@@ -240,96 +241,6 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($throttleKey);
         });
-    }
-
-    private function publicRegistrationProgramme($programmes): ?Programme
-    {
-        $activeRegistrationProgramme = $programmes->firstWhere('is_registration_active', true);
-
-        if ($activeRegistrationProgramme) {
-            return $activeRegistrationProgramme;
-        }
-
-        $configuredEventId = (int) config('services.registration.public_event_id', 0);
-
-        if ($configuredEventId > 0) {
-            $configuredProgramme = $programmes->firstWhere('id', $configuredEventId);
-
-            if ($configuredProgramme) {
-                return $configuredProgramme;
-            }
-        }
-
-        $asemme10 = $programmes->first(fn (Programme $programme) => $this->isAsemme10Programme($programme));
-
-        if ($asemme10) {
-            return $asemme10;
-        }
-
-        $publicProgrammes = $programmes->reject(function (Programme $programme) {
-            return ! config('services.registration.welcome_dinner_enabled', false)
-                && $this->isWelcomeDinnerProgramme($programme);
-        });
-
-        return $this->nearestOpenProgramme($publicProgrammes);
-    }
-
-    private function nearestOpenProgramme($programmes): ?Programme
-    {
-        $now = now();
-
-        return $programmes
-            ->map(function (Programme $programme) use ($now) {
-                $startsAt = $programme->starts_at;
-                $endsAt = $programme->ends_at;
-
-                if (! $startsAt) {
-                    return ['programme' => $programme, 'priority' => 2, 'distance' => PHP_INT_MAX];
-                }
-
-                $isClosed = $endsAt
-                    ? $now->greaterThan($endsAt)
-                    : $now->greaterThan($startsAt) && ! $now->isSameDay($startsAt);
-
-                if ($isClosed) {
-                    return null;
-                }
-
-                $isOngoing = $now->greaterThanOrEqualTo($startsAt)
-                    && ($endsAt ? $now->lessThanOrEqualTo($endsAt) : $now->isSameDay($startsAt));
-
-                return [
-                    'programme' => $programme,
-                    'priority' => $isOngoing ? 0 : 1,
-                    'distance' => abs($now->copy()->startOfDay()->diffInDays($startsAt->copy()->startOfDay(), false)),
-                ];
-            })
-            ->filter()
-            ->sortBy([
-                ['priority', 'asc'],
-                ['distance', 'asc'],
-            ])
-            ->pluck('programme')
-            ->first();
-    }
-
-    private function isAsemme10Programme(Programme $programme): bool
-    {
-        $value = Str::lower(trim("{$programme->tag} {$programme->title}"));
-
-        return Str::contains($value, [
-            'asemme10',
-            'asemme 10',
-            'asia-europe meeting of ministers for education',
-            '10th asia-europe meeting',
-        ]);
-    }
-
-    private function isWelcomeDinnerProgramme(Programme $programme): bool
-    {
-        $value = Str::lower(trim("{$programme->tag} {$programme->title}"));
-
-        return Str::contains($value, 'welcome dinner');
     }
 
     private function registrationProgrammePayload(Programme $programme): array

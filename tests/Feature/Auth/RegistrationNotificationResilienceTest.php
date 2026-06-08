@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\Fortify\CreateNewUser;
+use App\Models\Programme;
+use App\Models\User;
 use App\Services\SemaphoreSms;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +27,19 @@ test('registration still succeeds when semaphore sms provider fails', function (
         'is_active' => true,
         'created_at' => now(),
         'updated_at' => now(),
+    ]);
+
+    $owner = User::factory()->create();
+    $programme = Programme::query()->create([
+        'user_id' => $owner->id,
+        'tag' => 'OPEN',
+        'title' => 'Open Registration Event',
+        'description' => 'Open registration',
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDays(2),
+        'location' => 'Manila',
+        'is_active' => true,
+        'is_registration_active' => true,
     ]);
 
     app()->bind(SemaphoreSms::class, function () {
@@ -53,6 +68,7 @@ test('registration still succeeds when semaphore sms provider fails', function (
         'user_type_id' => $userTypeId,
         'consent_contact_sharing' => '1',
         'consent_photo_video' => '1',
+        'programme_ids' => [$programme->id],
         'password' => 'password',
         'password_confirmation' => 'password',
     ]);

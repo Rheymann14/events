@@ -71,6 +71,12 @@ class Asemme10RegistrationController extends Controller
             ->where('is_active', true)
             ->firstOrFail();
 
+        if ($request->routeIs('asemme10-registration.store') && ! $programme->is_registration_active) {
+            throw ValidationException::withMessages([
+                'programme_id' => 'Registration is closed for the selected event.',
+            ]);
+        }
+
         if (
             $validated['registration_type'] === 'Other'
             && trim((string) (($validated['delegation'] ?? [])['registration_type_other'] ?? '')) === ''

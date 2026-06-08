@@ -40,6 +40,7 @@ test('registration screen uses ASEMME10 instead of welcome dinner', function () 
         'ends_at' => now()->addMonth()->addDays(2),
         'location' => 'Manila',
         'is_active' => true,
+        'is_registration_active' => true,
     ]);
 
     RegistrationField::query()->create([
@@ -131,6 +132,53 @@ test('admin can mark one event as active registration', function () {
         ->and($next->is_active)->toBeTrue();
 });
 
+test('admin can close the active registration event', function () {
+    $admin = User::factory()->create();
+
+    $programme = Programme::query()->create([
+        'user_id' => $admin->id,
+        'tag' => 'OPEN',
+        'title' => 'Open Registration Event',
+        'description' => 'Open registration',
+        'starts_at' => now()->addWeek(),
+        'ends_at' => now()->addWeek()->addDay(),
+        'location' => 'Manila',
+        'is_active' => true,
+        'is_registration_active' => true,
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('programmes.close-registration', $programme))
+        ->assertRedirect();
+
+    expect($programme->refresh()->is_active)->toBeTrue()
+        ->and($programme->is_registration_active)->toBeFalse();
+});
+
+test('registration screen has no event when registration is closed', function () {
+    $owner = User::factory()->create();
+
+    Programme::query()->create([
+        'user_id' => $owner->id,
+        'tag' => 'CLOSED',
+        'title' => 'Closed Registration Event',
+        'description' => 'Closed registration',
+        'starts_at' => now()->addWeek(),
+        'ends_at' => now()->addWeek()->addDay(),
+        'location' => 'Manila',
+        'is_active' => true,
+        'is_registration_active' => false,
+    ]);
+
+    $this->get(route('register'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('auth/register')
+            ->where('activeProgramme', null)
+            ->where('programmes', [])
+        );
+});
+
 test('new users can register', function () {
     $country = Country::query()->create([
         'code' => 'PH',
@@ -142,6 +190,19 @@ test('new users can register', function () {
         'name' => 'Participant',
         'slug' => 'participant',
         'is_active' => true,
+    ]);
+
+    $owner = User::factory()->create();
+    $programme = Programme::query()->create([
+        'user_id' => $owner->id,
+        'tag' => 'OPEN',
+        'title' => 'Open Registration Event',
+        'description' => 'Open registration',
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDays(2),
+        'location' => 'Manila',
+        'is_active' => true,
+        'is_registration_active' => true,
     ]);
 
     $response = $this->post(route('register.store'), [
@@ -156,6 +217,7 @@ test('new users can register', function () {
         'contact_number' => '09171234567',
         'country_id' => $country->id,
         'user_type_id' => $userType->id,
+        'programme_ids' => [$programme->id],
     ]);
 
     $this->assertGuest();
@@ -200,6 +262,7 @@ test('existing users can join selected event from registration form', function (
         'ends_at' => now()->addDays(2),
         'location' => 'Manila',
         'is_active' => true,
+        'is_registration_active' => true,
     ]);
 
     $existingUser = User::factory()->create([
@@ -260,6 +323,7 @@ test('existing users already joined to selected event still receive duplicate em
         'ends_at' => now()->addDays(2),
         'location' => 'Manila',
         'is_active' => true,
+        'is_registration_active' => true,
     ]);
 
     $existingUser = User::factory()->create([
@@ -285,6 +349,53 @@ test('existing users already joined to selected event still receive duplicate em
     ]);
 
     $response->assertInvalid(['email']);
+});
+
+test('public registration rejects closed registration events', function () {
+    $country = Country::query()->create([
+        'code' => 'PH',
+        'name' => 'Philippines',
+        'is_active' => true,
+    ]);
+
+    $userType = UserType::query()->create([
+        'name' => 'Participant',
+        'slug' => 'participant',
+        'is_active' => true,
+    ]);
+
+    $owner = User::factory()->create();
+    $programme = Programme::query()->create([
+        'user_id' => $owner->id,
+        'tag' => 'CLOSED',
+        'title' => 'Closed Registration Event',
+        'description' => 'Closed registration',
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDays(2),
+        'location' => 'Manila',
+        'is_active' => true,
+        'is_registration_active' => false,
+    ]);
+
+    $response = $this->post(route('register.store'), [
+        'honorific_title' => 'Mr.',
+        'given_name' => 'Test',
+        'family_name' => 'User',
+        'sex_assigned_at_birth' => 'male',
+        'organization_name' => 'Test Organization',
+        'position_title' => 'Delegate',
+        'email' => 'test@example.com',
+        'contact_country_code' => '+63',
+        'contact_number' => '09171234567',
+        'country_id' => $country->id,
+        'user_type_id' => $userType->id,
+        'programme_ids' => [$programme->id],
+    ]);
+
+    $response->assertInvalid(['programme_ids']);
+    $this->assertDatabaseMissing('users', [
+        'email' => 'test@example.com',
+    ]);
 });
 
 test('ASEMME10 delegation registration creates scannable participants', function () {

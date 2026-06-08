@@ -607,6 +607,15 @@ class ProgrammeController extends Controller
         return back();
     }
 
+    public function closeRegistration(Programme $programme)
+    {
+        $programme->forceFill([
+            'is_registration_active' => false,
+        ])->save();
+
+        return back();
+    }
+
     private function storeMaterials(Request $request, Programme $programme): void
     {
         if (! $request->hasFile('materials')) {

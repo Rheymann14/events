@@ -38,6 +38,7 @@ type ProgrammeRow = {
     image_url: string | null;
     pdf_url: string | null;
     is_active: boolean;
+    is_registration_active?: boolean;
 };
 
 type PageProps = {
@@ -53,6 +54,7 @@ type FlexHoverItem = {
     image: string | null;
     tint: string;
     isActive: boolean;
+    isRegistrationActive: boolean;
 
     startsAt: string;
     endsAt?: string;
@@ -476,6 +478,7 @@ function EventTile({
     const isClosed = phase === 'closed';
     const isUpcoming = phase === 'upcoming';
     const isOngoing = phase === 'ongoing';
+    const isRegistrationClosed = item.isActive && !item.isRegistrationActive;
 
     return (
         <div
@@ -668,6 +671,15 @@ function EventTile({
                             {daysToGoLabel(d)}
                         </BadgePill>
                     )}
+
+                    {isRegistrationClosed ? (
+                        <BadgePill
+                            tone="danger"
+                            icon={<CircleX className="h-3.5 w-3.5" />}
+                        >
+                            Registration closed
+                        </BadgePill>
+                    ) : null}
                 </div>
 
                 {/* ✅ nicer typography for item */}
@@ -862,6 +874,7 @@ export default function Programme({ programmes = [] }: PageProps) {
                 image: resolveImageUrl(programme.image_url),
                 tint: TINTS[index % TINTS.length],
                 isActive: programme.is_active,
+                isRegistrationActive: !!programme.is_registration_active,
                 startsAt,
                 endsAt: programme.ends_at ?? undefined,
                 cta: pdfUrl ? { label: 'View more', href: pdfUrl } : undefined,

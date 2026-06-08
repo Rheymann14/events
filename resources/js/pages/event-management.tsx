@@ -160,6 +160,8 @@ const ENDPOINTS = {
             `/programmes/${id}/registration-fields`,
         activeRegistration: (id: number) =>
             `/programmes/${id}/active-registration`,
+        closeRegistration: (id: number) =>
+            `/programmes/${id}/close-registration`,
     },
     venues: {
         store: '/venues',
@@ -1012,6 +1014,18 @@ export default function EventManagement(props: PageProps) {
         );
     }
 
+    function closeRegistration(item: ProgrammeRow) {
+        router.patch(
+            ENDPOINTS.programmes.closeRegistration(item.id),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => toast.success('Registration closed.'),
+                onError: () => toast.error('Unable to close registration.'),
+            },
+        );
+    }
+
     function requestDelete(item: ProgrammeRow) {
         setDeleteTarget(item);
         setDeleteOpen(true);
@@ -1394,12 +1408,19 @@ export default function EventManagement(props: PageProps) {
                         {item.is_active ? 'Set Inactive' : 'Set Active'}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                        disabled={!!item.is_registration_active}
-                        onSelect={() => setActiveRegistration(item)}
+                        onSelect={() =>
+                            item.is_registration_active
+                                ? closeRegistration(item)
+                                : setActiveRegistration(item)
+                        }
                     >
-                        <BadgeCheck className="mr-2 h-4 w-4" />
+                        {item.is_registration_active ? (
+                            <XCircle className="mr-2 h-4 w-4" />
+                        ) : (
+                            <BadgeCheck className="mr-2 h-4 w-4" />
+                        )}
                         {item.is_registration_active
-                            ? 'Active registration'
+                            ? 'Close registration'
                             : 'Set active registration'}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -2102,18 +2123,23 @@ export default function EventManagement(props: PageProps) {
                                                                                 : 'Set Active'}
                                                                         </DropdownMenuItem>
                                                                         <DropdownMenuItem
-                                                                            disabled={
-                                                                                !!p.is_registration_active
-                                                                            }
                                                                             onSelect={() =>
-                                                                                setActiveRegistration(
-                                                                                    p,
-                                                                                )
+                                                                                p.is_registration_active
+                                                                                    ? closeRegistration(
+                                                                                          p,
+                                                                                      )
+                                                                                    : setActiveRegistration(
+                                                                                          p,
+                                                                                      )
                                                                             }
                                                                         >
-                                                                            <BadgeCheck className="mr-2 h-4 w-4" />
+                                                                            {p.is_registration_active ? (
+                                                                                <XCircle className="mr-2 h-4 w-4" />
+                                                                            ) : (
+                                                                                <BadgeCheck className="mr-2 h-4 w-4" />
+                                                                            )}
                                                                             {p.is_registration_active
-                                                                                ? 'Active registration'
+                                                                                ? 'Close registration'
                                                                                 : 'Set active registration'}
                                                                         </DropdownMenuItem>
                                                                         <DropdownMenuSeparator />
@@ -3359,14 +3385,11 @@ export default function EventManagement(props: PageProps) {
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            Remove this venue?
-                        </AlertDialogTitle>
+                        <AlertDialogTitle>Remove this venue?</AlertDialogTitle>
                         <AlertDialogDescription>
                             This will permanently remove{' '}
                             <span className="font-semibold text-slate-900 dark:text-slate-100">
-                                {venueDeleteTarget?.venue?.name ??
-                                    'this venue'}
+                                {venueDeleteTarget?.venue?.name ?? 'this venue'}
                             </span>{' '}
                             from{' '}
                             <span className="font-semibold text-slate-900 dark:text-slate-100">

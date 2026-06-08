@@ -5302,7 +5302,10 @@ export default function Register({
                                                 }
                                                 className="h-11 w-full rounded-xl bg-[#0033A0] text-white shadow-sm hover:bg-[#002b86] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                                                 tabIndex={9}
-                                                disabled={effectiveProcessing}
+                                                disabled={
+                                                    effectiveProcessing ||
+                                                    !activeProgramme
+                                                }
                                                 data-test="register-user-button"
                                                 onClick={
                                                     isAsemme10Registration
