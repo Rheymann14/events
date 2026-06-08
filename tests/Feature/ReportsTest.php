@@ -161,6 +161,59 @@ test('reports include table seat assignment details', function () {
         );
 });
 
+test('reports include assignment update timestamps for notification resend status', function () {
+    $admin = User::factory()->create();
+    $participant = User::factory()->create([
+        'name' => 'Updated Assignment Participant',
+        'is_active' => true,
+    ]);
+    $programme = Programme::query()->create([
+        'user_id' => $admin->id,
+        'tag' => 'TEST',
+        'title' => 'Test Event',
+        'description' => 'Programme description',
+        'location' => 'Manila',
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHour(),
+        'is_active' => true,
+    ]);
+    $table = ParticipantTable::query()->create([
+        'programme_id' => $programme->id,
+        'table_number' => 'Table 9',
+        'capacity' => 10,
+    ]);
+    $sentAt = now()->subHour()->microsecond(0);
+    $assignmentUpdatedAt = now()->microsecond(0);
+
+    $participant->joinedProgrammes()->attach($programme->id);
+
+    $assignment = ParticipantTableAssignment::query()->create([
+        'programme_id' => $programme->id,
+        'participant_table_id' => $table->id,
+        'seat_number' => 3,
+        'user_id' => $participant->id,
+        'assigned_at' => $sentAt->copy()->subHour(),
+    ]);
+    $assignment->timestamps = false;
+    $assignment->forceFill(['updated_at' => $assignmentUpdatedAt])->save();
+
+    AssignmentNotificationLog::query()->create([
+        'user_id' => $participant->id,
+        'programme_id' => $programme->id,
+        'sent_at' => $sentAt,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('reports'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('reports')
+            ->where('rows', fn ($rows) => collect($rows)->contains(fn ($row) => $row['name'] === 'Updated Assignment Participant'
+                && $row['notification_sent_at_by_programme'][$programme->id] === $sentAt->toISOString()
+                && $row['table_assignment_updated_at_by_programme'][$programme->id] === $assignmentUpdatedAt->toISOString()))
+        );
+});
+
 test('reports count asemme10 registration attendees as selected event participants', function () {
     $adminType = UserType::query()->create([
         'name' => 'Admin',

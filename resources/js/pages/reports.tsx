@@ -80,10 +80,12 @@ type ReportRow = {
     table_assignment_by_programme: Record<string, string | null>;
     table_seat_number?: number | null;
     table_seat_number_by_programme: Record<string, number | null>;
+    table_assignment_updated_at_by_programme: Record<string, string | null>;
     vehicle_assignment?: string | null;
     vehicle_assignment_by_programme: Record<string, string | null>;
     vehicle_plate_number?: string | null;
     vehicle_plate_number_by_programme: Record<string, string | null>;
+    vehicle_assignment_updated_at_by_programme: Record<string, string | null>;
     notification_sent_at_by_programme: Record<string, string | null>;
     asemme10_registration?: Asemme10Registration | null;
     asemme10_registration_by_programme?: Record<
@@ -356,18 +358,11 @@ function ReportDetailItem({
     );
 }
 
-export default function Reports({
-    summary,
-    rows,
-    events,
-    default_event_id,
-    now_iso,
-}: PageProps) {
+export default function Reports({ summary, rows, events, now_iso }: PageProps) {
     const [search, setSearch] = React.useState('');
     const [currentPage, setCurrentPage] = React.useState(1);
-    const [selectedEvent, setSelectedEvent] = React.useState<string>(() =>
-        default_event_id ? String(default_event_id) : ALL_EVENTS_VALUE,
-    );
+    const [selectedEvent, setSelectedEvent] =
+        React.useState<string>(ALL_EVENTS_VALUE);
     const [eventsOpen, setEventsOpen] = React.useState(false);
     const [checkinSort, setCheckinSort] = React.useState<CheckinSort>('desc');
     const [registrantTypeSort, setRegistrantTypeSort] =
@@ -399,10 +394,6 @@ export default function Reports({
             return next;
         });
     }, []);
-
-    React.useEffect(() => {
-        setExpandedRowIds(new Set());
-    }, [currentPage, entriesPerPage, search, selectedEvent]);
 
     React.useEffect(() => {
         setNotificationSentAtByAssignment(
@@ -486,6 +477,65 @@ export default function Reports({
             return null;
         },
         [eventOptionItems, selectedEventId],
+    );
+
+    const getNotificationAssignmentUpdatedAt = React.useCallback(
+        (row: ReportRow, eventId: number) => {
+            const eventKey = String(eventId);
+            const updatedAtValues = [
+                row.table_assignment_updated_at_by_programme?.[eventKey],
+                row.vehicle_assignment_updated_at_by_programme?.[eventKey],
+            ];
+            const latestTimestamp = Math.max(
+                ...updatedAtValues.map((value) => {
+                    const parsed = value ? Date.parse(value) : Number.NaN;
+
+                    return Number.isNaN(parsed)
+                        ? Number.NEGATIVE_INFINITY
+                        : parsed;
+                }),
+            );
+
+            return latestTimestamp === Number.NEGATIVE_INFINITY
+                ? null
+                : latestTimestamp;
+        },
+        [],
+    );
+
+    const getNotificationButtonState = React.useCallback(
+        (row: ReportRow) => {
+            const eventId = getNotificationEventId(row);
+            const sentAt = eventId
+                ? notificationSentAtByAssignment[
+                      getNotificationSentAtKey(row.id, eventId)
+                  ]
+                : null;
+            const sentAtTimestamp = sentAt ? Date.parse(sentAt) : Number.NaN;
+            const assignmentUpdatedAt = eventId
+                ? getNotificationAssignmentUpdatedAt(row, eventId)
+                : null;
+            const needsResend =
+                Boolean(sentAt) &&
+                assignmentUpdatedAt !== null &&
+                !Number.isNaN(sentAtTimestamp) &&
+                assignmentUpdatedAt > sentAtTimestamp;
+            const isSent = Boolean(sentAt) && !needsResend;
+
+            return {
+                eventId,
+                sentAt,
+                isSent,
+                needsResend,
+                label: needsResend ? 'Resend' : isSent ? 'Sent' : 'Email',
+            };
+        },
+        [
+            getNotificationAssignmentUpdatedAt,
+            getNotificationEventId,
+            getNotificationSentAtKey,
+            notificationSentAtByAssignment,
+        ],
     );
 
     const handleSendNotification = React.useCallback(
@@ -1378,6 +1428,10 @@ export default function Reports({
         return sortedRows.slice(start, start + entriesPerPage);
     }, [sortedRows, currentPage, entriesPerPage]);
 
+    React.useEffect(() => {
+        setExpandedRowIds(new Set(paginatedRows.map((row) => row.id)));
+    }, [paginatedRows]);
+
     const allVisibleRowsExpanded =
         paginatedRows.length > 0 &&
         paginatedRows.every((row) => expandedRowIds.has(row.id));
@@ -1651,33 +1705,16 @@ export default function Reports({
                                         selectedEventId,
                                     );
                                     const hasCheckin = Boolean(scannedAt);
-                                    const notificationEventId =
-                                        getNotificationEventId(row);
+                                    const notificationButtonState =
+                                        getNotificationButtonState(row);
                                     const notificationSentAt =
-                                        notificationEventId
-                                            ? notificationSentAtByAssignment[
-                                                  getNotificationSentAtKey(
-                                                      row.id,
-                                                      notificationEventId,
-                                                  )
-                                              ]
-                                            : null;
-                                    const hasAnyNotificationSentAt =
-                                        Object.entries(
-                                            notificationSentAtByAssignment,
-                                        ).some(
-                                            ([assignmentKey, sentAt]) =>
-                                                assignmentKey.startsWith(
-                                                    `${row.id}:`,
-                                                ) && Boolean(sentAt),
-                                        );
+                                        notificationButtonState.sentAt;
                                     const disableNotificationButton =
                                         Boolean(
                                             sendingNotificationByUser[row.id],
                                         ) ||
-                                        !notificationEventId ||
-                                        (!selectedEventId &&
-                                            hasAnyNotificationSentAt);
+                                        !notificationButtonState.eventId ||
+                                        notificationButtonState.isSent;
                                     const isExpanded = expandedRowIds.has(
                                         row.id,
                                     );
@@ -1856,7 +1893,7 @@ export default function Reports({
                                                                                 .id
                                                                         ]
                                                                             ? 'Sending...'
-                                                                            : 'Email'}
+                                                                            : notificationButtonState.label}
                                                                     </Button>
                                                                     {notificationSentAt ? (
                                                                         <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
@@ -2010,35 +2047,18 @@ export default function Reports({
                                             );
                                             const hasCheckin =
                                                 Boolean(scannedAt);
-                                            const notificationEventId =
-                                                getNotificationEventId(row);
+                                            const notificationButtonState =
+                                                getNotificationButtonState(row);
                                             const notificationSentAt =
-                                                notificationEventId
-                                                    ? notificationSentAtByAssignment[
-                                                          getNotificationSentAtKey(
-                                                              row.id,
-                                                              notificationEventId,
-                                                          )
-                                                      ]
-                                                    : null;
-                                            const hasAnyNotificationSentAt =
-                                                Object.entries(
-                                                    notificationSentAtByAssignment,
-                                                ).some(
-                                                    ([assignmentKey, sentAt]) =>
-                                                        assignmentKey.startsWith(
-                                                            `${row.id}:`,
-                                                        ) && Boolean(sentAt),
-                                                );
+                                                notificationButtonState.sentAt;
                                             const disableNotificationButton =
                                                 Boolean(
                                                     sendingNotificationByUser[
                                                         row.id
                                                     ],
                                                 ) ||
-                                                !notificationEventId ||
-                                                (!selectedEventId &&
-                                                    hasAnyNotificationSentAt);
+                                                !notificationButtonState.eventId ||
+                                                notificationButtonState.isSent;
                                             const isExpanded =
                                                 expandedRowIds.has(row.id);
                                             const seq =
@@ -2423,7 +2443,7 @@ export default function Reports({
                                                                                     .id
                                                                             ]
                                                                                 ? 'Sending...'
-                                                                                : 'Email'}
+                                                                                : notificationButtonState.label}
                                                                         </Button>
                                                                         {notificationSentAt ? (
                                                                             <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">

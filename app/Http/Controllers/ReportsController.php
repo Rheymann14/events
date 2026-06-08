@@ -279,6 +279,7 @@ class ReportsController extends Controller
                 'participant_table_assignments.user_id',
                 'participant_table_assignments.programme_id',
                 'participant_table_assignments.assigned_at',
+                'participant_table_assignments.updated_at',
                 'participant_table_assignments.seat_number',
                 'participant_tables.table_number',
             ])
@@ -383,6 +384,11 @@ class ReportsController extends Controller
                 ->map(fn ($entries) => $entries->last()?->seat_number)
                 ->all();
 
+            $tableAssignmentUpdatedAtByProgramme = $tableAssignments
+                ->groupBy('programme_id')
+                ->map(fn ($entries) => $entries->last()?->updated_at?->toISOString())
+                ->all();
+
             $vehicleAssignmentByProgramme = $vehicleAssignments
                 ->groupBy('programme_id')
                 ->map(function ($entries) {
@@ -395,6 +401,11 @@ class ReportsController extends Controller
             $vehiclePlateNumberByProgramme = $vehicleAssignments
                 ->groupBy('programme_id')
                 ->map(fn ($entries) => $entries->last()?->transport_vehicle_plate_number)
+                ->all();
+
+            $vehicleAssignmentUpdatedAtByProgramme = $vehicleAssignments
+                ->groupBy('programme_id')
+                ->map(fn ($entries) => $entries->last()?->updated_at?->toISOString())
                 ->all();
 
             $notificationSentAtByProgramme = $assignmentNotificationEntries
@@ -459,10 +470,12 @@ class ReportsController extends Controller
                 'table_assignment_by_programme' => $tableAssignmentByProgramme,
                 'table_seat_number' => $latestTableAssignment?->seat_number,
                 'table_seat_number_by_programme' => $tableSeatNumberByProgramme,
+                'table_assignment_updated_at_by_programme' => $tableAssignmentUpdatedAtByProgramme,
                 'vehicle_assignment' => $latestVehicleAssignment?->transport_vehicle_label ?: $latestVehicleAssignment?->vehicle_label,
                 'vehicle_assignment_by_programme' => $vehicleAssignmentByProgramme,
                 'vehicle_plate_number' => $latestVehicleAssignment?->transport_vehicle_plate_number,
                 'vehicle_plate_number_by_programme' => $vehiclePlateNumberByProgramme,
+                'vehicle_assignment_updated_at_by_programme' => $vehicleAssignmentUpdatedAtByProgramme,
                 'notification_sent_at_by_programme' => $notificationSentAtByProgramme,
                 'asemme10_registration' => $latestAsemme10Registration,
                 'asemme10_registration_by_programme' => $asemme10RegistrationByProgramme,
