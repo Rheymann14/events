@@ -1373,7 +1373,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                         <div className="text-[11px] font-semibold">
                                                             Seat {seatNumber}
                                                         </div>
-                                                        <div className="line-clamp-2 text-xs">
+                                                        <div className="text-xs break-words">
                                                             {occupant
                                                                 ?.participant
                                                                 ?.full_name ??
@@ -2602,6 +2602,13 @@ export default function TableAssignmenyPage(props: PageProps) {
                                 page-break-inside: avoid;
                             }
                             #seat-plan-print-footer {
+                                break-inside: avoid;
+                                page-break-inside: avoid;
+                            }
+                            #seat-plan-print-root .grid-cols-\\[repeat\\(auto-fill\\,minmax\\(72px\\,1fr\\)\\)\\] {
+                                grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)) !important;
+                            }
+                            #seat-plan-print-root .min-h-14 {
                                 break-inside: avoid;
                                 page-break-inside: avoid;
                             }
