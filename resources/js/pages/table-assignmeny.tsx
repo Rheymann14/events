@@ -1037,6 +1037,34 @@ export default function TableAssignmenyPage(props: PageProps) {
         setCurrentPage(1);
     }, [searchQuery, tableFilter]);
 
+    // Seat plan pagination state (mirrors the participants table pattern above)
+    const [seatPlanSearch, setSeatPlanSearch] = React.useState('');
+    const [seatPlanPage, setSeatPlanPage] = React.useState(1);
+    const [seatPlanPerPage, setSeatPlanPerPage] = React.useState(3);
+
+    React.useEffect(() => {
+        setSeatPlanPage(1);
+    }, [seatPlanSearch, seatPlanPerPage]);
+
+    const filteredTables = React.useMemo(() => {
+        const q = seatPlanSearch.trim().toLowerCase();
+        if (!q) return tables;
+        return tables.filter((t) =>
+            t.table_number.toLowerCase().includes(q),
+        );
+    }, [tables, seatPlanSearch]);
+
+    const seatPlanTotalPages = Math.max(
+        1,
+        Math.ceil(filteredTables.length / seatPlanPerPage),
+    );
+    const seatPlanSafePage = Math.min(seatPlanPage, seatPlanTotalPages);
+
+    const pagedTables = React.useMemo(() => {
+        const start = (seatPlanSafePage - 1) * seatPlanPerPage;
+        return filteredTables.slice(start, start + seatPlanPerPage);
+    }, [filteredTables, seatPlanSafePage, seatPlanPerPage]);
+
     const filteredAssignments = React.useMemo(() => {
         const q = searchQuery.toLowerCase().trim();
         return allAssignments.filter((a) => {
@@ -1240,6 +1268,16 @@ export default function TableAssignmenyPage(props: PageProps) {
     function renderSeatingPlan(printMode = false) {
         if (tables.length === 0) return null;
 
+        // Print always shows every table; screen shows the paged subset
+        const tablesToRender = printMode ? tables : pagedTables;
+        const seatPlanRangeStart = filteredTables.length === 0
+            ? 0
+            : (seatPlanSafePage - 1) * seatPlanPerPage + 1;
+        const seatPlanRangeEnd = Math.min(
+            seatPlanSafePage * seatPlanPerPage,
+            filteredTables.length,
+        );
+
         const printedAt = new Intl.DateTimeFormat('en-PH', {
             year: 'numeric',
             month: 'short',
@@ -1306,8 +1344,75 @@ export default function TableAssignmenyPage(props: PageProps) {
                         </Button>
                     ) : null}
                 </div>
-                <div className="grid gap-3 lg:grid-cols-2">
-                    {tables.map((table) => {
+                {!printMode ? (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <span>Show</span>
+                            <Select
+                                value={String(seatPlanPerPage)}
+                                onValueChange={(v) => {
+                                    setSeatPlanPerPage(Number(v));
+                                    setSeatPlanPage(1);
+                                }}
+                            >
+                                <SelectTrigger className="h-8 w-[72px] text-xs">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {[3, 6, 12, 1000].map((n) => (
+                                        <SelectItem
+                                            key={n}
+                                            value={String(n)}
+                                        >
+                                            {n === 1000 ? 'All' : n}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <span>tables</span>
+                        </div>
+                        {filteredTables.length > 0 ? (
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                Showing {seatPlanRangeStart} to{' '}
+                                {seatPlanRangeEnd} of{' '}
+                                {filteredTables.length} tables
+                            </span>
+                        ) : null}
+                        <div className="relative flex-1">
+                            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                type="text"
+                                placeholder="Search table number..."
+                                value={seatPlanSearch}
+                                onChange={(e) =>
+                                    setSeatPlanSearch(e.target.value)
+                                }
+                                className="pl-9"
+                            />
+                        </div>
+                    </div>
+                ) : null}
+                {!printMode && filteredTables.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                        No tables match &ldquo;{seatPlanSearch}&rdquo;.{' '}
+                        <button
+                            type="button"
+                            onClick={() => setSeatPlanSearch('')}
+                            className="font-medium text-[#00359c] underline underline-offset-2 hover:text-[#00359c]/80"
+                        >
+                            Clear search
+                        </button>
+                    </div>
+                ) : null}
+                <div
+                    className={cn(
+                        'grid gap-3 grid-cols-1 print:grid-cols-2',
+                        !printMode &&
+                            filteredTables.length === 0 &&
+                            'hidden',
+                    )}
+                >
+                    {tablesToRender.map((table) => {
                         const occupiedSeats =
                             assignmentsByTableId.get(table.id) ??
                             new Map<number, TableAssignment>();
@@ -1344,7 +1449,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                                     </Badge>
                                 </div>
                                 {table.capacity > 0 ? (
-                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-2">
+                                    <div className="grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-2 print:grid-cols-[repeat(auto-fit,minmax(95px,1fr))]">
                                         {Array.from(
                                             { length: table.capacity },
                                             (_, index) => {
@@ -1393,6 +1498,91 @@ export default function TableAssignmenyPage(props: PageProps) {
                         );
                     })}
                 </div>
+                {!printMode && filteredTables.length > seatPlanPerPage ? (
+                    <div className="flex items-center gap-1 pt-1">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={seatPlanSafePage <= 1}
+                            onClick={() =>
+                                setSeatPlanPage((p) => Math.max(1, p - 1))
+                            }
+                            className="h-8 gap-1 px-2.5 text-xs"
+                        >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                            Previous
+                        </Button>
+                        {Array.from(
+                            { length: seatPlanTotalPages },
+                            (_, i) => i + 1,
+                        )
+                            .filter((p) => {
+                                if (seatPlanTotalPages <= 5) return true;
+                                return (
+                                    p === 1 ||
+                                    p === seatPlanTotalPages ||
+                                    Math.abs(p - seatPlanSafePage) <= 1
+                                );
+                            })
+                            .reduce<(number | 'ellipsis')[]>(
+                                (acc, p, idx, arr) => {
+                                    if (
+                                        idx > 0 &&
+                                        p - (arr[idx - 1] as number) > 1
+                                    )
+                                        acc.push('ellipsis');
+                                    acc.push(p);
+                                    return acc;
+                                },
+                                [],
+                            )
+                            .map((item, idx) =>
+                                item === 'ellipsis' ? (
+                                    <span
+                                        key={`seat-plan-ellipsis-${idx}`}
+                                        className="px-1.5 text-xs text-slate-400"
+                                    >
+                                        ...
+                                    </span>
+                                ) : (
+                                    <Button
+                                        key={item}
+                                        type="button"
+                                        variant={
+                                            item === seatPlanSafePage
+                                                ? 'default'
+                                                : 'outline'
+                                        }
+                                        size="sm"
+                                        onClick={() => setSeatPlanPage(item)}
+                                        className={cn(
+                                            'h-8 min-w-[32px] px-2.5 text-xs',
+                                            item === seatPlanSafePage &&
+                                                PRIMARY_BTN,
+                                        )}
+                                    >
+                                        {item}
+                                    </Button>
+                                ),
+                            )}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={seatPlanSafePage >= seatPlanTotalPages}
+                            onClick={() =>
+                                setSeatPlanPage((p) =>
+                                    Math.min(seatPlanTotalPages, p + 1),
+                                )
+                            }
+                            className="h-8 gap-1 px-2.5 text-xs"
+                        >
+                            Next
+                            <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                    </div>
+                ) : null}
                 {printMode ? (
                     <div
                         id="seat-plan-print-footer"
@@ -2604,9 +2794,6 @@ export default function TableAssignmenyPage(props: PageProps) {
                             #seat-plan-print-footer {
                                 break-inside: avoid;
                                 page-break-inside: avoid;
-                            }
-                            #seat-plan-print-root .grid-cols-\\[repeat\\(auto-fill\\,minmax\\(72px\\,1fr\\)\\)\\] {
-                                grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)) !important;
                             }
                             #seat-plan-print-root .min-h-14 {
                                 break-inside: avoid;
