@@ -7,6 +7,9 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
+import type { Crop, PixelCrop } from 'react-image-crop';
+import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { toast } from 'sonner';
 
 import { Badge } from '@/components/ui/badge';
@@ -918,6 +921,70 @@ function resolveParticipantProfileImage(participant?: ParticipantRow | null) {
     return `/${candidate}`;
 }
 
+function getCenteredCircleCrop(width: number, height: number): Crop {
+    return centerCrop(
+        makeAspectCrop(
+            {
+                unit: '%',
+                width: 80,
+            },
+            1,
+            width,
+            height,
+        ),
+        width,
+        height,
+    );
+}
+
+function dataUrlToFile(dataUrl: string, filename: string): File {
+    const [header, payload] = dataUrl.split(',');
+    const mime = header.match(/data:(.*?);base64/)?.[1] || 'image/jpeg';
+    const binary = atob(payload);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+    }
+
+    return new File([bytes], filename, { type: mime });
+}
+
+function getCroppedImageDataUrl(
+    image: HTMLImageElement,
+    crop: PixelCrop,
+    mimeType: 'image/png' | 'image/jpeg',
+) {
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    const outputSize = 512;
+
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+        return '';
+    }
+
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(
+        image,
+        crop.x * scaleX,
+        crop.y * scaleY,
+        crop.width * scaleX,
+        crop.height * scaleY,
+        0,
+        0,
+        outputSize,
+        outputSize,
+    );
+
+    return canvas.toDataURL(mimeType, 0.92);
+}
+
 function isChedUserType(userType?: UserType | null) {
     const t = String(userType?.slug ?? userType?.name ?? '')
         .toLowerCase()
@@ -1621,6 +1688,24 @@ export default function ParticipantPage(props: PageProps) {
 
     const [participantProfilePreview, setParticipantProfilePreview] =
         React.useState<string | null>(null);
+    const [participantProfileError, setParticipantProfileError] =
+        React.useState('');
+    const [participantCropImageSrc, setParticipantCropImageSrc] =
+        React.useState('');
+    const [participantCropDialogOpen, setParticipantCropDialogOpen] =
+        React.useState(false);
+    const [participantCropMimeType, setParticipantCropMimeType] =
+        React.useState<'image/png' | 'image/jpeg'>('image/jpeg');
+    const [participantCrop, setParticipantCrop] = React.useState<Crop>({
+        unit: '%',
+        x: 10,
+        y: 10,
+        width: 80,
+        height: 80,
+    });
+    const [participantCompletedCrop, setParticipantCompletedCrop] =
+        React.useState<PixelCrop>();
+    const participantCropImageRef = React.useRef<HTMLImageElement | null>(null);
     const participantProfileInputRef = React.useRef<HTMLInputElement | null>(
         null,
     );
@@ -2251,21 +2336,97 @@ export default function ParticipantPage(props: PageProps) {
         });
     }
 
+    function resetParticipantCropState() {
+        setParticipantCropImageSrc('');
+        setParticipantCompletedCrop(undefined);
+        setParticipantCropDialogOpen(false);
+    }
+
     function handleParticipantProfileChange(
-        e: React.ChangeEvent<HTMLInputElement>,
+        event: React.ChangeEvent<HTMLInputElement>,
     ) {
-        const file = e.target.files?.[0] ?? null;
-        participantForm.setData('profile_image', file);
-        participantForm.setData('remove_profile_image', false);
+        const file = event.target.files?.[0] ?? null;
+        event.target.value = '';
 
         if (!file) {
-            resetParticipantProfilePreview(
-                resolveParticipantProfileImage(editingParticipant),
-            );
             return;
         }
 
-        resetParticipantProfilePreview(URL.createObjectURL(file));
+        if (!['image/png', 'image/jpeg'].includes(file.type)) {
+            setParticipantProfileError('Upload a PNG, JPG, or JPEG image.');
+            return;
+        }
+
+        setParticipantProfileError('');
+        setParticipantCropMimeType(
+            file.type === 'image/png' ? 'image/png' : 'image/jpeg',
+        );
+        setParticipantCrop({
+            unit: '%',
+            x: 10,
+            y: 10,
+            width: 80,
+            height: 80,
+        });
+        setParticipantCompletedCrop(undefined);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setParticipantCropImageSrc(String(reader.result));
+            setParticipantCropDialogOpen(true);
+        };
+        reader.onerror = () => {
+            setParticipantProfileError('Could not read the selected image.');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function handleUseCroppedParticipantProfileImage() {
+        const image = participantCropImageRef.current;
+
+        if (!image) {
+            return;
+        }
+
+        const fallbackSize = Math.round(
+            Math.min(image.width, image.height) * 0.8,
+        );
+        const fallbackCrop: PixelCrop = {
+            unit: 'px',
+            x: Math.round((image.width - fallbackSize) / 2),
+            y: Math.round((image.height - fallbackSize) / 2),
+            width: fallbackSize,
+            height: fallbackSize,
+        };
+        const croppedDataUrl = getCroppedImageDataUrl(
+            image,
+            participantCompletedCrop ?? fallbackCrop,
+            participantCropMimeType,
+        );
+
+        if (!croppedDataUrl) {
+            setParticipantProfileError('Could not crop the selected image.');
+            return;
+        }
+
+        const extension =
+            participantCropMimeType === 'image/png' ? 'png' : 'jpg';
+        const file = dataUrlToFile(
+            croppedDataUrl,
+            `profile-photo.${extension}`,
+        );
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+
+        if (participantProfileInputRef.current) {
+            participantProfileInputRef.current.files = transfer.files;
+        }
+
+        participantForm.setData('profile_image', file);
+        participantForm.setData('remove_profile_image', false);
+        resetParticipantProfilePreview(croppedDataUrl);
+        setParticipantProfileError('');
+        setParticipantCropDialogOpen(false);
     }
 
     function removeParticipantProfileImage() {
@@ -2274,6 +2435,8 @@ export default function ParticipantPage(props: PageProps) {
 
         participantForm.setData('profile_image', null);
         participantForm.setData('remove_profile_image', false);
+        setParticipantProfileError('');
+        resetParticipantCropState();
         if (participantProfileInputRef.current) {
             participantProfileInputRef.current.value = '';
         }
@@ -2510,6 +2673,8 @@ export default function ParticipantPage(props: PageProps) {
         if (participantProfileInputRef.current) {
             participantProfileInputRef.current.value = '';
         }
+        setParticipantProfileError('');
+        resetParticipantCropState();
         resetParticipantProfilePreview(null);
         participantForm.clearErrors();
         setParticipantFormStep(1);
@@ -2556,6 +2721,8 @@ export default function ParticipantPage(props: PageProps) {
         if (participantProfileInputRef.current) {
             participantProfileInputRef.current.value = '';
         }
+        setParticipantProfileError('');
+        resetParticipantCropState();
         resetParticipantProfilePreview(resolveParticipantProfileImage(p));
         participantForm.clearErrors();
         setParticipantFormStep(1);
@@ -6531,6 +6698,8 @@ export default function ParticipantPage(props: PageProps) {
                         if (participantProfileInputRef.current) {
                             participantProfileInputRef.current.value = '';
                         }
+                        setParticipantProfileError('');
+                        resetParticipantCropState();
                         resetParticipantProfilePreview(null);
                         participantForm.setData('profile_image', null);
                         participantForm.setData('remove_profile_image', false);
@@ -6633,63 +6802,81 @@ export default function ParticipantPage(props: PageProps) {
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                                <div className="grid h-20 w-full place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white sm:w-[140px] dark:border-slate-800 dark:bg-slate-950">
-                                                    {participantProfilePreview ? (
-                                                        <img
-                                                            src={
-                                                                participantProfilePreview
-                                                            }
-                                                            alt="Profile preview"
-                                                            className="h-full w-full object-cover"
-                                                            draggable={false}
-                                                        />
-                                                    ) : (
-                                                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                                                            <ImageUp className="h-4 w-4" />
-                                                            No image
-                                                        </div>
-                                                    )}
+                                            <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center dark:border-slate-800 dark:bg-slate-950">
+                                                <div className="grid justify-items-center gap-2">
+                                                    <div className="grid size-32 place-items-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 shadow-sm ring-4 ring-white dark:border-slate-800 dark:bg-slate-900 dark:ring-slate-950">
+                                                        {participantProfilePreview ? (
+                                                            <img
+                                                                src={
+                                                                    participantProfilePreview
+                                                                }
+                                                                alt="Profile preview"
+                                                                className="size-full object-cover"
+                                                                draggable={
+                                                                    false
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <ImageUp className="size-9 text-slate-400" />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                        Circle crop preview
+                                                    </p>
                                                 </div>
 
-                                                <div className="w-full space-y-2">
-                                                    <Input
-                                                        ref={
-                                                            participantProfileInputRef
-                                                        }
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={
-                                                            handleParticipantProfileChange
-                                                        }
-                                                    />
-                                                    {participantForm.errors
+                                                <div className="grid flex-1 gap-2">
+                                                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                                                        Upload a clear front
+                                                        facing photo. You can
+                                                        resize and position the
+                                                        circular crop before it
+                                                        is attached to the
+                                                        participant profile.
+                                                    </p>
+
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-[#00359c] px-4 text-sm font-medium text-white shadow-sm transition hover:bg-[#00359c]/90">
+                                                            Upload image
+                                                            <Input
+                                                                ref={
+                                                                    participantProfileInputRef
+                                                                }
+                                                                type="file"
+                                                                accept="image/png,image/jpeg"
+                                                                onChange={
+                                                                    handleParticipantProfileChange
+                                                                }
+                                                                className="sr-only"
+                                                            />
+                                                        </label>
+
+                                                        {participantForm.data
+                                                            .profile_image ? (
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-9 rounded-lg"
+                                                                onClick={
+                                                                    removeParticipantProfileImage
+                                                                }
+                                                            >
+                                                                Remove image
+                                                            </Button>
+                                                        ) : null}
+                                                    </div>
+
+                                                    {participantProfileError ||
+                                                    participantForm.errors
                                                         .profile_image ? (
                                                         <div className="text-xs text-red-600">
-                                                            {
+                                                            {participantProfileError ||
                                                                 participantForm
                                                                     .errors
-                                                                    .profile_image
-                                                            }
+                                                                    .profile_image}
                                                         </div>
                                                     ) : null}
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            disabled={
-                                                                !participantForm
-                                                                    .data
-                                                                    .profile_image
-                                                            }
-                                                            onClick={
-                                                                removeParticipantProfileImage
-                                                            }
-                                                        >
-                                                            Remove
-                                                        </Button>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -7447,6 +7634,75 @@ export default function ParticipantPage(props: PageProps) {
                             </div>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={participantCropDialogOpen}
+                onOpenChange={setParticipantCropDialogOpen}
+            >
+                <DialogContent className="w-[calc(100%-2rem)] max-w-xl rounded-2xl bg-white text-slate-900 sm:w-full dark:bg-slate-950 dark:text-slate-50">
+                    <DialogHeader>
+                        <DialogTitle>Crop profile image</DialogTitle>
+                        <DialogDescription>
+                            Resize and position the circle crop for the
+                            participant profile photo.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {participantCropImageSrc ? (
+                        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+                            <ReactCrop
+                                crop={participantCrop}
+                                aspect={1}
+                                circularCrop
+                                minWidth={120}
+                                onChange={(_, percentCrop) =>
+                                    setParticipantCrop(percentCrop)
+                                }
+                                onComplete={(pixelCrop) =>
+                                    setParticipantCompletedCrop(pixelCrop)
+                                }
+                                className="max-h-[60vh]"
+                            >
+                                <img
+                                    ref={participantCropImageRef}
+                                    src={participantCropImageSrc}
+                                    alt="Selected participant profile"
+                                    className="max-h-[56vh] w-full object-contain"
+                                    onLoad={(event) => {
+                                        const { width, height } =
+                                            event.currentTarget;
+
+                                        setParticipantCrop(
+                                            getCenteredCircleCrop(
+                                                width,
+                                                height,
+                                            ),
+                                        );
+                                        setParticipantCompletedCrop(undefined);
+                                    }}
+                                />
+                            </ReactCrop>
+                        </div>
+                    ) : null}
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setParticipantCropDialogOpen(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            className={PRIMARY_BTN}
+                            onClick={handleUseCroppedParticipantProfileImage}
+                        >
+                            Use image
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
