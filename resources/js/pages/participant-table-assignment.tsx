@@ -18,6 +18,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
 import { Head } from '@inertiajs/react';
 import {
+    Armchair,
     CalendarDays,
     Check,
     ChevronsUpDown,
@@ -216,7 +217,7 @@ function Section({
                                     phaseCardAccentClass(event.phase),
                                 )}
                             >
-                                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="flex h-full flex-col gap-4 p-4">
                                     <div className="space-y-2">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -251,36 +252,64 @@ function Section({
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex flex-col items-start gap-1 text-xs text-slate-500 sm:items-end dark:text-slate-400">
-                                            <span className="tracking-wide uppercase">
-                                                Table assignment
-                                            </span>
-                                            {hasTable ? (
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={cn(
-                                                            'rounded-full px-3 py-1 text-sm font-semibold',
-                                                            '!border-amber-400 !bg-white !text-amber-900 shadow-sm ring-2 ring-amber-200/70',
-                                                            'dark:!border-amber-500/50 dark:!bg-slate-950 dark:!text-amber-200 dark:ring-amber-500/20',
-                                                        )}
-                                                    >
-                                                        {
-                                                            event.table
-                                                                ?.table_number
-                                                        }
-                                                    </Badge>
+                                    <div className="w-full">
+                                        {hasTable ? (
+                                            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2.5 shadow-sm ring-1 ring-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:ring-amber-500/10">
+                                                <div className="text-[10px] font-semibold tracking-wide text-amber-800 uppercase dark:text-amber-200">
+                                                    Assignment
                                                 </div>
-                                            ) : (
+                                                <div className="grid gap-2 sm:grid-cols-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white text-amber-700 shadow-sm dark:bg-slate-950 dark:text-amber-200">
+                                                            <Table className="h-4 w-4" />
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <div className="text-[11px] font-medium text-amber-800/70 dark:text-amber-200/70">
+                                                                Table
+                                                            </div>
+                                                            <div className="truncate text-sm font-semibold text-amber-950 dark:text-amber-100">
+                                                                {
+                                                                    event.table
+                                                                        ?.table_number
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white text-amber-700 shadow-sm dark:bg-slate-950 dark:text-amber-200">
+                                                            <Armchair className="h-4 w-4" />
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <div className="text-[11px] font-medium text-amber-800/70 dark:text-amber-200/70">
+                                                                Seat
+                                                            </div>
+                                                            <div className="truncate text-sm font-semibold text-amber-950 dark:text-amber-100">
+                                                                {event.table
+                                                                    ?.seat_number ??
+                                                                    'Pending'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900/50">
+                                                <div>
+                                                    <div className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                        Assignment
+                                                    </div>
+                                                    <div className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                                        Pending
+                                                    </div>
+                                                </div>
                                                 <Badge
                                                     variant="outline"
-                                                    className="shrink-0 border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-600/30 dark:bg-slate-800/30 dark:text-slate-300"
+                                                    className="shrink-0 border-slate-200 bg-white text-slate-600 dark:border-slate-600/30 dark:bg-slate-950 dark:text-slate-300"
                                                 >
-                                                    Pending
+                                                    No seat yet
                                                 </Badge>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </Card>
@@ -296,8 +325,9 @@ export default function ParticipantTableAssignment({ events = [] }: PageProps) {
     const [nowTs] = React.useState(() => new Date().getTime());
     const [filterId, setFilterId] = React.useState(
         () =>
-            events.find((event) => event.is_registration_active)?.id.toString() ??
-            'all',
+            events
+                .find((event) => event.is_registration_active)
+                ?.id.toString() ?? 'all',
     );
     const [open, setOpen] = React.useState(false);
 
