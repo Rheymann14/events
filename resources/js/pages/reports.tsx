@@ -41,6 +41,7 @@ import {
     ChevronsUpDown,
     FileDown,
     Printer,
+    Send,
 } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -370,6 +371,8 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
     const [entriesPerPage, setEntriesPerPage] = React.useState<number>(10);
     const [sendingNotificationByUser, setSendingNotificationByUser] =
         React.useState<Record<number, boolean>>({});
+    const [sendingAllNotifications, setSendingAllNotifications] =
+        React.useState(false);
     const [notificationSentAtByAssignment, setNotificationSentAtByAssignment] =
         React.useState<Record<string, string>>({});
     const [expandedRowIds, setExpandedRowIds] = React.useState<Set<number>>(
@@ -538,22 +541,8 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
         ],
     );
 
-    const handleSendNotification = React.useCallback(
-        async (row: ReportRow) => {
-            const notificationEventId = getNotificationEventId(row);
-
-            if (!notificationEventId) {
-                toast.warning(
-                    'Notification can only be sent when table or vehicle assignment is available.',
-                );
-                return;
-            }
-
-            setSendingNotificationByUser((prev) => ({
-                ...prev,
-                [row.id]: true,
-            }));
-
+    const sendAssignmentNotificationRequest = React.useCallback(
+        async (row: ReportRow, eventId: number) => {
             const [primaryToken, fallbackToken] = getCsrfTokens();
 
             const sendRequest = (csrfToken?: string) =>
@@ -572,7 +561,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                             : {}),
                     },
                     body: JSON.stringify({
-                        event_id: notificationEventId,
+                        event_id: eventId,
                         ...(csrfToken ? { _token: csrfToken } : {}),
                     }),
                 });
@@ -584,35 +573,66 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                     errors?: Record<string, string[]>;
                 };
 
+            let response = await sendRequest(primaryToken);
+            let payload = await parsePayload(response);
+
+            if (!response.ok && response.status === 419 && fallbackToken) {
+                response = await sendRequest(fallbackToken);
+                payload = await parsePayload(response);
+            }
+
+            return {
+                ok: response.ok,
+                status: response.status,
+                message: payload.message,
+                sentAt: payload.sent_at,
+            };
+        },
+        [],
+    );
+
+    const handleSendNotification = React.useCallback(
+        async (row: ReportRow) => {
+            const notificationEventId = getNotificationEventId(row);
+
+            if (!notificationEventId) {
+                toast.warning(
+                    'Notification can only be sent when table or vehicle assignment is available.',
+                );
+                return;
+            }
+
+            setSendingNotificationByUser((prev) => ({
+                ...prev,
+                [row.id]: true,
+            }));
+
             try {
-                let response = await sendRequest(primaryToken);
-                let payload = await parsePayload(response);
+                const result = await sendAssignmentNotificationRequest(
+                    row,
+                    notificationEventId,
+                );
 
-                if (!response.ok && response.status === 419 && fallbackToken) {
-                    response = await sendRequest(fallbackToken);
-                    payload = await parsePayload(response);
-                }
-
-                if (!response.ok) {
-                    if (response.status === 419) {
+                if (!result.ok) {
+                    if (result.status === 419) {
                         toast.error(
                             'Session expired. Please reload the page and try again.',
                         );
-                    } else if (response.status === 422) {
+                    } else if (result.status === 422) {
                         toast.warning(
-                            payload.message ??
+                            result.message ??
                                 'Validation failed. Please check assignment data.',
                         );
                     } else {
                         toast.error(
-                            payload.message ?? 'Failed to send notification.',
+                            result.message ?? 'Failed to send notification.',
                         );
                     }
 
                     return;
                 }
 
-                const sentAt = payload.sent_at ?? new Date().toISOString();
+                const sentAt = result.sentAt ?? new Date().toISOString();
                 const sentAtKey = getNotificationSentAtKey(
                     row.id,
                     notificationEventId,
@@ -624,7 +644,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                 }));
 
                 toast.success(
-                    payload.message ?? 'Notification sent successfully.',
+                    result.message ?? 'Notification sent successfully.',
                 );
             } catch {
                 toast.error('Failed to send notification.');
@@ -636,7 +656,11 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                 });
             }
         },
-        [getNotificationEventId, getNotificationSentAtKey],
+        [
+            getNotificationEventId,
+            getNotificationSentAtKey,
+            sendAssignmentNotificationRequest,
+        ],
     );
 
     const rowsAfterEventFilter = React.useMemo(() => {
@@ -725,6 +749,115 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
             return checkinSort === 'desc' ? bTs - aTs : aTs - bTs;
         });
     }, [filteredRows, selectedEventId, checkinSort, registrantTypeSort]);
+
+    const sendAllNotificationTargets = React.useMemo(() => {
+        const targets: Array<{ row: ReportRow; eventId: number }> = [];
+        const candidateEventIds = selectedEventId
+            ? [selectedEventId]
+            : eventOptionItems.map((event) => event.id);
+
+        sortedRows.forEach((row) => {
+            candidateEventIds.forEach((eventId) => {
+                const hasAssignment = Boolean(
+                    getTableAssignment(row, eventId) ||
+                        getVehicleAssignment(row, eventId),
+                );
+                const sentAt =
+                    notificationSentAtByAssignment[
+                        getNotificationSentAtKey(row.id, eventId)
+                    ];
+
+                if (hasAssignment && !sentAt) {
+                    targets.push({ row, eventId });
+                }
+            });
+        });
+
+        return targets;
+    }, [
+        eventOptionItems,
+        getNotificationSentAtKey,
+        notificationSentAtByAssignment,
+        selectedEventId,
+        sortedRows,
+    ]);
+
+    const handleSendAllNotifications = React.useCallback(async () => {
+        if (!sendAllNotificationTargets.length) {
+            toast.warning(
+                'No unsent participants with table or vehicle assignments found.',
+            );
+            return;
+        }
+
+        const targetUserIds = Array.from(
+            new Set(sendAllNotificationTargets.map(({ row }) => row.id)),
+        );
+
+        setSendingAllNotifications(true);
+        setSendingNotificationByUser((prev) => {
+            const next = { ...prev };
+            targetUserIds.forEach((userId) => {
+                next[userId] = true;
+            });
+            return next;
+        });
+
+        let sentCount = 0;
+        let failedCount = 0;
+
+        try {
+            for (const { row, eventId } of sendAllNotificationTargets) {
+                try {
+                    const result = await sendAssignmentNotificationRequest(
+                        row,
+                        eventId,
+                    );
+
+                    if (!result.ok) {
+                        failedCount += 1;
+                        continue;
+                    }
+
+                    const sentAt = result.sentAt ?? new Date().toISOString();
+                    const sentAtKey = getNotificationSentAtKey(row.id, eventId);
+
+                    setNotificationSentAtByAssignment((prev) => ({
+                        ...prev,
+                        [sentAtKey]: sentAt,
+                    }));
+                    sentCount += 1;
+                } catch {
+                    failedCount += 1;
+                }
+            }
+
+            if (sentCount > 0 && failedCount > 0) {
+                toast.warning(
+                    `Sent ${sentCount.toLocaleString()} assignment notification${sentCount === 1 ? '' : 's'}; ${failedCount.toLocaleString()} failed.`,
+                );
+            } else if (sentCount > 0) {
+                toast.success(
+                    `Sent ${sentCount.toLocaleString()} assignment notification${sentCount === 1 ? '' : 's'}.`,
+                );
+            } else {
+                toast.error('Failed to send assignment notifications.');
+            }
+        } finally {
+            setSendingAllNotifications(false);
+            setSendingNotificationByUser((prev) => {
+                const next = { ...prev };
+                targetUserIds.forEach((userId) => {
+                    delete next[userId];
+                });
+                return next;
+            });
+        }
+    }, [
+        getNotificationSentAtKey,
+        sendAllNotificationTargets,
+        sendAssignmentNotificationRequest,
+    ]);
 
     const handlePrintPdf = React.useCallback(() => {
         const escapeHtml = (value: string) =>
@@ -1454,45 +1587,45 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reports" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+            <div className="flex h-full min-w-0 flex-1 flex-col gap-3 rounded-xl p-2 sm:gap-4 sm:p-4">
                 <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                     Reports
                 </h1>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Card>
-                        <CardHeader className="pb-2">
+                <div className="grid gap-2 sm:gap-4 md:grid-cols-3">
+                    <Card className="gap-3 py-4 sm:gap-6 sm:py-6">
+                        <CardHeader className="px-4 pb-1 sm:px-6 sm:pb-2">
                             <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-300">
                                 Total Registered Participants
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="px-4 sm:px-6">
                             <p className="text-2xl font-bold">
                                 {summaryCards.total_registered_participants.toLocaleString()}
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader className="pb-2">
+                    <Card className="gap-3 py-4 sm:gap-6 sm:py-6">
+                        <CardHeader className="px-4 pb-1 sm:px-6 sm:pb-2">
                             <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-300">
                                 Total Participants Attended (Checked In)
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="px-4 sm:px-6">
                             <p className="text-2xl font-bold">
                                 {summaryCards.total_participants_attended.toLocaleString()}
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader className="pb-2">
+                    <Card className="gap-3 py-4 sm:gap-6 sm:py-6">
+                        <CardHeader className="px-4 pb-1 sm:px-6 sm:pb-2">
                             <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-300">
                                 Total Participants Did Not Join
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="px-4 sm:px-6">
                             <p className="text-2xl font-bold">
                                 {summaryCards.total_participants_did_not_join.toLocaleString()}
                             </p>
@@ -1500,12 +1633,14 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                     </Card>
                 </div>
 
-                <Card>
-                    <CardHeader className="gap-3">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                            <CardTitle>Participants Report</CardTitle>
+                <Card className="min-w-0 overflow-hidden py-4 sm:py-6">
+                    <CardHeader className="gap-3 px-3 sm:px-6">
+                        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                            <CardTitle className="text-lg leading-tight sm:text-xl">
+                                Participants Report
+                            </CardTitle>
 
-                            <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
+                            <div className="grid w-full min-w-0 grid-cols-2 gap-2 xl:flex xl:w-auto xl:grid-cols-none xl:flex-row">
                                 <Popover
                                     open={eventsOpen}
                                     onOpenChange={setEventsOpen}
@@ -1516,7 +1651,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                             variant="outline"
                                             role="combobox"
                                             aria-expanded={eventsOpen}
-                                            className="h-auto w-full justify-between gap-2 py-2 sm:max-w-[420px] md:w-[260px] md:max-w-none"
+                                            className="col-span-2 h-auto min-h-9 w-full min-w-0 justify-between gap-2 py-2 xl:w-[260px]"
                                         >
                                             <span className="min-w-0 text-left leading-tight break-words whitespace-normal md:overflow-hidden md:text-ellipsis md:whitespace-nowrap">
                                                 {selectedEventData
@@ -1634,7 +1769,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                         setSearch(event.target.value)
                                     }
                                     placeholder="Search name, registrant type, organization, or check-in"
-                                    className="w-full md:w-80"
+                                    className="col-span-2 w-full min-w-0 xl:w-80"
                                 />
 
                                 <Button
@@ -1642,7 +1777,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                     variant="outline"
                                     onClick={toggleAllVisibleRows}
                                     disabled={!paginatedRows.length}
-                                    className="gap-2"
+                                    className="w-full gap-2 px-2 xl:w-auto xl:px-3"
                                 >
                                     <ChevronDown
                                         className={cn(
@@ -1659,8 +1794,24 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                 <Button
                                     type="button"
                                     variant="outline"
+                                    onClick={handleSendAllNotifications}
+                                    disabled={
+                                        sendingAllNotifications ||
+                                        !sendAllNotificationTargets.length
+                                    }
+                                    className="w-full gap-2 px-2 xl:w-auto xl:px-3"
+                                >
+                                    <Send className="h-4 w-4" />
+                                    {sendingAllNotifications
+                                        ? 'Sending All...'
+                                        : 'Send All'}
+                                </Button>
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     onClick={handlePrintPdf}
-                                    className="gap-2"
+                                    className="w-full gap-2 px-2 xl:w-auto xl:px-3"
                                 >
                                     <Printer className="h-4 w-4" />
                                     Print PDF
@@ -1669,7 +1820,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                 <Button
                                     type="button"
                                     onClick={handleExportXlsx}
-                                    className="gap-2"
+                                    className="w-full gap-2 px-2 xl:w-auto xl:px-3"
                                 >
                                     <FileDown className="h-4 w-4" />
                                     Export XLSX
@@ -1693,8 +1844,8 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                             </p>
                         ) : null}
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="overflow-hidden rounded-md border sm:hidden">
+                    <CardContent className="space-y-4 px-3 sm:px-6">
+                        <div className="overflow-hidden rounded-lg border sm:hidden">
                             <div className="border-b px-3 py-2 text-sm font-medium">
                                 Participant
                             </div>
@@ -1729,7 +1880,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                             key={row.id}
                                             className="border-b last:border-b-0"
                                         >
-                                            <div className="flex w-full items-start justify-between gap-3 px-3 py-3">
+                                            <div className="flex w-full min-w-0 items-start justify-between gap-2 px-3 py-3">
                                                 <div className="min-w-0 flex-1">
                                                     <p className="font-medium break-words text-slate-900 dark:text-slate-100">
                                                         {isAsemme10Selected
@@ -1779,7 +1930,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                     type="button"
                                                     variant="outline"
                                                     size="sm"
-                                                    className="h-8 w-[72px] shrink-0 justify-center gap-1 px-2 text-xs"
+                                                    className="h-8 w-16 shrink-0 justify-center gap-1 px-2 text-xs"
                                                     aria-expanded={isExpanded}
                                                     onClick={() =>
                                                         toggleExpandedRow(
@@ -1802,7 +1953,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
 
                                             {isExpanded ? (
                                                 <div className="border-t bg-slate-50/50 px-3 py-3 dark:bg-slate-900/20">
-                                                    <div className="grid gap-y-3">
+                                                    <div className="grid min-w-0 gap-y-3">
                                                         {isAsemme10Selected ? (
                                                             <>
                                                                 <ReportDetailItem label="Badge Name">
@@ -1883,6 +2034,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                                             disableNotificationButton
                                                                         }
                                                                         className={cn(
+                                                                            'w-full min-w-0 sm:w-auto',
                                                                             notificationSentAt
                                                                                 ? 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 hover:text-white'
                                                                                 : '',
@@ -2477,9 +2629,9 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                             </Table>
                         </div>
 
-                        <div className="flex flex-col items-center justify-between gap-3 text-sm text-slate-600 md:flex-row dark:text-slate-300">
-                            <div className="flex flex-col items-center gap-2 sm:flex-row">
-                                <div className="flex items-center gap-2">
+                        <div className="flex min-w-0 flex-col gap-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between dark:text-slate-300">
+                            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                                <div className="flex items-center justify-center gap-2 sm:justify-start">
                                     <span>Show entries</span>
                                     <Select
                                         value={String(entriesPerPage)}
@@ -2502,7 +2654,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <p>
+                                <p className="text-center sm:text-left">
                                     Showing{' '}
                                     {(currentPage - 1) * entriesPerPage +
                                         (paginatedRows.length ? 1 : 0)}{' '}
@@ -2513,7 +2665,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:w-auto">
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -2523,10 +2675,11 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                             Math.max(1, page - 1),
                                         )
                                     }
+                                    className="w-full"
                                 >
                                     Previous
                                 </Button>
-                                <span>
+                                <span className="text-center whitespace-nowrap">
                                     Page {currentPage} of {totalPages}
                                 </span>
                                 <Button
@@ -2538,6 +2691,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                             Math.min(totalPages, page + 1),
                                         )
                                     }
+                                    className="w-full"
                                 >
                                     Next
                                 </Button>
