@@ -1240,8 +1240,34 @@ export default function TableAssignmenyPage(props: PageProps) {
     function renderSeatingPlan(printMode = false) {
         if (tables.length === 0) return null;
 
+        const printedAt = new Intl.DateTimeFormat('en-PH', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: 'numeric',
+            minute: '2-digit',
+        }).format(new Date(currentTimestamp));
+
         return (
             <div className="space-y-3">
+                {printMode ? (
+                    <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-3">
+                        <div>
+                            <div className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                                CHED Events Registration System
+                            </div>
+                            <div className="mt-1 text-lg font-semibold text-slate-900">
+                                Seat Plan
+                            </div>
+                        </div>
+                        <div className="text-right text-xs text-slate-500">
+                            <div className="font-semibold uppercase">
+                                Printed
+                            </div>
+                            <div>{printedAt}</div>
+                        </div>
+                    </div>
+                ) : null}
                 <div
                     className={cn(
                         'flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between',
@@ -1367,6 +1393,14 @@ export default function TableAssignmenyPage(props: PageProps) {
                         );
                     })}
                 </div>
+                {printMode ? (
+                    <div
+                        id="seat-plan-print-footer"
+                        className="border-t border-slate-200 pt-3 text-center text-[11px] font-semibold tracking-wide text-slate-500 uppercase"
+                    >
+                        CHED Events Registration System
+                    </div>
+                ) : null}
             </div>
         );
     }
@@ -2547,7 +2581,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                                 inset: 0 !important;
                                 width: 100% !important;
                                 min-height: 100% !important;
-                                padding: 0 !important;
+                                padding: 0 0 10mm !important;
                                 background: white !important;
                                 color: #0f172a !important;
                             }
@@ -2564,6 +2598,10 @@ export default function TableAssignmenyPage(props: PageProps) {
                                 background: white !important;
                             }
                             #seat-plan-print-root > div {
+                                break-inside: avoid;
+                                page-break-inside: avoid;
+                            }
+                            #seat-plan-print-footer {
                                 break-inside: avoid;
                                 page-break-inside: avoid;
                             }

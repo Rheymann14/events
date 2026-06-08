@@ -49,6 +49,7 @@ import {
     CircleCheckBig,
     CircleX,
     ExternalLink,
+    FlipHorizontal2,
     Keyboard,
     Mail,
     MapPin,
@@ -879,6 +880,7 @@ export default function Scanner(props: PageProps) {
     const [deviceDiscoveryReady, setDeviceDiscoveryReady] =
         React.useState(false);
     const [cameraError, setCameraError] = React.useState<string | null>(null);
+    const [cameraMirrored, setCameraMirrored] = React.useState(false);
 
     const [manualCode, setManualCode] = React.useState('');
     const [showManual, setShowManual] = React.useState(false);
@@ -904,6 +906,7 @@ export default function Scanner(props: PageProps) {
     const lastDetectedRef = React.useRef('');
     const lockRef = React.useRef(false);
     const isScanningRef = React.useRef(false);
+    const cameraMirroredRef = React.useRef(false);
 
     // ✅ sounds
     const sounds = useScanSounds();
@@ -1003,6 +1006,11 @@ export default function Scanner(props: PageProps) {
         }
     }, []);
 
+    React.useEffect(() => {
+        cameraMirroredRef.current = cameraMirrored;
+        clearQrOverlay();
+    }, [cameraMirrored, clearQrOverlay]);
+
     const updateQrAim = React.useCallback((aim: typeof qrAimRef.current) => {
         if (aim === qrAimRef.current) {
             return;
@@ -1054,10 +1062,13 @@ export default function Scanner(props: PageProps) {
             }
 
             const { scale, offsetX, offsetY } = getCoverTransform(w, h, vw, vh);
-            const mapPoint = (p: { x: number; y: number }) => ({
-                x: p.x * scale + offsetX,
-                y: p.y * scale + offsetY,
-            });
+            const mapPoint = (p: { x: number; y: number }) => {
+                const x = p.x * scale + offsetX;
+                return {
+                    x: cameraMirroredRef.current ? w - x : x,
+                    y: p.y * scale + offsetY,
+                };
+            };
 
             let best: {
                 points: { x: number; y: number }[];
@@ -1090,20 +1101,25 @@ export default function Scanner(props: PageProps) {
 
                 const bb = b.boundingBox;
                 if (bb) {
-                    const x1 = bb.x * scale + offsetX;
-                    const y1 = bb.y * scale + offsetY;
-                    const x2 = (bb.x + bb.width) * scale + offsetX;
-                    const y2 = (bb.y + bb.height) * scale + offsetY;
-
                     const points = [
-                        { x: x1, y: y1 },
-                        { x: x2, y: y1 },
-                        { x: x2, y: y2 },
-                        { x: x1, y: y2 },
+                        mapPoint({ x: bb.x, y: bb.y }),
+                        mapPoint({ x: bb.x + bb.width, y: bb.y }),
+                        mapPoint({
+                            x: bb.x + bb.width,
+                            y: bb.y + bb.height,
+                        }),
+                        mapPoint({ x: bb.x, y: bb.y + bb.height }),
                     ];
-                    const area = (x2 - x1) * (y2 - y1);
-                    const cx = (x1 + x2) / 2;
-                    const cy = (y1 + y2) / 2;
+                    const xs = points.map((p) => p.x);
+                    const ys = points.map((p) => p.y);
+                    const minX = Math.min(...xs);
+                    const maxX = Math.max(...xs);
+                    const minY = Math.min(...ys);
+                    const maxY = Math.max(...ys);
+
+                    const area = (maxX - minX) * (maxY - minY);
+                    const cx = (minX + maxX) / 2;
+                    const cy = (minY + maxY) / 2;
 
                     if (!best || area > best.area) {
                         best = { points, cx, cy, area };
@@ -1249,6 +1265,8 @@ export default function Scanner(props: PageProps) {
         video: HTMLVideoElement,
         detector: InstanceType<BarcodeDetectorConstructor> | null,
     ) {
+        const mirrorEnabled = cameraMirroredRef.current;
+
         if (detector) {
             const codes = await detector.detect(video);
             const rawValue = codes[0]?.rawValue?.trim();
@@ -1259,7 +1277,9 @@ export default function Scanner(props: PageProps) {
                 return rawValue;
             }
 
-            return '';
+            if (!mirrorEnabled) {
+                return '';
+            }
         }
 
         const sourceWidth = video.videoWidth;
@@ -1290,18 +1310,36 @@ export default function Scanner(props: PageProps) {
 
         canvas.width = width;
         canvas.height = height;
-        context.drawImage(video, 0, 0, width, height);
 
-        const imageData = context.getImageData(0, 0, width, height);
-        const code = jsQR(imageData.data, width, height, {
-            inversionAttempts: 'attemptBoth',
-        });
+        const scanWithJsQr = (mirrored: boolean) => {
+            context.setTransform(1, 0, 0, 1, 0, 0);
+            context.clearRect(0, 0, width, height);
 
-        if (code) {
+            if (mirrored) {
+                context.save();
+                context.translate(width, 0);
+                context.scale(-1, 1);
+                context.drawImage(video, 0, 0, width, height);
+                context.restore();
+            } else {
+                context.drawImage(video, 0, 0, width, height);
+            }
+
+            const imageData = context.getImageData(0, 0, width, height);
+            const code = jsQR(imageData.data, width, height, {
+                inversionAttempts: 'attemptBoth',
+            });
+
+            if (!code) {
+                return null;
+            }
+
             const pointScaleX = sourceWidth / width;
             const pointScaleY = sourceHeight / height;
-            drawQrOverlay([
-                {
+
+            return {
+                value: code.data?.trim() ?? '',
+                barcode: {
                     rawValue: code.data,
                     cornerPoints: [
                         code.location.topLeftCorner,
@@ -1309,16 +1347,29 @@ export default function Scanner(props: PageProps) {
                         code.location.bottomRightCorner,
                         code.location.bottomLeftCorner,
                     ].map((point) => ({
-                        x: point.x * pointScaleX,
+                        x: mirrored
+                            ? (width - point.x) * pointScaleX
+                            : point.x * pointScaleX,
                         y: point.y * pointScaleY,
                     })),
                 },
-            ]);
-        } else {
+            };
+        };
+
+        const result =
+            (!detector || mirrorEnabled ? scanWithJsQr(false) : null) ??
+            (mirrorEnabled ? scanWithJsQr(true) : null);
+
+        if (result?.value) {
+            drawQrOverlay([result.barcode]);
+            return result.value;
+        }
+
+        if (!result) {
             drawQrOverlay([]);
         }
 
-        return code?.data?.trim() ?? '';
+        return '';
     }
 
     async function startScan({
@@ -2021,6 +2072,11 @@ export default function Scanner(props: PageProps) {
                         <video
                             ref={videoRef}
                             className="h-full w-full object-cover"
+                            style={{
+                                transform: cameraMirrored
+                                    ? 'scaleX(-1)'
+                                    : undefined,
+                            }}
                             playsInline
                             muted
                         />
@@ -2118,6 +2174,31 @@ export default function Scanner(props: PageProps) {
                                 </div>
                             ) : null}
                         </div>
+
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon-sm"
+                            aria-label={
+                                cameraMirrored
+                                    ? 'Disable mirrored camera'
+                                    : 'Mirror camera'
+                            }
+                            aria-pressed={cameraMirrored}
+                            title={
+                                cameraMirrored
+                                    ? 'Disable mirror'
+                                    : 'Mirror camera'
+                            }
+                            onClick={() => setCameraMirrored((value) => !value)}
+                            className={cn(
+                                'absolute top-3 right-3 z-20 rounded-full border border-white/25 bg-black/35 text-white shadow-sm backdrop-blur hover:bg-black/50 hover:text-white',
+                                cameraMirrored &&
+                                    'border-[#00359c]/40 bg-[#00359c]/85 hover:bg-[#00359c]',
+                            )}
+                        >
+                            <FlipHorizontal2 className="h-4 w-4" />
+                        </Button>
 
                         {!isScanning && status !== 'verifying' ? (
                             <div className="absolute inset-0 grid place-items-center p-6 text-center">
