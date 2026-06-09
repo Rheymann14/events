@@ -512,6 +512,79 @@ function dataUrlToFile(dataUrl: string, filename: string): File {
     return new File([bytes], filename, { type: mime });
 }
 
+function canvasToJpegBlob(
+    canvas: HTMLCanvasElement,
+    quality = 0.94,
+): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob(
+            (blob) => {
+                if (blob) {
+                    resolve(blob);
+                    return;
+                }
+
+                reject(new Error('Unable to prepare the JPG file.'));
+            },
+            'image/jpeg',
+            quality,
+        );
+    });
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = filename;
+    link.rel = 'noopener';
+    link.style.display = 'none';
+
+    document.body.appendChild(link);
+    link.click();
+
+    window.setTimeout(() => {
+        link.remove();
+        URL.revokeObjectURL(url);
+    }, 100);
+}
+
+function virtualIdFilename(displayId?: string | null) {
+    const safeName = (displayId || 'virtual-id')
+        .replace(/[\\/:*?"<>|]+/g, '-')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+    return `${safeName || 'virtual-id'}.jpg`;
+}
+
+async function saveVirtualIdBlob(blob: Blob, filename: string) {
+    const file = new File([blob], filename, { type: 'image/jpeg' });
+    const canShareFile =
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [file] });
+    const prefersMobileShare =
+        window.matchMedia?.('(pointer: coarse)').matches ?? false;
+
+    if (prefersMobileShare && canShareFile) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: 'Virtual participant ID',
+            });
+            return;
+        } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                return;
+            }
+        }
+    }
+
+    downloadBlob(blob, filename);
+}
+
 function getCroppedImageDataUrl(
     image: HTMLImageElement,
     crop: PixelCrop,
@@ -608,6 +681,8 @@ export default function Register({
     const [successQrDataUrl, setSuccessQrDataUrl] = React.useState<
         string | null
     >(null);
+    const [virtualIdDownloading, setVirtualIdDownloading] =
+        React.useState(false);
     const [successConfettiSize, setSuccessConfettiSize] = React.useState({
         width: 0,
         height: 0,
@@ -1923,138 +1998,164 @@ export default function Register({
     };
 
     const downloadVirtualId = React.useCallback(async () => {
-        if (!virtualIdParticipant || !successQrDataUrl) return;
+        if (!virtualIdParticipant || !successQrDataUrl || virtualIdDownloading)
+            return;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 740;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        setVirtualIdDownloading(true);
 
-        const [
-            qrImage,
-            chedLogo,
-            bagongLogo,
-            participantImage,
-            backgroundImage,
-        ] = await Promise.all([
-            loadCanvasImage(successQrDataUrl),
-            loadCanvasImage('/img/ched_logo.png'),
-            loadCanvasImage('/img/bagong_pilipinas.png'),
-            loadCanvasImage(virtualIdImageUrl),
-            loadCanvasImage('/img/id-card-bg.jpg'),
-        ]);
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1200;
+            canvas.height = 740;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
 
-        if (!qrImage) return;
+            const [
+                qrImage,
+                chedLogo,
+                bagongLogo,
+                participantImage,
+                backgroundImage,
+            ] = await Promise.all([
+                loadCanvasImage(successQrDataUrl),
+                loadCanvasImage('/img/ched_logo.png'),
+                loadCanvasImage('/img/bagong_pilipinas.png'),
+                loadCanvasImage(virtualIdImageUrl),
+                loadCanvasImage('/img/id-card-bg.jpg'),
+            ]);
 
-        ctx.fillStyle = '#eaf6ff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (!qrImage) {
+                toast.error('Unable to generate the QR code image.');
+                return;
+            }
 
-        if (backgroundImage) {
+            ctx.fillStyle = '#eaf6ff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (backgroundImage) {
+                ctx.save();
+                ctx.globalAlpha = 0.24;
+                ctx.drawImage(
+                    backgroundImage,
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height,
+                );
+                ctx.restore();
+            }
+
+            const fade = ctx.createLinearGradient(
+                0,
+                0,
+                canvas.width,
+                canvas.height,
+            );
+            fade.addColorStop(0, 'rgba(255,255,255,0.86)');
+            fade.addColorStop(0.52, 'rgba(220,241,255,0.72)');
+            fade.addColorStop(1, 'rgba(255,255,255,0.9)');
+            ctx.fillStyle = fade;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             ctx.save();
-            ctx.globalAlpha = 0.24;
-            ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+            drawRoundedRect(
+                ctx,
+                22,
+                20,
+                canvas.width - 44,
+                canvas.height - 40,
+                46,
+            );
+            ctx.clip();
+
+            if (chedLogo) {
+                drawContainedCanvasImage(ctx, chedLogo, 56, 52, 62, 62);
+            }
+
+            if (bagongLogo) {
+                drawContainedCanvasImage(ctx, bagongLogo, 134, 54, 78, 54);
+            }
+
+            ctx.fillStyle = '#334155';
+            ctx.font = '700 25px Arial, sans-serif';
+            ctx.fillText('CHED Events Registration', 240, 70);
+            ctx.fillStyle = '#64748b';
+            ctx.font = '400 20px Arial, sans-serif';
+            ctx.fillText(virtualIdEventTitle, 240, 101);
+
+            ctx.fillStyle = '#64748b';
+            ctx.font = '700 24px Arial, sans-serif';
+            ctx.fillText('PARTICIPANT', 56, 176);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '700 44px Arial, sans-serif';
+            wrapCanvasText(ctx, virtualIdParticipant.name, 56, 222, 560, 48);
+
+            ctx.save();
+            drawRoundedRect(ctx, 56, 292, 134, 134, 28);
+            ctx.clip();
+            ctx.fillStyle = '#dbeafe';
+            ctx.fillRect(56, 292, 134, 134);
+            if (participantImage) {
+                drawCoverCanvasImage(ctx, participantImage, 56, 292, 134, 134);
+            }
             ctx.restore();
+
+            ctx.fillStyle = '#475569';
+            ctx.font = '700 24px Arial, sans-serif';
+            ctx.fillText('PARTICIPANT ID', 214, 336);
+
+            drawRoundedRect(ctx, 214, 358, 360, 60, 30);
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(148,163,184,0.55)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '700 25px Arial, sans-serif';
+            ctx.fillText(virtualIdParticipant.display_id, 244, 398);
+
+            drawRoundedRect(ctx, 724, 148, 420, 520, 42);
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(148,163,184,0.35)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#334155';
+            ctx.font = '700 18px Arial, sans-serif';
+            ctx.fillText('QR Code', 858, 211);
+            ctx.drawImage(qrImage, 778, 244, 314, 314);
+
+            ctx.fillStyle = '#334155';
+            ctx.font = '700 18px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(virtualIdParticipant.name, 934, 608, 340);
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 15px Arial, sans-serif';
+            ctx.fillText(virtualIdParticipant.display_id, 934, 645);
+            ctx.textAlign = 'left';
+
+            ctx.fillStyle = '#64748b';
+            ctx.font = '500 18px Arial, sans-serif';
+            ctx.fillText('Scan QR for attendance verification.', 56, 660);
+
+            ctx.restore();
+
+            const filename = virtualIdFilename(virtualIdParticipant.display_id);
+            const blob = await canvasToJpegBlob(canvas);
+
+            await saveVirtualIdBlob(blob, filename);
+        } catch {
+            toast.error('Unable to download the virtual ID. Please try again.');
+        } finally {
+            setVirtualIdDownloading(false);
         }
-
-        const fade = ctx.createLinearGradient(
-            0,
-            0,
-            canvas.width,
-            canvas.height,
-        );
-        fade.addColorStop(0, 'rgba(255,255,255,0.86)');
-        fade.addColorStop(0.52, 'rgba(220,241,255,0.72)');
-        fade.addColorStop(1, 'rgba(255,255,255,0.9)');
-        ctx.fillStyle = fade;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.save();
-        drawRoundedRect(ctx, 22, 20, canvas.width - 44, canvas.height - 40, 46);
-        ctx.clip();
-
-        if (chedLogo) {
-            drawContainedCanvasImage(ctx, chedLogo, 56, 52, 62, 62);
-        }
-
-        if (bagongLogo) {
-            drawContainedCanvasImage(ctx, bagongLogo, 134, 54, 78, 54);
-        }
-
-        ctx.fillStyle = '#334155';
-        ctx.font = '700 25px Arial, sans-serif';
-        ctx.fillText('CHED Events Registration', 240, 70);
-        ctx.fillStyle = '#64748b';
-        ctx.font = '400 20px Arial, sans-serif';
-        ctx.fillText(virtualIdEventTitle, 240, 101);
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = '700 24px Arial, sans-serif';
-        ctx.fillText('PARTICIPANT', 56, 176);
-
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '700 44px Arial, sans-serif';
-        wrapCanvasText(ctx, virtualIdParticipant.name, 56, 222, 560, 48);
-
-        ctx.save();
-        drawRoundedRect(ctx, 56, 292, 134, 134, 28);
-        ctx.clip();
-        ctx.fillStyle = '#dbeafe';
-        ctx.fillRect(56, 292, 134, 134);
-        if (participantImage) {
-            drawCoverCanvasImage(ctx, participantImage, 56, 292, 134, 134);
-        }
-        ctx.restore();
-
-        ctx.fillStyle = '#475569';
-        ctx.font = '700 24px Arial, sans-serif';
-        ctx.fillText('PARTICIPANT ID', 214, 336);
-
-        drawRoundedRect(ctx, 214, 358, 360, 60, 30);
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(148,163,184,0.55)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '700 25px Arial, sans-serif';
-        ctx.fillText(virtualIdParticipant.display_id, 244, 398);
-
-        drawRoundedRect(ctx, 724, 148, 420, 520, 42);
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(148,163,184,0.35)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        ctx.fillStyle = '#334155';
-        ctx.font = '700 18px Arial, sans-serif';
-        ctx.fillText('QR Code', 858, 211);
-        ctx.drawImage(qrImage, 778, 244, 314, 314);
-
-        ctx.fillStyle = '#334155';
-        ctx.font = '700 18px Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(virtualIdParticipant.name, 934, 608, 340);
-        ctx.fillStyle = '#64748b';
-        ctx.font = '500 15px Arial, sans-serif';
-        ctx.fillText(virtualIdParticipant.display_id, 934, 645);
-        ctx.textAlign = 'left';
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = '500 18px Arial, sans-serif';
-        ctx.fillText('Scan QR for attendance verification.', 56, 660);
-
-        ctx.restore();
-
-        const link = document.createElement('a');
-        link.download = `${virtualIdParticipant.display_id || 'virtual-id'}.jpg`;
-        link.href = canvas.toDataURL('image/jpeg', 0.94);
-        link.click();
     }, [
         successQrDataUrl,
         virtualIdEventTitle,
         virtualIdImageUrl,
+        virtualIdDownloading,
         virtualIdParticipant,
     ]);
 
@@ -5676,10 +5777,19 @@ export default function Register({
                                                     variant="outline"
                                                     className="rounded-full px-6"
                                                     onClick={downloadVirtualId}
-                                                    disabled={!successQrDataUrl}
+                                                    disabled={
+                                                        !successQrDataUrl ||
+                                                        virtualIdDownloading
+                                                    }
                                                 >
-                                                    <Download className="h-4 w-4" />
-                                                    Download JPG
+                                                    {virtualIdDownloading ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Download className="h-4 w-4" />
+                                                    )}
+                                                    {virtualIdDownloading
+                                                        ? 'Preparing JPG'
+                                                        : 'Download JPG'}
                                                 </Button>
                                             ) : null}
                                             <Button
