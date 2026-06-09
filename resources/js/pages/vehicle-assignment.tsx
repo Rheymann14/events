@@ -132,12 +132,12 @@ function SearchableDropdown({
                 <Button
                     variant="outline"
                     role="combobox"
-                    className="w-full justify-between"
+                    className="w-full max-w-full min-w-0 shrink justify-between overflow-hidden"
                     type="button"
                 >
                     <span
                         className={cn(
-                            'truncate',
+                            'min-w-0 flex-1 truncate text-left',
                             !selected && 'text-slate-500',
                         )}
                     >
@@ -148,13 +148,13 @@ function SearchableDropdown({
             </PopoverTrigger>
             <PopoverContent
                 align="start"
-                className="w-[min(var(--radix-popover-trigger-width),calc(100vw-1rem))] max-w-[calc(100vw-1rem)] p-0"
+                className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] min-w-0 p-0"
             >
-                <Command>
+                <Command className="min-w-0">
                     <CommandInput placeholder={searchPlaceholder} />
                     <CommandEmpty>{emptyText}</CommandEmpty>
-                    <CommandList>
-                        <CommandGroup>
+                    <CommandList className="min-w-0">
+                        <CommandGroup className="min-w-0">
                             {items.map((item) => (
                                 <CommandItem
                                     key={item.value}
@@ -163,17 +163,17 @@ function SearchableDropdown({
                                         onValueChange(item.value);
                                         setOpen(false);
                                     }}
-                                    className="min-w-0 gap-2"
+                                    className="min-w-0 gap-2 overflow-hidden"
                                 >
                                     <Check
                                         className={cn(
-                                            'h-4 w-4',
+                                            'h-4 w-4 shrink-0',
                                             value === item.value
                                                 ? 'opacity-100'
                                                 : 'opacity-0',
                                         )}
                                     />
-                                    <div className="min-w-0 flex-1">
+                                    <div className="min-w-0 flex-1 overflow-hidden">
                                         <div className="truncate">
                                             {item.label}
                                         </div>
@@ -716,7 +716,7 @@ export default function VehicleAssignmentPage({
                 </div>
 
                 {!isChedLo && (
-                    <Card>
+                    <Card className="min-w-0">
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Event Filter
@@ -726,8 +726,8 @@ export default function VehicleAssignmentPage({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-1">
+                            <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr),minmax(0,1fr)]">
+                                <div className="min-w-0 space-y-1">
                                     <Label>Event</Label>
                                     <SearchableDropdown
                                         value={assignmentForm.data.programme_id}

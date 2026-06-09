@@ -89,8 +89,8 @@ function SearchableDropdown({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between" type="button">
-                    <span className={cn('truncate', !selected && 'text-slate-500')}>
+                <Button variant="outline" role="combobox" className="w-full max-w-full min-w-0 shrink justify-between overflow-hidden" type="button">
+                    <span className={cn('min-w-0 flex-1 truncate text-left', !selected && 'text-slate-500')}>
                         {selected ? selected.label : placeholder}
                     </span>
                     <ChevronsUpDown className="h-4 w-4 opacity-60" />
@@ -98,13 +98,13 @@ function SearchableDropdown({
             </PopoverTrigger>
             <PopoverContent
                 align="start"
-                className="w-[--radix-popover-trigger-width] max-w-[min(22rem,calc(100vw-2rem))] p-0"
+                className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] min-w-0 p-0"
             >
-                <Command>
+                <Command className="min-w-0">
                     <CommandInput placeholder={searchPlaceholder} />
                     <CommandEmpty>{emptyText}</CommandEmpty>
-                    <CommandList>
-                        <CommandGroup>
+                    <CommandList className="min-w-0">
+                        <CommandGroup className="min-w-0">
                             {items.map((item) => (
                                 <CommandItem
                                     key={item.value}
@@ -113,10 +113,10 @@ function SearchableDropdown({
                                         onValueChange(item.value);
                                         setOpen(false);
                                     }}
-                                    className="gap-2"
+                                    className="min-w-0 gap-2 overflow-hidden"
                                 >
-                                    <Check className={cn('h-4 w-4', value === item.value ? 'opacity-100' : 'opacity-0')} />
-                                    <div className="min-w-0">
+                                    <Check className={cn('h-4 w-4 shrink-0', value === item.value ? 'opacity-100' : 'opacity-0')} />
+                                    <div className="min-w-0 flex-1 overflow-hidden">
                                         <div className="truncate">{item.label}</div>
                                         {item.description ? (
                                             <div className="truncate text-xs text-slate-500">{item.description}</div>
@@ -192,13 +192,13 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
                     </p>
                 </div>
 
-                <Card>
+                <Card className="min-w-0">
                     <CardHeader>
                         <CardTitle className="text-base">Event filter</CardTitle>
                         <CardDescription>Show and add vehicles by event.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        <div className="space-y-1">
+                        <div className="min-w-0 space-y-1">
                             <Label>Event <span className="text-[11px] font-semibold text-red-600">*</span></Label>
                             <SearchableDropdown
                                 value={form.data.programme_id}

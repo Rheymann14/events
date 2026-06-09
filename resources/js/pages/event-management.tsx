@@ -1442,7 +1442,7 @@ export default function EventManagement(props: PageProps) {
             <Head title="Event Management" />
 
             {/* ✅ removed overflow-x-auto here */}
-            <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+            <div className="flex h-full min-w-0 flex-1 flex-col gap-4 rounded-xl p-2 sm:p-4">
                 {/* header */}
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
@@ -1456,10 +1456,10 @@ export default function EventManagement(props: PageProps) {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+                <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950 sm:p-4">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-                            <div className="relative w-full sm:w-[360px]">
+                        <div className="flex min-w-0 w-full flex-col gap-2 sm:flex-row lg:w-auto">
+                            <div className="relative min-w-0 w-full sm:w-[360px]">
                                 <Search className="pointer-events-none absolute top-2.5 left-3 h-4 w-4 text-slate-500" />
                                 <Input
                                     value={q}
@@ -1473,7 +1473,7 @@ export default function EventManagement(props: PageProps) {
                                 value={statusFilter}
                                 onValueChange={(v) => setStatusFilter(v as any)}
                             >
-                                <SelectTrigger className="w-full sm:w-[170px]">
+                                <SelectTrigger className="w-full min-w-0 sm:w-[170px]">
                                     <SelectValue placeholder="Status" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1494,7 +1494,7 @@ export default function EventManagement(props: PageProps) {
                                 value={eventFilter}
                                 onValueChange={(v) => setEventFilter(v as any)}
                             >
-                                <SelectTrigger className="w-full sm:w-[190px]">
+                                <SelectTrigger className="w-full min-w-0 sm:w-[190px]">
                                     <SelectValue placeholder="Event phase" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1543,13 +1543,13 @@ export default function EventManagement(props: PageProps) {
                         ) : (
                             // ✅ scrollbar only in table area
                             <>
-                                <div className="space-y-3 xl:hidden">
+                                <div className="min-w-0 space-y-3 xl:hidden">
                                     {filtered.map((p) => (
                                         <div
                                             key={p.id}
-                                            className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950"
+                                            className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950"
                                         >
-                                            <div className="flex items-start gap-3">
+                                            <div className="flex min-w-0 items-start gap-3">
                                                 <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
                                                     <img
                                                         src={resolveImageUrl(
@@ -2239,7 +2239,7 @@ export default function EventManagement(props: PageProps) {
                         onSubmit={submit}
                         className="flex max-h-[85vh] flex-col"
                     >
-                        <div className="px-6 pt-6">
+                        <div className="px-4 pt-5 sm:px-6 sm:pt-6">
                             <DialogHeader>
                                 <DialogTitle>
                                     {editing ? 'Edit Event' : 'Add Event'}
@@ -2251,9 +2251,9 @@ export default function EventManagement(props: PageProps) {
                             </DialogHeader>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto px-6 pb-6">
+                        <div className="flex-1 overflow-y-auto px-4 pb-5 sm:px-6 sm:pb-6">
                             <div className="mt-4 grid gap-4">
-                                <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                                     <div className="space-y-1.5 sm:col-span-2">
                                         <div className="text-sm font-medium">
                                             Title
@@ -2345,8 +2345,8 @@ export default function EventManagement(props: PageProps) {
                                             Image
                                         </div>
 
-                                        <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
-                                            <div className="space-y-2">
+                                        <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_200px]">
+                                            <div className="min-w-0 space-y-2">
                                                 <Input
                                                     type="file"
                                                     accept="image/*"
@@ -2365,7 +2365,7 @@ export default function EventManagement(props: PageProps) {
                                                 !form.data.image ? (
                                                     <div className="text-xs text-slate-500 dark:text-slate-400">
                                                         Current:{' '}
-                                                        <span className="font-semibold">
+                                                        <span className="font-semibold break-words">
                                                             {basename(
                                                                 currentImageUrl,
                                                             )}
@@ -2396,8 +2396,8 @@ export default function EventManagement(props: PageProps) {
                                             PDF (View more)
                                         </div>
 
-                                        <div className="grid gap-3 sm:grid-cols-[1fr_260px]">
-                                            <div className="space-y-2">
+                                        <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_260px]">
+                                            <div className="min-w-0 space-y-2">
                                                 <Input
                                                     type="file"
                                                     accept="application/pdf"
@@ -2416,7 +2416,7 @@ export default function EventManagement(props: PageProps) {
                                                 !form.data.pdf ? (
                                                     <div className="text-xs text-slate-500 dark:text-slate-400">
                                                         Current:{' '}
-                                                        <span className="font-semibold">
+                                                        <span className="font-semibold break-words">
                                                             {basename(
                                                                 currentPdfUrl,
                                                             )}
@@ -2778,7 +2778,7 @@ export default function EventManagement(props: PageProps) {
                         onSubmit={submitRegistrationFields}
                         className="flex max-h-[85vh] flex-col"
                     >
-                        <div className="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
+                        <div className="border-b border-slate-200 px-4 py-5 dark:border-slate-800 sm:px-6">
                             <DialogHeader>
                                 <DialogTitle>Registration fields</DialogTitle>
                                 <DialogDescription>
@@ -2792,7 +2792,7 @@ export default function EventManagement(props: PageProps) {
                             </DialogHeader>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto px-6 py-5">
+                        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
                             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                                 <div className="text-sm text-slate-600 dark:text-slate-400">
                                     Core identity, account, virtual ID, and QR
@@ -2825,10 +2825,10 @@ export default function EventManagement(props: PageProps) {
                                             return (
                                                 <div
                                                     key={`${field.id ?? 'new'}-${index}`}
-                                                    className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950"
+                                                    className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950 sm:p-4"
                                                 >
-                                                    <div className="grid gap-3 lg:grid-cols-[1fr_210px]">
-                                                        <div className="space-y-1.5">
+                                                    <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_210px]">
+                                                        <div className="min-w-0 space-y-1.5">
                                                             <div className="text-sm font-medium">
                                                                 {field.field_type ===
                                                                 'section'
@@ -2860,7 +2860,7 @@ export default function EventManagement(props: PageProps) {
                                                             />
                                                         </div>
 
-                                                        <div className="space-y-1.5">
+                                                        <div className="min-w-0 space-y-1.5">
                                                             <div className="text-sm font-medium">
                                                                 Type
                                                             </div>
@@ -2922,11 +2922,11 @@ export default function EventManagement(props: PageProps) {
                                                         </div>
                                                     </div>
 
-                                                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                                                    <div className="mt-3 grid min-w-0 gap-3 lg:grid-cols-2">
                                                         {field.field_type !==
                                                         'section' ? (
                                                             <>
-                                                                <div className="space-y-1.5">
+                                                                <div className="min-w-0 space-y-1.5">
                                                                     <div className="text-sm font-medium">
                                                                         Placeholder
                                                                     </div>
@@ -2951,7 +2951,7 @@ export default function EventManagement(props: PageProps) {
                                                                         placeholder="Optional"
                                                                     />
                                                                 </div>
-                                                                <div className="space-y-1.5">
+                                                                <div className="min-w-0 space-y-1.5">
                                                                     <div className="text-sm font-medium">
                                                                         Help
                                                                         text
@@ -2981,7 +2981,7 @@ export default function EventManagement(props: PageProps) {
                                                         ) : null}
 
                                                         {needsOptions ? (
-                                                            <div className="space-y-1.5 lg:col-span-2">
+                                                            <div className="min-w-0 space-y-1.5 lg:col-span-2">
                                                                 <div className="text-sm font-medium">
                                                                     Options
                                                                 </div>
@@ -3116,7 +3116,7 @@ export default function EventManagement(props: PageProps) {
                             )}
                         </div>
 
-                        <div className="border-t border-slate-200 bg-white/85 px-6 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
+                        <div className="border-t border-slate-200 bg-white/85 px-4 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 sm:px-6">
                             <DialogFooter className="gap-2 sm:gap-0">
                                 <Button
                                     type="button"
@@ -3146,24 +3146,26 @@ export default function EventManagement(props: PageProps) {
                     if (!open) closeVenueDialog();
                 }}
             >
-                <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-[980px]">
-                    <DialogHeader>
+                <DialogContent className="max-h-[85vh] w-[calc(100vw-1.5rem)] overflow-y-auto sm:max-w-[980px]">
+                    <DialogHeader className="min-w-0">
                         <DialogTitle>
                             {venueTarget?.venue ? 'Edit Venue' : 'Add Venue'}
                         </DialogTitle>
                         <DialogDescription>
                             Set the venue for{' '}
                             <span className="font-medium text-slate-900 dark:text-slate-100">
-                                {venueTarget?.title}
+                                <span className="break-words">
+                                    {venueTarget?.title}
+                                </span>
                             </span>
                             .
                         </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submitVenue} className="space-y-4">
-                        <div className="grid gap-4 lg:grid-cols-[1fr_420px]">
-                            <div className="space-y-4">
-                                <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+                            <div className="min-w-0 space-y-4">
+                                <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                                     <div className="space-y-1.5 sm:col-span-2">
                                         <div className="text-sm font-medium">
                                             Venue name{' '}
@@ -3301,7 +3303,7 @@ export default function EventManagement(props: PageProps) {
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="min-w-0 space-y-3">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                         Map Preview

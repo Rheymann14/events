@@ -250,13 +250,13 @@ function SearchableDropdown({
                     aria-expanded={open}
                     disabled={disabled}
                     className={cn(
-                        'w-full justify-between gap-2',
+                        'w-full max-w-full min-w-0 shrink justify-between gap-2 overflow-hidden',
                         buttonClassName,
                     )}
                 >
                     <span
                         className={cn(
-                            'min-w-0 truncate',
+                            'min-w-0 flex-1 truncate text-left',
                             !selected ? 'text-slate-500' : undefined,
                         )}
                     >
@@ -268,14 +268,14 @@ function SearchableDropdown({
 
             <PopoverContent
                 align="start"
-                className="w-[--radix-popover-trigger-width] p-0"
+                className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] min-w-0 p-0"
             >
-                <Command>
+                <Command className="min-w-0">
                     <CommandInput placeholder={searchPlaceholder} />
                     <CommandEmpty>{emptyText}</CommandEmpty>
 
-                    <CommandList>
-                        <CommandGroup>
+                    <CommandList className="min-w-0">
+                        <CommandGroup className="min-w-0">
                             {items.map((item) => (
                                 <CommandItem
                                     key={item.value}
@@ -285,17 +285,17 @@ function SearchableDropdown({
                                         onValueChange(item.value);
                                         setOpen(false);
                                     }}
-                                    className="gap-2"
+                                    className="min-w-0 overflow-hidden gap-2"
                                 >
                                     <Check
                                         className={cn(
-                                            'h-4 w-4',
+                                            'h-4 w-4 shrink-0',
                                             value === item.value
                                                 ? 'opacity-100'
                                                 : 'opacity-0',
                                         )}
                                     />
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1 overflow-hidden">
                                         <div className="truncate">
                                             {item.label}
                                         </div>
@@ -471,14 +471,14 @@ export default function TableAssignmenyPage(props: PageProps) {
     }
 
     const eventContextCard = (
-        <Card>
+        <Card className="min-w-0">
             <CardHeader>
                 <CardTitle className="text-base">Event Filter</CardTitle>
                 <CardDescription></CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-                <div className="grid gap-3 md:grid-cols-[260px,1fr] md:items-center">
-                    <div className="space-y-1">
+                <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,260px),minmax(0,1fr)] md:items-center">
+                    <div className="min-w-0 space-y-1">
                         <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
                             Event{' '}
                             <span className="text-[11px] font-semibold text-red-600">
@@ -2835,7 +2835,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                     chedView === 'assignment' ? (
                         <>
                             <div className="grid gap-6">
-                                <Card>
+                                <Card className="min-w-0">
                                     <CardHeader>
                                         <CardTitle className="text-base">
                                             Event Filter
@@ -2845,8 +2845,8 @@ export default function TableAssignmenyPage(props: PageProps) {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
-                                        <div className="grid gap-3 md:grid-cols-[260px,1fr] md:items-center">
-                                            <div className="space-y-1">
+                                        <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,260px),minmax(0,1fr)] md:items-center">
+                                            <div className="min-w-0 space-y-1">
                                                 <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                                     Event{' '}
                                                     <span className="text-[11px] font-semibold text-red-600">
