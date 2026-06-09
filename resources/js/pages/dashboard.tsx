@@ -1066,7 +1066,7 @@ export default function Dashboard() {
 
                 <div className="grid gap-3 lg:grid-cols-3">
                     {/* Top Events table */}
-                    <Card className="rounded-2xl border border-sidebar-border/70 lg:col-span-2 dark:border-sidebar-border">
+                    <Card className="min-w-0 rounded-2xl border border-sidebar-border/70 lg:col-span-2 dark:border-sidebar-border">
                         <CardHeader className="p-4 pb-2">
                             <div className="flex items-center justify-between gap-3">
                                 <div className="space-y-0.5">
@@ -1088,23 +1088,114 @@ export default function Dashboard() {
                         </CardHeader>
 
                         <CardContent className="p-0">
-                            <div className="max-h-[220px] overflow-auto">
-                                <table className="w-full text-xs">
+                            <div className="max-h-[260px] overflow-y-auto sm:hidden">
+                                {topEventsRows.length ? (
+                                    <div className="divide-y">
+                                        {topEventsRows.map((ev, idx) => {
+                                            const pct = Math.max(
+                                                0,
+                                                Math.min(
+                                                    100,
+                                                    Math.round(
+                                                        (ev.attendance /
+                                                            maxScanned) *
+                                                            100,
+                                                    ),
+                                                ),
+                                            );
+
+                                            return (
+                                                <div
+                                                    key={ev.id}
+                                                    className="space-y-2 px-4 py-3"
+                                                >
+                                                    <div className="flex min-w-0 items-start gap-3">
+                                                        <span className="shrink-0 text-xs font-semibold text-foreground">
+                                                            {idx + 1}
+                                                        </span>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="text-xs leading-snug font-medium break-words text-foreground">
+                                                                {ev.title}
+                                                            </div>
+                                                            <div className="mt-1 text-[11px] text-muted-foreground">
+                                                                {formatShortDate(
+                                                                    ev.starts_at,
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="h-1.5 w-full rounded-full bg-muted">
+                                                        <div
+                                                            className="h-1.5 rounded-full"
+                                                            style={{
+                                                                width: `${pct}%`,
+                                                                backgroundColor:
+                                                                    CHART_PRIMARY,
+                                                                opacity: 0.9,
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+                                                        <span>
+                                                            Joined:{' '}
+                                                            <span className="font-medium text-foreground">
+                                                                {ev.joined.toLocaleString()}
+                                                            </span>
+                                                        </span>
+
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                openAttendance(
+                                                                    ev,
+                                                                )
+                                                            }
+                                                            className="h-7 shrink-0 rounded-full bg-[#0033A0]/10 px-3 text-xs font-semibold text-[#0033A0] hover:bg-[#0033A0]/15 focus-visible:ring-2 focus-visible:ring-[#0033A0]/30"
+                                                            title="View attendance details"
+                                                            aria-label={`View attendance details: ${ev.attendance.toLocaleString()}`}
+                                                        >
+                                                            {ev.attendance.toLocaleString()}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="px-4 py-3 text-xs text-muted-foreground">
+                                        No events yet.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="hidden max-h-[220px] overflow-auto sm:block">
+                                <table className="w-full table-fixed text-xs">
+                                    <colgroup>
+                                        <col className="w-10" />
+                                        <col />
+                                        <col className="w-24" />
+                                        <col className="w-24" />
+                                        <col className="w-28" />
+                                    </colgroup>
                                     <thead className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur">
                                         <tr className="text-muted-foreground">
-                                            <th className="w-10 px-4 py-2 text-left font-semibold">
+                                            <th className="px-4 py-2 text-left font-semibold">
                                                 #
                                             </th>
                                             <th className="px-2 py-2 text-left font-semibold">
                                                 Event
                                             </th>
-                                            <th className="w-24 px-2 py-2 text-left font-semibold">
+                                            <th className="px-2 py-2 text-left font-semibold">
                                                 Date
                                             </th>
-                                            <th className="w-24 px-2 py-2 text-right font-semibold">
+                                            <th className="px-2 py-2 text-right font-semibold">
                                                 Joined
                                             </th>
-                                            <th className="w-28 px-4 py-2 text-right font-semibold">
+                                            <th className="px-4 py-2 text-right font-semibold">
                                                 Attendance
                                             </th>
                                         </tr>
@@ -1137,7 +1228,7 @@ export default function Dashboard() {
                                                             </span>
                                                         </td>
 
-                                                        <td className="px-2 py-2">
+                                                        <td className="max-w-0 px-2 py-2">
                                                             <div className="min-w-0">
                                                                 <div
                                                                     className="truncate font-medium text-foreground"

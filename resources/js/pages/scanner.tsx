@@ -884,7 +884,7 @@ export default function Scanner(props: PageProps) {
     const [deviceDiscoveryReady, setDeviceDiscoveryReady] =
         React.useState(false);
     const [cameraError, setCameraError] = React.useState<string | null>(null);
-    const [cameraMirrored, setCameraMirrored] = React.useState(false);
+    const [cameraMirrored, setCameraMirrored] = React.useState(true);
 
     const [manualCode, setManualCode] = React.useState('');
     const [showManual, setShowManual] = React.useState(false);
@@ -910,7 +910,7 @@ export default function Scanner(props: PageProps) {
     const lastDetectedRef = React.useRef('');
     const lockRef = React.useRef(false);
     const isScanningRef = React.useRef(false);
-    const cameraMirroredRef = React.useRef(false);
+    const cameraMirroredRef = React.useRef(true);
 
     // ✅ sounds
     const sounds = useScanSounds();
