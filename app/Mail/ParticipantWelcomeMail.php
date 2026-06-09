@@ -48,8 +48,8 @@ class ParticipantWelcomeMail extends Mailable
             ->map(fn (Programme $event) => [
                 'id' => $event->id,
                 'title' => $event->title,
-                'starts_at' => $event->starts_at?->format('F j, Y g:i A'),
-                'ends_at' => $event->ends_at?->format('F j, Y g:i A'),
+                'starts_at' => $event->starts_at?->format('F j, Y'),
+                'ends_at' => $event->ends_at?->format('F j, Y'),
             ]);
 
         $assignments = $this->user->tableAssignments->keyBy('programme_id');
@@ -83,9 +83,16 @@ class ParticipantWelcomeMail extends Mailable
 
     private function qrUrl(): string
     {
-        $payload = urlencode((string) $this->user->qr_payload);
+        $query = http_build_query([
+            'size' => '220x220',
+            'margin' => '0',
+            'format' => 'png',
+            'color' => '000000',
+            'bgcolor' => 'FFFFFF',
+            'data' => (string) $this->user->qr_payload,
+        ]);
 
-        return "https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=0&data={$payload}";
+        return "https://api.qrserver.com/v1/create-qr-code/?{$query}";
     }
 
     private function confirmationEventTitle(): string
