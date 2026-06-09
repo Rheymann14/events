@@ -628,6 +628,8 @@ export default function Register({
     const virtualIdImageUrl = virtualIdPhotoUrl(virtualIdParticipant);
     const [preferredImagePreviewUrl, setPreferredImagePreviewUrl] =
         React.useState<string | null>(null);
+    const [preferredImageFile, setPreferredImageFile] =
+        React.useState<File | null>(null);
     const [preferredImageError, setPreferredImageError] =
         React.useState<string>('');
     const [cropImageSrc, setCropImageSrc] = React.useState('');
@@ -762,6 +764,8 @@ export default function Register({
             return;
         }
 
+        setPreferredImageFile(null);
+
         if (!['image/png', 'image/jpeg'].includes(file.type)) {
             setPreferredImageError('Upload a PNG, JPG, or JPEG image.');
             return;
@@ -829,6 +833,7 @@ export default function Register({
             preferredImageInputRef.current.files = transfer.files;
         }
 
+        setPreferredImageFile(file);
         setPreferredImagePreviewUrl((current) => {
             if (current?.startsWith('blob:')) {
                 URL.revokeObjectURL(current);
@@ -851,6 +856,7 @@ export default function Register({
         setPreferredImageError('');
         setCropImageSrc('');
         setCompletedCrop(undefined);
+        setPreferredImageFile(null);
 
         if (preferredImageInputRef.current) {
             preferredImageInputRef.current.value = '';
@@ -2399,6 +2405,21 @@ export default function Register({
                 className="flex flex-col gap-6"
                 noValidate
                 data-test="register-form"
+                transform={(data) => {
+                    const payload = { ...data };
+
+                    if (preferredImageFile) {
+                        payload.profile_photo = preferredImageFile;
+                    } else if (
+                        payload.profile_photo instanceof File &&
+                        payload.profile_photo.name === '' &&
+                        payload.profile_photo.size === 0
+                    ) {
+                        delete payload.profile_photo;
+                    }
+
+                    return payload;
+                }}
                 onInputCapture={(e) => {
                     const target = e.target as
                         | HTMLInputElement

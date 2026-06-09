@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Models\UserType;
 use App\Services\WelcomeNotificationService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -336,15 +335,10 @@ class CreateNewUser implements CreatesNewUsers
 
         $extension = $profilePhoto->getClientOriginalExtension() ?: 'jpg';
         $filename = sprintf('%s.%s', Str::uuid(), $extension);
-        $directory = public_path('profile-image');
 
-        if (! File::exists($directory)) {
-            File::makeDirectory($directory, 0755, true);
-        }
+        $profilePhoto->storeAs('profile-image', $filename, 'public');
 
-        $profilePhoto->move($directory, $filename);
-
-        return 'profile-image/'.$filename;
+        return 'storage/profile-image/'.$filename;
     }
 
     private function storeRegistrationResponses(User $user, array $programmeIds, mixed $responses): void

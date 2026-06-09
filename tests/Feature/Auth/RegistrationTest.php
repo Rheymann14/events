@@ -7,8 +7,10 @@ use App\Models\Programme;
 use App\Models\RegistrationField;
 use App\Models\User;
 use App\Models\UserType;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('registration screen can be rendered', function () {
@@ -237,6 +239,61 @@ test('new users can register', function () {
             ->where('status', 'registered')
             ->where('registeredParticipant.display_id', $participant->display_id)
         );
+});
+
+test('new users can register with a profile photo', function () {
+    Storage::fake('public');
+
+    $country = Country::query()->create([
+        'code' => 'PH',
+        'name' => 'Philippines',
+        'is_active' => true,
+    ]);
+
+    $userType = UserType::query()->create([
+        'name' => 'Participant',
+        'slug' => 'participant',
+        'is_active' => true,
+    ]);
+
+    $owner = User::factory()->create();
+    $programme = Programme::query()->create([
+        'user_id' => $owner->id,
+        'tag' => 'OPEN',
+        'title' => 'Open Registration Event',
+        'description' => 'Open registration',
+        'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDays(2),
+        'location' => 'Manila',
+        'is_active' => true,
+        'is_registration_active' => true,
+    ]);
+
+    $response = $this->post(route('register.store'), [
+        'honorific_title' => 'mr',
+        'given_name' => 'Photo',
+        'family_name' => 'User',
+        'sex_assigned_at_birth' => 'male',
+        'organization_name' => 'Test Organization',
+        'position_title' => 'Delegate',
+        'email' => 'photo-user@example.com',
+        'contact_country_code' => '+63',
+        'contact_number' => '09171234567',
+        'country_id' => $country->id,
+        'user_type_id' => $userType->id,
+        'programme_ids' => [$programme->id],
+        'profile_photo' => UploadedFile::fake()->image('profile-photo.jpg', 320, 320),
+    ]);
+
+    $response->assertRedirect(route('register', absolute: false));
+    $response->assertSessionHas('status', 'registered');
+
+    $participant = User::query()->where('email', 'photo-user@example.com')->firstOrFail();
+
+    expect($participant->profile_photo_path)->toStartWith('storage/profile-image/')
+        ->and(Storage::disk('public')->exists(
+            str_replace('storage/', '', $participant->profile_photo_path),
+        ))->toBeTrue();
 });
 
 test('existing users can join selected event from registration form', function () {

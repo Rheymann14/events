@@ -1368,15 +1368,10 @@ class ParticipantController extends Controller
 
         $extension = $file->getClientOriginalExtension() ?: 'jpg';
         $filename = sprintf('%s.%s', Str::uuid(), $extension);
-        $directory = public_path('profile-image');
 
-        if (! File::exists($directory)) {
-            File::makeDirectory($directory, 0755, true);
-        }
+        $file->storeAs('profile-image', $filename, 'public');
 
-        $file->move($directory, $filename);
-
-        return 'profile-image/'.$filename;
+        return 'storage/profile-image/'.$filename;
     }
 
     private function registrationFieldsPayload(Programme $programme): array

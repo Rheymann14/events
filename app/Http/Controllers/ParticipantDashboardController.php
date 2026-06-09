@@ -90,12 +90,9 @@ class ParticipantDashboardController extends Controller
         $file = $request->file('profile_photo');
         $extension = $file->getClientOriginalExtension() ?: 'jpg';
         $filename = sprintf('%s-%s.%s', $user->id, Str::uuid(), $extension);
-        $directory = public_path('profile-image');
-        if (!File::exists($directory)) {
-            File::makeDirectory($directory, 0755, true);
-        }
-        $file->move($directory, $filename);
-        $user->profile_photo_path = 'profile-image/' . $filename;
+
+        $file->storeAs('profile-image', $filename, 'public');
+        $user->profile_photo_path = 'storage/profile-image/' . $filename;
         $user->save();
 
         return back();

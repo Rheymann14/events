@@ -123,6 +123,7 @@ class ScannerController extends Controller
                 $profileImageUrl = $rawProfilePath;
             } else {
                 $relative = str_starts_with($rawProfilePath, 'profile-image/')
+                    || str_starts_with($rawProfilePath, 'storage/profile-image/')
                     ? $rawProfilePath
                     : 'profile-image/'.$rawProfilePath;
 
