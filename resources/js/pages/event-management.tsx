@@ -1317,15 +1317,17 @@ export default function EventManagement(props: PageProps) {
         }
 
         return (
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
                 <div className="flex min-w-0 items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
                     <MapPin className="h-4 w-4 shrink-0 text-slate-500" />
-                    <span className="truncate">{item.venue.name}</span>
+                    <span className="min-w-0 break-words">
+                        {item.venue.name}
+                    </span>
                 </div>
                 {item.venue.address ? (
                     <div
                         className={cn(
-                            'text-xs text-slate-500 dark:text-slate-400',
+                            'min-w-0 text-xs break-words text-slate-500 dark:text-slate-400',
                             compact ? '' : 'line-clamp-2',
                         )}
                     >
@@ -1360,16 +1362,18 @@ export default function EventManagement(props: PageProps) {
                 type="button"
                 onClick={() => openParticipants(item)}
                 className={cn(
-                    'inline-flex items-center justify-center gap-2 rounded-full border border-[#00359c]/20 bg-[#00359c]/5 px-3 py-1 text-sm font-semibold text-[#00359c] shadow-sm hover:bg-[#00359c]/10 focus-visible:ring-2 focus-visible:ring-[#00359c]/30 focus-visible:outline-none',
-                    fullWidth ? 'w-full' : '',
+                    'inline-flex max-w-full items-center justify-center gap-2 rounded-full border border-[#00359c]/20 bg-[#00359c]/5 px-3 py-1 text-sm font-semibold text-[#00359c] shadow-sm hover:bg-[#00359c]/10 focus-visible:ring-2 focus-visible:ring-[#00359c]/30 focus-visible:outline-none',
+                    fullWidth ? 'w-full min-w-0 flex-wrap' : '',
                 )}
             >
-                {(
-                    item.participant_count ??
-                    item.participants?.length ??
-                    0
-                ).toLocaleString()}{' '}
-                joined
+                <span className="min-w-0">
+                    {(
+                        item.participant_count ??
+                        item.participants?.length ??
+                        0
+                    ).toLocaleString()}{' '}
+                    joined
+                </span>
                 <span className="text-xs font-medium opacity-70">View</span>
             </button>
         );
@@ -1456,10 +1460,10 @@ export default function EventManagement(props: PageProps) {
                     </p>
                 </div>
 
-                <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950 sm:p-4">
+                <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-950">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex min-w-0 w-full flex-col gap-2 sm:flex-row lg:w-auto">
-                            <div className="relative min-w-0 w-full sm:w-[360px]">
+                        <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row lg:w-auto">
+                            <div className="relative w-full min-w-0 sm:w-[360px]">
                                 <Search className="pointer-events-none absolute top-2.5 left-3 h-4 w-4 text-slate-500" />
                                 <Input
                                     value={q}
@@ -2778,7 +2782,7 @@ export default function EventManagement(props: PageProps) {
                         onSubmit={submitRegistrationFields}
                         className="flex max-h-[85vh] flex-col"
                     >
-                        <div className="border-b border-slate-200 px-4 py-5 dark:border-slate-800 sm:px-6">
+                        <div className="border-b border-slate-200 px-4 py-5 sm:px-6 dark:border-slate-800">
                             <DialogHeader>
                                 <DialogTitle>Registration fields</DialogTitle>
                                 <DialogDescription>
@@ -2825,7 +2829,7 @@ export default function EventManagement(props: PageProps) {
                                             return (
                                                 <div
                                                     key={`${field.id ?? 'new'}-${index}`}
-                                                    className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950 sm:p-4"
+                                                    className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-950"
                                                 >
                                                     <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_210px]">
                                                         <div className="min-w-0 space-y-1.5">
@@ -3116,7 +3120,7 @@ export default function EventManagement(props: PageProps) {
                             )}
                         </div>
 
-                        <div className="border-t border-slate-200 bg-white/85 px-4 py-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 sm:px-6">
+                        <div className="border-t border-slate-200 bg-white/85 px-4 py-4 backdrop-blur sm:px-6 dark:border-slate-800 dark:bg-slate-950/85">
                             <DialogFooter className="gap-2 sm:gap-0">
                                 <Button
                                     type="button"

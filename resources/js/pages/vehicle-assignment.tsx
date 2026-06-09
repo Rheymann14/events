@@ -700,11 +700,11 @@ export default function VehicleAssignmentPage({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={pageTitle} />
 
-            <div className="flex h-full flex-1 flex-col gap-4 rounded-xl p-2 sm:p-4">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+            <div className="flex h-full min-w-0 flex-1 flex-col gap-4 rounded-xl p-2 sm:p-4">
+                <div className="min-w-0 space-y-1">
+                    <div className="flex min-w-0 items-center gap-2">
                         <Bus className="h-5 w-5 text-[#00359c]" />
-                        <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                        <h1 className="min-w-0 text-xl font-semibold tracking-tight break-words text-slate-900 dark:text-slate-100">
                             {pageTitle}
                         </h1>
                     </div>
@@ -761,7 +761,7 @@ export default function VehicleAssignmentPage({
                     </Card>
                 )}
                 {isChedLo ? (
-                    <Card>
+                    <Card className="min-w-0">
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Vehicle Details
@@ -772,7 +772,7 @@ export default function VehicleAssignmentPage({
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                            <div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                 {vehicles.length === 0 ? (
                                     <p className="text-sm text-slate-500">
                                         No vehicles assigned to you for this
@@ -782,18 +782,18 @@ export default function VehicleAssignmentPage({
                                 {vehicles.map((vehicle) => (
                                     <div
                                         key={vehicle.id}
-                                        className="rounded-lg border p-3"
+                                        className="min-w-0 rounded-lg border p-3"
                                     >
-                                        <p className="font-semibold text-slate-900 dark:text-slate-100">
+                                        <p className="font-semibold break-words text-slate-900 dark:text-slate-100">
                                             {vehicle.label}
                                         </p>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-xs break-words text-slate-500">
                                             Plate: {vehicle.plate_number || '—'}
                                         </p>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-xs break-words text-slate-500">
                                             Driver: {vehicle.driver_name || '—'}
                                         </p>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-xs break-words text-slate-500">
                                             Contact:{' '}
                                             {vehicle.driver_contact_number ||
                                                 '—'}
@@ -842,7 +842,7 @@ export default function VehicleAssignmentPage({
                         </CardContent>
                     </Card>
                 ) : (
-                    <Card>
+                    <Card className="min-w-0">
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Assign Participants
@@ -853,7 +853,7 @@ export default function VehicleAssignmentPage({
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <div className="space-y-1 md:max-w-sm">
+                            <div className="min-w-0 space-y-1 md:max-w-sm">
                                 <Label>Vehicle</Label>
                                 <SearchableDropdown
                                     value={assignmentForm.data.vehicle_id}
@@ -893,7 +893,7 @@ export default function VehicleAssignmentPage({
                         isChedLo ? 'lg:grid-cols-1' : 'lg:grid-cols-2',
                     )}
                 >
-                    <Card>
+                    <Card className="min-w-0">
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Assigned Participants
@@ -912,95 +912,175 @@ export default function VehicleAssignmentPage({
                                         variant="outline"
                                         onClick={removeBulkAssignments}
                                         disabled={!selectedAssignedIds.length}
+                                        className="w-full sm:w-auto"
                                     >
                                         Remove Selected
                                     </Button>
                                 </div>
                             ) : null}
 
-                            {isChedLo ? (
-                                <div className="space-y-3 md:hidden">
-                                    {assignedPageItems.length === 0 ? (
-                                        <p className="rounded-lg border p-4 text-center text-sm text-slate-500">
-                                            No assigned participants found.
-                                        </p>
-                                    ) : null}
-                                    {assignedPageItems.map((participant) => {
-                                        const assignmentId =
-                                            participant.assignment?.id;
-                                        const isPresent = assignmentId
-                                            ? (presenceOverrides[
-                                                  assignmentId
-                                              ] ?? false)
-                                            : false;
-                                        return (
-                                            <div
-                                                key={participant.id}
-                                                className={cn(
-                                                    'space-y-2 rounded-xl border p-3',
+                            <div className="space-y-3 md:hidden">
+                                {assignedPageItems.length === 0 ? (
+                                    <p className="rounded-lg border p-4 text-center text-sm text-slate-500">
+                                        No assigned participants found.
+                                    </p>
+                                ) : null}
+                                {assignedPageItems.map((participant) => {
+                                    const assignmentId =
+                                        participant.assignment?.id;
+                                    const isPresent = assignmentId
+                                        ? (presenceOverrides[assignmentId] ??
+                                          false)
+                                        : false;
+
+                                    return (
+                                        <div
+                                            key={participant.id}
+                                            className={cn(
+                                                'min-w-0 space-y-3 rounded-xl border p-3',
+                                                isChedLo &&
                                                     isPresent &&
-                                                        'bg-green-50 dark:bg-emerald-950/40',
-                                                )}
-                                            >
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div>
-                                                        <p className="font-semibold">
+                                                    'bg-green-50 dark:bg-emerald-950/40',
+                                            )}
+                                        >
+                                            <div className="flex min-w-0 items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold break-words text-slate-900 dark:text-slate-100">
+                                                        {participant.full_name}
+                                                    </p>
+                                                    <p className="text-xs break-words text-slate-500">
+                                                        {participant.email ||
+                                                            '—'}
+                                                    </p>
+                                                </div>
+                                                <Checkbox
+                                                    checked={
+                                                        isChedLo
+                                                            ? isPresent
+                                                            : selectedAssignedIds.includes(
+                                                                  participant.id,
+                                                              )
+                                                    }
+                                                    disabled={
+                                                        isChedLo &&
+                                                        !assignmentId
+                                                    }
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        isChedLo
+                                                            ? assignmentId &&
+                                                              togglePresence(
+                                                                  assignmentId,
+                                                                  Boolean(
+                                                                      checked,
+                                                                  ),
+                                                              )
+                                                            : toggleAssignedParticipant(
+                                                                  participant.id,
+                                                                  Boolean(
+                                                                      checked,
+                                                                  ),
+                                                              )
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="grid min-w-0 gap-2 text-xs text-slate-600 sm:grid-cols-2 dark:text-slate-300">
+                                                <div className="min-w-0">
+                                                    <span className="font-medium text-slate-500">
+                                                        Vehicle:
+                                                    </span>{' '}
+                                                    <span className="break-words">
+                                                        {participant.assignment
+                                                            ?.vehicle_label ||
+                                                            '—'}
+                                                    </span>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="font-medium text-slate-500">
+                                                        Table/Seat:
+                                                    </span>{' '}
+                                                    <span className="break-words">
+                                                        {participant.table_assignment
+                                                            ? `${participant.table_assignment.table_number} / Seat ${participant.table_assignment.seat_number ?? '—'}`
+                                                            : '—'}
+                                                    </span>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="font-medium text-slate-500">
+                                                        Dietary:
+                                                    </span>{' '}
+                                                    <span className="break-words">
+                                                        {formatList(
+                                                            participant.dietary
+                                                                ?.food_restrictions,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="font-medium text-slate-500">
+                                                        Accessibility:
+                                                    </span>{' '}
+                                                    <span className="break-words">
+                                                        {formatList(
+                                                            participant
+                                                                .accessibility
+                                                                ?.needs,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {participant.dietary
+                                                ?.dietary_allergies ||
+                                            participant.dietary
+                                                ?.dietary_other ||
+                                            participant.accessibility?.other ? (
+                                                <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                                                    {participant.dietary
+                                                        ?.dietary_allergies ? (
+                                                        <p className="break-words">
+                                                            Allergies:{' '}
                                                             {
-                                                                participant.full_name
+                                                                participant
+                                                                    .dietary
+                                                                    .dietary_allergies
                                                             }
                                                         </p>
-                                                        <p className="text-xs text-slate-500">
-                                                            {participant.email ||
-                                                                '—'}
+                                                    ) : null}
+                                                    {participant.dietary
+                                                        ?.dietary_other ? (
+                                                        <p className="break-words">
+                                                            Dietary other:{' '}
+                                                            {
+                                                                participant
+                                                                    .dietary
+                                                                    .dietary_other
+                                                            }
                                                         </p>
-                                                    </div>
-                                                    <Checkbox
-                                                        checked={isPresent}
-                                                        disabled={!assignmentId}
-                                                        onCheckedChange={(
-                                                            checked,
-                                                        ) =>
-                                                            assignmentId &&
-                                                            togglePresence(
-                                                                assignmentId,
-                                                                Boolean(
-                                                                    checked,
-                                                                ),
-                                                            )
-                                                        }
-                                                    />
+                                                    ) : null}
+                                                    {participant.accessibility
+                                                        ?.other ? (
+                                                        <p className="break-words">
+                                                            Accessibility other:{' '}
+                                                            {
+                                                                participant
+                                                                    .accessibility
+                                                                    .other
+                                                            }
+                                                        </p>
+                                                    ) : null}
                                                 </div>
-                                                <p className="text-xs text-slate-600">
-                                                    Vehicle:{' '}
-                                                    {participant.assignment
-                                                        ?.vehicle_label || '—'}
-                                                </p>
-                                                <p className="text-xs text-slate-600">
-                                                    Table/Seat:{' '}
-                                                    {participant.table_assignment
-                                                        ? `${participant.table_assignment.table_number} / Seat ${participant.table_assignment.seat_number ?? '—'}`
-                                                        : '—'}
-                                                </p>
-                                                <p className="text-xs text-slate-600">
-                                                    Dietary:{' '}
-                                                    {formatList(
-                                                        participant.dietary
-                                                            ?.food_restrictions,
-                                                    )}
-                                                </p>
-                                                <p className="text-xs text-slate-600">
-                                                    Accessibility:{' '}
-                                                    {formatList(
-                                                        participant
-                                                            .accessibility
-                                                            ?.needs,
-                                                    )}
-                                                </p>
-                                                <div className="flex justify-end">
+                                            ) : null}
+
+                                            <div className="flex justify-end">
+                                                {isChedLo ? (
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
                                                         type="button"
+                                                        className="w-full sm:w-auto"
                                                         onClick={() =>
                                                             setIdPreviewParticipant(
                                                                 participant,
@@ -1009,17 +1089,32 @@ export default function VehicleAssignmentPage({
                                                     >
                                                         View ID
                                                     </Button>
-                                                </div>
+                                                ) : (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="w-full sm:w-auto"
+                                                        onClick={() =>
+                                                            removeAssignment(
+                                                                participant
+                                                                    .assignment!
+                                                                    .id,
+                                                            )
+                                                        }
+                                                    >
+                                                        Remove Assignment
+                                                    </Button>
+                                                )}
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : null}
+                                        </div>
+                                    );
+                                })}
+                            </div>
 
                             <div
                                 className={cn(
-                                    'overflow-x-auto rounded-xl border',
-                                    isChedLo ? 'hidden md:block' : 'block',
+                                    'hidden overflow-x-auto rounded-xl border md:block',
                                 )}
                             >
                                 <Table>
@@ -1262,15 +1357,16 @@ export default function VehicleAssignmentPage({
                                 </Table>
                             </div>
 
-                            <div className="flex items-center justify-between text-sm text-slate-500">
+                            <div className="flex flex-col items-start justify-between gap-2 text-sm text-slate-500 sm:flex-row sm:items-center">
                                 <span>
                                     Page {assignedPage} of {assignedTotalPages}
                                 </span>
-                                <div className="flex gap-2">
+                                <div className="flex w-full gap-2 sm:w-auto">
                                     <Button
                                         type="button"
                                         size="sm"
                                         variant="outline"
+                                        className="flex-1 sm:flex-none"
                                         disabled={assignedPage <= 1}
                                         onClick={() =>
                                             setAssignedPage((page) =>
@@ -1284,6 +1380,7 @@ export default function VehicleAssignmentPage({
                                         type="button"
                                         size="sm"
                                         variant="outline"
+                                        className="flex-1 sm:flex-none"
                                         disabled={
                                             assignedPage >= assignedTotalPages
                                         }
@@ -1304,7 +1401,7 @@ export default function VehicleAssignmentPage({
                     </Card>
 
                     {!isChedLo ? (
-                        <Card>
+                        <Card className="min-w-0">
                             <CardHeader>
                                 <CardTitle className="text-base">
                                     Unassigned Participants
@@ -1323,7 +1420,7 @@ export default function VehicleAssignmentPage({
                                             !selectedIds.length ||
                                             assignmentForm.processing
                                         }
-                                        className="bg-[#00359c] text-white hover:bg-[#00359c]/90"
+                                        className="w-full bg-[#00359c] text-white hover:bg-[#00359c]/90 sm:w-auto"
                                     >
                                         <CheckCircle2 className="mr-2 h-4 w-4" />
                                         Assign Selected
@@ -1335,7 +1432,58 @@ export default function VehicleAssignmentPage({
                                     </p>
                                 ) : null}
 
-                                <div className="overflow-x-auto rounded-xl border">
+                                <div className="space-y-3 md:hidden">
+                                    {unassignedPageItems.length === 0 ? (
+                                        <p className="rounded-lg border p-4 text-center text-sm text-slate-500">
+                                            No unassigned participants found.
+                                        </p>
+                                    ) : null}
+                                    {unassignedPageItems.map((participant) => (
+                                        <div
+                                            key={participant.id}
+                                            className="min-w-0 space-y-3 rounded-xl border p-3"
+                                        >
+                                            <div className="flex min-w-0 items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold break-words text-slate-900 dark:text-slate-100">
+                                                        {participant.full_name}
+                                                    </p>
+                                                    <p className="text-xs break-words text-slate-500">
+                                                        {participant.email ||
+                                                            '—'}
+                                                    </p>
+                                                </div>
+                                                <Checkbox
+                                                    checked={selectedIds.includes(
+                                                        participant.id,
+                                                    )}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        toggleUnassignedParticipant(
+                                                            participant.id,
+                                                            Boolean(checked),
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() =>
+                                                    assignSingle(participant.id)
+                                                }
+                                            >
+                                                Assign
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="hidden overflow-x-auto rounded-xl border md:block">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -1434,16 +1582,17 @@ export default function VehicleAssignmentPage({
                                     </Table>
                                 </div>
 
-                                <div className="flex items-center justify-between text-sm text-slate-500">
+                                <div className="flex flex-col items-start justify-between gap-2 text-sm text-slate-500 sm:flex-row sm:items-center">
                                     <span>
                                         Page {unassignedPage} of{' '}
                                         {unassignedTotalPages}
                                     </span>
-                                    <div className="flex gap-2">
+                                    <div className="flex w-full gap-2 sm:w-auto">
                                         <Button
                                             type="button"
                                             size="sm"
                                             variant="outline"
+                                            className="flex-1 sm:flex-none"
                                             disabled={unassignedPage <= 1}
                                             onClick={() =>
                                                 setUnassignedPage((page) =>
@@ -1457,6 +1606,7 @@ export default function VehicleAssignmentPage({
                                             type="button"
                                             size="sm"
                                             variant="outline"
+                                            className="flex-1 sm:flex-none"
                                             disabled={
                                                 unassignedPage >=
                                                 unassignedTotalPages
