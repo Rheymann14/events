@@ -154,11 +154,23 @@ function formatGivenDate(startsAt?: string | null) {
     if (!startsAt) return '—';
     const start = new Date(startsAt);
     if (Number.isNaN(start.getTime())) return '—';
-    return new Intl.DateTimeFormat('en-PH', {
+    const day = start.getDate();
+    const suffix =
+        day % 100 >= 11 && day % 100 <= 13
+            ? 'th'
+            : day % 10 === 1
+              ? 'st'
+              : day % 10 === 2
+                ? 'nd'
+                : day % 10 === 3
+                  ? 'rd'
+                  : 'th';
+    const month = new Intl.DateTimeFormat('en-PH', {
         month: 'long',
-        day: 'numeric',
-        year: 'numeric',
     }).format(start);
+    const year = start.getFullYear();
+
+    return `${day}${suffix} Day of ${month} ${year}`;
 }
 
 export default function EventKitMaterials() {
@@ -199,8 +211,7 @@ export default function EventKitMaterials() {
                 eventDate,
                 givenDate: givenDateLabel,
                 venue,
-                signatoryName:
-                    programme.signatory_name ?? '',
+                signatoryName: programme.signatory_name ?? '',
                 signatoryTitle: programme.signatory_title ?? '',
                 signatorySignature: signatorySignatureUrl,
             },
@@ -216,7 +227,6 @@ export default function EventKitMaterials() {
             documentTitle: 'Certificate',
         });
     };
-
 
     return (
         <>
@@ -398,7 +408,7 @@ export default function EventKitMaterials() {
                                         'w-fit self-start rounded-xl px-2.5 py-1',
                                         'border-emerald-200 bg-emerald-50 text-emerald-700',
                                         !hasAttendance &&
-                                        'border-rose-200 bg-rose-50 text-rose-600',
+                                            'border-rose-200 bg-rose-50 text-rose-600',
                                     )}
                                 >
                                     {hasAttendance
@@ -535,8 +545,8 @@ export default function EventKitMaterials() {
                                         <div className="flex min-w-0 items-center gap-2">
                                             <Medal className="h-4 w-4 shrink-0" />
                                             <span className="min-w-0 font-semibold break-words">
-                                                Download certificates (appearance
-                                                & participation)
+                                                Download certificates
+                                                (appearance & participation)
                                             </span>
                                         </div>
 

@@ -76,8 +76,14 @@ function renderCertificate({
     participantName: string;
     type: 'appearance' | 'participation';
 }) {
-    const typeTitle = type === 'appearance' ? 'CERTIFICATE OF APPEARANCE' : 'CERTIFICATE OF PARTICIPATION';
-    const lead = type === 'appearance' ? 'This is to certify that' : 'This certificate is hereby given to';
+    const typeTitle =
+        type === 'appearance'
+            ? 'CERTIFICATE OF APPEARANCE'
+            : 'CERTIFICATE OF PARTICIPATION';
+    const lead =
+        type === 'appearance'
+            ? 'This is to certify that'
+            : 'This certificate is hereby given to';
     const body =
         type === 'appearance'
             ? `has appeared during the conduct of <span class="value">${data.eventName}</span> on <span class="value">${data.eventDate}</span> at <span class="value">${data.venue}</span>.`
@@ -97,7 +103,7 @@ function renderCertificate({
             <div class="lead">${lead}</div>
             <div class="recipient">${participantName}</div>
             <div class="text">${body}</div>
-            <div class="given">Given this ${data.givenDate} at ${data.venue}.</div>
+            <div class="given">Given this ${data.givenDate} at the ${data.venue}.</div>
             <div class="signatory">
                 ${data.signatorySignature ? `<img class="signatory-signature" src="${data.signatorySignature}" alt="Signature" />` : ''}
                 <div class="sign-name">${data.signatoryName}</div>
@@ -108,12 +114,8 @@ function renderCertificate({
 }
 
 function toUpperName(name: string) {
-    return (name ?? '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toLocaleUpperCase('en-PH');
+    return (name ?? '').replace(/\s+/g, ' ').trim().toLocaleUpperCase('en-PH');
 }
-
 
 export function buildCertificatePrintBody({
     data,

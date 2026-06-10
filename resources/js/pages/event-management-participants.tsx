@@ -78,11 +78,23 @@ function formatGivenDate(starts_at?: string | null) {
     if (!starts_at) return '—';
     const start = new Date(starts_at);
     if (Number.isNaN(start.getTime())) return '—';
-    return new Intl.DateTimeFormat('en-PH', {
+    const day = start.getDate();
+    const suffix =
+        day % 100 >= 11 && day % 100 <= 13
+            ? 'th'
+            : day % 10 === 1
+              ? 'st'
+              : day % 10 === 2
+                ? 'nd'
+                : day % 10 === 3
+                  ? 'rd'
+                  : 'th';
+    const month = new Intl.DateTimeFormat('en-PH', {
         month: 'long',
-        day: 'numeric',
-        year: 'numeric',
     }).format(start);
+    const year = start.getFullYear();
+
+    return `${day}${suffix} Day of ${month} ${year}`;
 }
 
 function formatVenueLabel(programme: ProgrammeRow) {

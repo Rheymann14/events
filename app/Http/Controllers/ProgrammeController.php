@@ -686,7 +686,7 @@ class ProgrammeController extends Controller
 
     private function formatCertificateDate($date): string
     {
-        return $date ? $date->format('F j, Y') : '-';
+        return $date ? $date->format('jS').' Day of '.$date->format('F Y') : '-';
     }
 
     private function certificateSignaturePath(?string $signatureUrl): ?string
@@ -748,7 +748,7 @@ class ProgrammeController extends Controller
                     ['text' => $data['eventDate'], 'bold' => true],
                     ['text' => ' at '.$data['venue'].'.', 'bold' => false],
                 ],
-                'Given this '.$data['givenDate'].' at '.$data['venue'].'.',
+                'Given this '.$data['givenDate'].' at the '.$data['venue'].'.',
                 $data
             );
 
@@ -770,7 +770,7 @@ class ProgrammeController extends Controller
                     ['text' => $data['eventDate'], 'bold' => true],
                     ['text' => ' at '.$data['venue'].'.', 'bold' => false],
                 ],
-                'Given this '.$data['givenDate'].' at '.$data['venue'].'.',
+                'Given this '.$data['givenDate'].' at the '.$data['venue'].'.',
                 $data
             );
         }
