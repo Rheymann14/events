@@ -1,5 +1,6 @@
 <?php
 
+use App\Mail\ParticipantCertificateMail;
 use App\Models\Country;
 use App\Models\EventRegistrationAttendee;
 use App\Models\EventRegistrationSubmission;
@@ -10,7 +11,9 @@ use App\Models\User;
 use App\Models\UserType;
 use App\Services\WelcomeNotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
@@ -71,6 +74,21 @@ function participantPayload(Country $country, UserType $participantType, array $
         'family_name' => 'Participant',
         'is_active' => true,
     ], $overrides);
+}
+
+function certificateSignatureFixture(): string
+{
+    $fileName = 'test-certificate-signature.png';
+    $directory = public_path('signatures');
+    $path = $directory.'/'.$fileName;
+
+    File::ensureDirectoryExists($directory);
+
+    if (! File::exists($path)) {
+        File::put($path, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lK3Q7wAAAABJRU5ErkJggg=='));
+    }
+
+    return $fileName;
 }
 
 test('participant index is paginated and filterable by event and search', function () {
@@ -474,6 +492,9 @@ test('admin can download participant id cards as portrait and landscape pdfs', f
 test('admin can download checked-in participant certificates as a pdf', function () {
     $admin = adminUser();
     [$country, $participantType, $programme] = participantFixture();
+    $programme->forceFill([
+        'signatory_signature_url' => certificateSignatureFixture(),
+    ])->save();
 
     $participant = User::factory()->create([
         'name' => 'Certified Participant',
@@ -501,6 +522,172 @@ test('admin can download checked-in participant certificates as a pdf', function
         ->assertHeader('Content-Type', 'application/pdf');
 
     expect($response->headers->get('Content-Disposition'))->toContain('participant-certificates-asean-event-');
+});
+
+test('admin can email a checked-in participant certificate pdf', function () {
+    Mail::fake();
+
+    $admin = adminUser();
+    [$country, $participantType, $programme] = participantFixture();
+    $programme->forceFill([
+        'signatory_signature_url' => certificateSignatureFixture(),
+    ])->save();
+
+    $participant = User::factory()->create([
+        'name' => 'Certified Participant',
+        'email' => 'certified@example.test',
+        'country_id' => $country->id,
+        'user_type_id' => $participantType->id,
+    ]);
+
+    $programme->participants()->attach($participant->id);
+
+    ParticipantAttendance::query()->create([
+        'user_id' => $participant->id,
+        'programme_id' => $programme->id,
+        'status' => 'checked-in',
+        'scanned_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('event-management.participants.certificates.send', [$programme, $participant]), [
+            'signatory_name' => 'Dr. Signatory',
+            'signatory_title' => 'Chairperson',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    Mail::assertSent(ParticipantCertificateMail::class, function (ParticipantCertificateMail $mail) use ($participant, $programme) {
+        return $mail->hasTo($participant->email)
+            && $mail->participant->is($participant)
+            && $mail->programme->is($programme)
+            && str_starts_with($mail->pdf, '%PDF')
+            && str_starts_with($mail->filename, 'participant-certificate-certified-participant-');
+    });
+
+    $firstSentAt = ParticipantAttendance::query()
+        ->where('user_id', $participant->id)
+        ->where('programme_id', $programme->id)
+        ->value('certificate_sent_at');
+
+    expect($firstSentAt)->not->toBeNull();
+
+    $this->actingAs($admin)
+        ->post(route('event-management.participants.certificates.send', [$programme, $participant]), [
+            'signatory_name' => 'Dr. Signatory',
+            'signatory_title' => 'Chairperson',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    Mail::assertSent(ParticipantCertificateMail::class, 2);
+
+    expect(
+        ParticipantAttendance::query()
+            ->where('user_id', $participant->id)
+            ->where('programme_id', $programme->id)
+            ->value('certificate_sent_at')
+    )->not->toBeNull();
+});
+
+test('admin cannot email a participant certificate without check-in attendance', function () {
+    Mail::fake();
+
+    $admin = adminUser();
+    [$country, $participantType, $programme] = participantFixture();
+    $programme->forceFill([
+        'signatory_signature_url' => certificateSignatureFixture(),
+    ])->save();
+
+    $participant = User::factory()->create([
+        'name' => 'Absent Participant',
+        'email' => 'absent@example.test',
+        'country_id' => $country->id,
+        'user_type_id' => $participantType->id,
+    ]);
+
+    $programme->participants()->attach($participant->id);
+
+    $this->actingAs($admin)
+        ->from(route('event-management.participants', $programme))
+        ->post(route('event-management.participants.certificates.send', [$programme, $participant]), [
+            'signatory_name' => 'Dr. Signatory',
+            'signatory_title' => 'Chairperson',
+        ])
+        ->assertRedirect(route('event-management.participants', $programme))
+        ->assertSessionHasErrors(['certificates']);
+
+    Mail::assertNothingSent();
+
+    expect(
+        ParticipantAttendance::query()
+            ->where('user_id', $participant->id)
+            ->where('programme_id', $programme->id)
+            ->value('certificate_sent_at')
+    )->toBeNull();
+});
+
+test('admin cannot email a participant certificate without complete signatory details', function () {
+    Mail::fake();
+
+    $admin = adminUser();
+    [$country, $participantType, $programme] = participantFixture();
+
+    $participant = User::factory()->create([
+        'name' => 'Certified Participant',
+        'email' => 'certified-signatory@example.test',
+        'country_id' => $country->id,
+        'user_type_id' => $participantType->id,
+    ]);
+
+    $programme->participants()->attach($participant->id);
+
+    ParticipantAttendance::query()->create([
+        'user_id' => $participant->id,
+        'programme_id' => $programme->id,
+        'status' => 'checked-in',
+        'scanned_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->from(route('event-management.participants', $programme))
+        ->post(route('event-management.participants.certificates.send', [$programme, $participant]), [
+            'signatory_name' => 'Dr. Signatory',
+            'signatory_title' => 'Chairperson',
+        ])
+        ->assertRedirect(route('event-management.participants', $programme))
+        ->assertSessionHasErrors(['certificates']);
+
+    $programme->forceFill([
+        'signatory_signature_url' => certificateSignatureFixture(),
+    ])->save();
+
+    $this->actingAs($admin)
+        ->from(route('event-management.participants', $programme))
+        ->post(route('event-management.participants.certificates.send', [$programme, $participant]), [
+            'signatory_name' => '',
+            'signatory_title' => 'Chairperson',
+        ])
+        ->assertRedirect(route('event-management.participants', $programme))
+        ->assertSessionHasErrors(['certificates']);
+
+    $this->actingAs($admin)
+        ->from(route('event-management.participants', $programme))
+        ->post(route('event-management.participants.certificates.send', [$programme, $participant]), [
+            'signatory_name' => 'Dr. Signatory',
+            'signatory_title' => '',
+        ])
+        ->assertRedirect(route('event-management.participants', $programme))
+        ->assertSessionHasErrors(['certificates']);
+
+    Mail::assertNothingSent();
+
+    expect(
+        ParticipantAttendance::query()
+            ->where('user_id', $participant->id)
+            ->where('programme_id', $programme->id)
+            ->value('certificate_sent_at')
+    )->toBeNull();
 });
 
 test('dynamic registration responses are validated for required fields and option types', function () {

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ParticipantCertificateMail;
 use App\Models\ParticipantAttendance;
 use App\Models\Programme;
 use App\Models\User;
 use Dompdf\Cpdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -115,7 +117,7 @@ class ProgrammeController extends Controller
     public function participants(Programme $programme)
     {
         $attendanceByUser = ParticipantAttendance::query()
-            ->select(['user_id', 'scanned_at'])
+            ->select(['user_id', 'scanned_at', 'certificate_sent_at'])
             ->where('programme_id', $programme->id)
             ->get()
             ->keyBy('user_id');
@@ -154,6 +156,7 @@ class ProgrammeController extends Controller
                             'email' => $participant->email,
                             'display_id' => $participant->display_id,
                             'checked_in_at' => $attendance?->scanned_at?->toISOString(),
+                            'certificate_sent_at' => $attendance?->certificate_sent_at?->toISOString(),
                         ];
                     })
                     ->values()
@@ -170,10 +173,6 @@ class ProgrammeController extends Controller
         $validated = $request->validate([
             'signatory_name' => ['nullable', 'string', 'max:255'],
             'signatory_title' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $programme->load([
-            'venues' => fn ($query) => $query->where('is_active', true)->orderBy('id'),
         ]);
 
         $checkedInParticipantIds = ParticipantAttendance::query()
@@ -199,20 +198,10 @@ class ProgrammeController extends Controller
             ]);
         }
 
-        $venue = $programme->venues->first();
-        $venueLabel = $venue
-            ? ($venue->address ? "{$venue->name}, {$venue->address}" : $venue->name)
-            : ($programme->location ?: '-');
-
-        $pdf = $this->buildParticipantCertificatesPdf($participants, [
-            'title' => $programme->title,
-            'eventDate' => $this->formatCertificateDateRange($programme->starts_at, $programme->ends_at),
-            'givenDate' => $this->formatCertificateDate($programme->ends_at ?? $programme->starts_at),
-            'venue' => $venueLabel,
-            'signatoryName' => $validated['signatory_name'] ?? $programme->signatory_name ?? '',
-            'signatoryTitle' => $validated['signatory_title'] ?? $programme->signatory_title ?? '',
-            'signatorySignature' => $this->certificateSignaturePath($programme->signatory_signature_url),
-        ]);
+        $pdf = $this->buildParticipantCertificatesPdf(
+            $participants,
+            $this->participantCertificateData($programme, $validated),
+        );
 
         $filename = sprintf(
             'participant-certificates-%s-%s.pdf',
@@ -224,6 +213,78 @@ class ProgrammeController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
+    }
+
+    public function sendParticipantCertificateEmail(Request $request, Programme $programme, User $participant)
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(180);
+
+        $validated = $request->validate([
+            'signatory_name' => ['nullable', 'string', 'max:255'],
+            'signatory_title' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $signatoryName = trim((string) ($validated['signatory_name'] ?? $programme->signatory_name ?? ''));
+        $signatoryTitle = trim((string) ($validated['signatory_title'] ?? $programme->signatory_title ?? ''));
+
+        if ($signatoryName === '' || $signatoryTitle === '' || ! $this->certificateSignaturePath($programme->signatory_signature_url)) {
+            return back()->withErrors([
+                'certificates' => 'Signatory name, signatory title, and signature are required before sending certificates.',
+            ]);
+        }
+
+        if (! $programme->participants()->whereKey($participant->id)->exists()) {
+            abort(404);
+        }
+
+        if (! $participant->email) {
+            return back()->withErrors([
+                'certificates' => 'This participant does not have an email address.',
+            ]);
+        }
+
+        $attendance = ParticipantAttendance::query()
+            ->where('programme_id', $programme->id)
+            ->where('user_id', $participant->id)
+            ->whereNotNull('scanned_at')
+            ->first();
+
+        if (! $attendance) {
+            return back()->withErrors([
+                'certificates' => 'Only checked-in participants can receive certificates.',
+            ]);
+        }
+
+        $pdf = $this->buildParticipantCertificatesPdf(collect([
+            [
+                'name' => $this->certificateParticipantName($participant->name),
+            ],
+        ]), $this->participantCertificateData($programme, [
+            'signatory_name' => $signatoryName,
+            'signatory_title' => $signatoryTitle,
+        ]));
+
+        $filename = sprintf(
+            'participant-certificate-%s-%s.pdf',
+            Str::slug($participant->name ?: 'participant') ?: 'participant',
+            now()->format('Ymd-His'),
+        );
+
+        Mail::to($participant->email, $participant->name)
+            ->send(new ParticipantCertificateMail(
+                participant: $participant,
+                programme: $programme,
+                pdf: $pdf,
+                filename: $filename,
+                eventDate: $this->formatCertificateDateRange($programme->starts_at, $programme->ends_at),
+            ));
+
+        $attendance->forceFill([
+            'certificate_sent_at' => now(),
+        ])->save();
+
+        return back()->with('success', 'Certificate email sent to '.$participant->email.'.');
     }
 
     public function participantIndex(Request $request)
@@ -689,6 +750,28 @@ class ProgrammeController extends Controller
         return $date ? $date->format('jS').' Day of '.$date->format('F Y') : '-';
     }
 
+    private function participantCertificateData(Programme $programme, array $overrides = []): array
+    {
+        $programme->load([
+            'venues' => fn ($query) => $query->where('is_active', true)->orderBy('id'),
+        ]);
+
+        $venue = $programme->venues->first();
+        $venueLabel = $venue
+            ? ($venue->address ? "{$venue->name}, {$venue->address}" : $venue->name)
+            : ($programme->location ?: '-');
+
+        return [
+            'title' => $programme->title,
+            'eventDate' => $this->formatCertificateDateRange($programme->starts_at, $programme->ends_at),
+            'givenDate' => $this->formatCertificateDate($programme->ends_at ?? $programme->starts_at),
+            'venue' => $venueLabel,
+            'signatoryName' => $overrides['signatory_name'] ?? $programme->signatory_name ?? '',
+            'signatoryTitle' => $overrides['signatory_title'] ?? $programme->signatory_title ?? '',
+            'signatorySignature' => $this->certificateSignaturePath($programme->signatory_signature_url),
+        ];
+    }
+
     private function certificateSignaturePath(?string $signatureUrl): ?string
     {
         if (! $signatureUrl) {
@@ -819,13 +902,18 @@ class ProgrammeController extends Controller
         $this->drawCenteredPdfText($pdf, $given, $centerX, $givenY, 7.8);
 
         if (! empty($data['signatorySignature']) || ! empty($data['signatoryName']) || ! empty($data['signatoryTitle'])) {
-            $signatureY = $givenY - 48.0;
+            $signatoryNameY = $givenY - 59.0;
+            $lineY = $signatoryNameY - 4.0;
+            $signatoryTitleY = $lineY - 10.0;
+            $signatureY = $signatoryNameY + 2.0;
+
             if (! empty($data['signatorySignature']) && File::exists($data['signatorySignature'])) {
-                $this->drawPdfImage($pdf, $data['signatorySignature'], $centerX - 45.0, $signatureY, 90.0, 28.0);
+                $this->drawPdfImageContain($pdf, $data['signatorySignature'], $centerX - 45.0, $signatureY, 90.0, 30.0);
             }
 
-            $this->drawCenteredPdfText($pdf, (string) ($data['signatoryName'] ?? ''), $centerX, $signatureY - 11.0, 8.8, true);
-            $this->drawCenteredPdfText($pdf, (string) ($data['signatoryTitle'] ?? ''), $centerX, $signatureY - 24.0, 7.5);
+            $this->drawCenteredPdfText($pdf, (string) ($data['signatoryName'] ?? ''), $centerX, $signatoryNameY, 8.8, true);
+            $pdf->line($centerX - 65.0, $lineY, $centerX + 65.0, $lineY);
+            $this->drawCenteredPdfText($pdf, (string) ($data['signatoryTitle'] ?? ''), $centerX, $signatoryTitleY, 7.5);
         }
     }
 
@@ -900,6 +988,33 @@ class ProgrammeController extends Controller
         }
 
         $pdf->addJpegFromFile($path, $x, $y, $width, $height);
+    }
+
+    private function drawPdfImageContain(Cpdf $pdf, string $path, float $x, float $y, float $maxWidth, float $maxHeight): void
+    {
+        $imageSize = @getimagesize($path);
+
+        if (! $imageSize || empty($imageSize[0]) || empty($imageSize[1])) {
+            $this->drawPdfImage($pdf, $path, $x, $y, $maxWidth, $maxHeight);
+
+            return;
+        }
+
+        $ratio = $imageSize[0] / $imageSize[1];
+        $boxRatio = $maxWidth / $maxHeight;
+
+        if ($ratio > $boxRatio) {
+            $width = $maxWidth;
+            $height = $maxWidth / $ratio;
+        } else {
+            $height = $maxHeight;
+            $width = $maxHeight * $ratio;
+        }
+
+        $drawX = $x + (($maxWidth - $width) / 2);
+        $drawY = $y + (($maxHeight - $height) / 2);
+
+        $this->drawPdfImage($pdf, $path, $drawX, $drawY, $width, $height);
     }
 
     private function pdfSegmentsWidth(Cpdf $pdf, array $segments, float $size): float

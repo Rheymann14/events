@@ -11,7 +11,14 @@ import { cn } from '@/lib/utils';
 import { pdf as participantCertificatesPdf } from '@/routes/event-management/participants/certificates';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
-import { CheckCircle2, ChevronLeft, Download, Users } from 'lucide-react';
+import {
+    CheckCircle2,
+    ChevronLeft,
+    Download,
+    Mail,
+    Save,
+    Users,
+} from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -21,6 +28,7 @@ type ProgrammeParticipant = {
     email?: string | null;
     display_id?: string | null;
     checked_in_at?: string | null;
+    certificate_sent_at?: string | null;
 };
 
 type ProgrammeRow = {
@@ -119,6 +127,19 @@ function formatDateTimeSafe(value?: string | null) {
     }).format(d);
 }
 
+function initialCertificateSentAtByParticipant(
+    participants: ProgrammeParticipant[],
+) {
+    return new Map(
+        participants
+            .filter((participant) => participant.certificate_sent_at)
+            .map((participant) => [
+                participant.id,
+                participant.certificate_sent_at as string,
+            ]),
+    );
+}
+
 function formatPrintName(name?: string | null) {
     return (name ?? '').replace(/\s+/g, ' ').trim().toLocaleUpperCase('en-PH');
 }
@@ -192,13 +213,36 @@ export default function EventManagementParticipants() {
     >(null);
     const [signatorySignatureLabel, setSignatorySignatureLabel] =
         React.useState<string>('');
+    const [signatorySignatureFile, setSignatorySignatureFile] =
+        React.useState<File | null>(null);
+    const [removePersistedSignature, setRemovePersistedSignature] =
+        React.useState(false);
+    const [isSavingSignatory, setIsSavingSignatory] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [entriesPerPage, setEntriesPerPage] = React.useState<number>(10);
     const [currentPage, setCurrentPage] = React.useState(1);
     const [isDownloadingCertificates, setIsDownloadingCertificates] =
         React.useState(false);
-    const signatorySyncEnabledRef = React.useRef(false);
-    const signatorySyncTimeoutRef = React.useRef<number | null>(null);
+    const [
+        sendingCertificateParticipantId,
+        setSendingCertificateParticipantId,
+    ] = React.useState<number | null>(null);
+    const [certificateSentAtByParticipant, setCertificateSentAtByParticipant] =
+        React.useState<Map<number, string>>(() =>
+            initialCertificateSentAtByParticipant(participantsList),
+        );
+    const signatoryHasUnsavedChanges =
+        signatoryName !== (programme.signatory_name ?? '') ||
+        signatoryTitle !== (programme.signatory_title ?? '') ||
+        !!signatorySignatureFile ||
+        removePersistedSignature;
+    const hasPersistedSignature =
+        !!programme.signatory_signature_url && !removePersistedSignature;
+    const missingSendRequirements = [
+        signatoryName.trim() === '' ? 'Signatory name' : null,
+        signatoryTitle.trim() === '' ? 'Signatory title' : null,
+        !hasPersistedSignature ? 'Uploaded signature file' : null,
+    ].filter(Boolean) as string[];
 
     const filteredParticipants = React.useMemo(() => {
         const query = searchQuery.trim().toLocaleLowerCase('en-PH');
@@ -235,7 +279,12 @@ export default function EventManagementParticipants() {
     }, [currentPage, totalPages]);
 
     React.useEffect(() => {
-        signatorySyncEnabledRef.current = false;
+        setCertificateSentAtByParticipant(
+            initialCertificateSentAtByParticipant(participantsList),
+        );
+    }, [participantsList]);
+
+    React.useEffect(() => {
         const signatureUrl = resolveSignatureUrl(
             programme.signatory_signature_url,
         );
@@ -248,14 +297,9 @@ export default function EventManagementParticipants() {
         setSignatoryTitle(programme.signatory_title ?? '');
         setSignatorySignature(signatureUrl);
         setSignatorySignatureLabel(signatureUrl ? basename(signatureUrl) : '');
-
-        const enableTimeout = window.setTimeout(() => {
-            signatorySyncEnabledRef.current = true;
-        }, 0);
-
-        return () => {
-            window.clearTimeout(enableTimeout);
-        };
+        setSignatorySignatureFile(null);
+        setRemovePersistedSignature(false);
+        setIsSavingSignatory(false);
     }, [
         programme.id,
         programme.signatory_name,
@@ -270,39 +314,16 @@ export default function EventManagementParticipants() {
         };
     }, [signatorySignature]);
 
-    React.useEffect(() => {
-        if (!signatorySyncEnabledRef.current) return;
-        if (signatorySyncTimeoutRef.current) {
-            window.clearTimeout(signatorySyncTimeoutRef.current);
-        }
-
-        signatorySyncTimeoutRef.current = window.setTimeout(() => {
-            persistSignatoryData({
-                name: signatoryName,
-                title: signatoryTitle,
-                successMessage: 'Signatory details updated.',
-            });
-        }, 700);
-
-        return () => {
-            if (signatorySyncTimeoutRef.current) {
-                window.clearTimeout(signatorySyncTimeoutRef.current);
-            }
-        };
-    }, [signatoryName, signatoryTitle]);
-
     function persistSignatoryData({
         name,
         title,
         signatureFile,
         removeSignature,
-        successMessage,
     }: {
         name?: string;
         title?: string;
         signatureFile?: File | null;
         removeSignature?: boolean;
-        successMessage?: string;
     }) {
         const payload = new FormData();
         payload.append('_method', 'patch');
@@ -315,11 +336,24 @@ export default function EventManagementParticipants() {
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {
-                if (successMessage) {
-                    toast.success(successMessage);
-                }
+                setSignatorySignatureFile(null);
+                setRemovePersistedSignature(false);
+                toast.success('Signatory details saved.');
             },
             onError: () => toast.error('Unable to save signatory details.'),
+            onFinish: () => setIsSavingSignatory(false),
+        });
+    }
+
+    function saveSignatoryData() {
+        if (isSavingSignatory) return;
+
+        setIsSavingSignatory(true);
+        persistSignatoryData({
+            name: signatoryName,
+            title: signatoryTitle,
+            signatureFile: signatorySignatureFile,
+            removeSignature: removePersistedSignature,
         });
     }
 
@@ -336,8 +370,8 @@ export default function EventManagementParticipants() {
             return previewUrl;
         });
         setSignatorySignatureLabel(file.name);
-        persistSignatoryData({ signatureFile: file });
-        toast.success('Signature attached.');
+        setSignatorySignatureFile(file);
+        setRemovePersistedSignature(false);
     }
 
     function handleSignatureRemove() {
@@ -346,8 +380,8 @@ export default function EventManagementParticipants() {
         }
         setSignatorySignature(null);
         setSignatorySignatureLabel('');
-        persistSignatoryData({ removeSignature: true });
-        toast.success('Signature removed.');
+        setSignatorySignatureFile(null);
+        setRemovePersistedSignature(true);
     }
 
     function printParticipantCertificates(participant: ProgrammeParticipant) {
@@ -408,6 +442,61 @@ export default function EventManagementParticipants() {
         } finally {
             window.setTimeout(() => setIsDownloadingCertificates(false), 1500);
         }
+    }
+
+    function sendParticipantCertificate(participant: ProgrammeParticipant) {
+        if (missingSendRequirements.length) {
+            toast.error(`Missing: ${missingSendRequirements.join(', ')}`);
+            return;
+        }
+
+        if (signatoryHasUnsavedChanges) {
+            toast.error('Save signatory details before sending certificates.');
+            return;
+        }
+
+        if (!participant.checked_in_at) {
+            toast.error(
+                'Only checked-in participants can receive certificates.',
+            );
+            return;
+        }
+
+        if (!participant.email) {
+            toast.error('This participant does not have an email address.');
+            return;
+        }
+
+        if (sendingCertificateParticipantId) return;
+
+        setSendingCertificateParticipantId(participant.id);
+
+        router.post(
+            `/event-management/${programme.id}/participants/${participant.id}/certificates/send`,
+            {
+                signatory_name: signatoryName,
+                signatory_title: signatoryTitle,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setCertificateSentAtByParticipant((current) => {
+                        const next = new Map(current);
+                        next.set(participant.id, new Date().toISOString());
+
+                        return next;
+                    });
+                    toast.success(`Certificate sent to ${participant.email}.`);
+                },
+                onError: (errors) => {
+                    toast.error(
+                        errors.certificates ||
+                            'Unable to send certificate email.',
+                    );
+                },
+                onFinish: () => setSendingCertificateParticipantId(null),
+            },
+        );
     }
 
     return (
@@ -544,6 +633,29 @@ export default function EventManagementParticipants() {
                                             the certificate PDF view.
                                         </div>
                                     </div>
+
+                                    <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                                            {signatoryHasUnsavedChanges
+                                                ? 'You have unsaved signatory changes.'
+                                                : 'Signatory details are saved.'}
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="h-8 w-full px-3 text-xs sm:w-auto"
+                                            onClick={saveSignatoryData}
+                                            disabled={
+                                                isSavingSignatory ||
+                                                !signatoryHasUnsavedChanges
+                                            }
+                                        >
+                                            <Save className="mr-1.5 h-3.5 w-3.5" />
+                                            {isSavingSignatory
+                                                ? 'Saving...'
+                                                : 'Save signatory'}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900/40">
@@ -624,6 +736,12 @@ export default function EventManagementParticipants() {
                                                     (participant) => {
                                                         const checked =
                                                             !!participant.checked_in_at;
+                                                        const certificateSentAt =
+                                                            certificateSentAtByParticipant.get(
+                                                                participant.id,
+                                                            );
+                                                        const certificateSent =
+                                                            !!certificateSentAt;
 
                                                         return (
                                                             <div
@@ -638,14 +756,28 @@ export default function EventManagementParticipants() {
                                                                             participant.name
                                                                         }
                                                                     </div>
+                                                                    <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                                                        <Mail className="h-3 w-3 shrink-0" />
+                                                                        <span className="truncate">
+                                                                            {participant.email ||
+                                                                                'No email address'}
+                                                                        </span>
+                                                                    </div>
                                                                     <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">
                                                                         {participant.display_id ||
-                                                                            participant.email ||
-                                                                            '—'}
+                                                                            'No display ID'}
                                                                         {checked
                                                                             ? ` · Scanned ${formatDateTimeSafe(participant.checked_in_at)}`
                                                                             : ''}
                                                                     </div>
+                                                                    {certificateSentAt ? (
+                                                                        <div className="truncate text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                                                                            Sent{' '}
+                                                                            {formatDateTimeSafe(
+                                                                                certificateSentAt,
+                                                                            )}
+                                                                        </div>
+                                                                    ) : null}
                                                                 </div>
 
                                                                 <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:justify-end">
@@ -681,6 +813,44 @@ export default function EventManagementParticipants() {
                                                                     >
                                                                         Print
                                                                     </Button>
+                                                                    {checked ? (
+                                                                        <Button
+                                                                            type="button"
+                                                                            size="sm"
+                                                                            className={cn(
+                                                                                'h-8 flex-1 px-2 text-xs sm:flex-none',
+                                                                                !participant.email &&
+                                                                                    'cursor-not-allowed opacity-60',
+                                                                                certificateSent &&
+                                                                                    'bg-emerald-600 text-white hover:bg-emerald-600 disabled:bg-emerald-600 disabled:text-white disabled:opacity-100 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-600 dark:disabled:bg-emerald-600',
+                                                                            )}
+                                                                            onClick={() =>
+                                                                                sendParticipantCertificate(
+                                                                                    participant,
+                                                                                )
+                                                                            }
+                                                                            disabled={
+                                                                                !participant.email ||
+                                                                                sendingCertificateParticipantId !==
+                                                                                    null
+                                                                            }
+                                                                        >
+                                                                            {certificateSent ? (
+                                                                                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                                                                            ) : (
+                                                                                <Mail className="mr-1.5 h-3.5 w-3.5" />
+                                                                            )}
+                                                                            {certificateSent
+                                                                                ? sendingCertificateParticipantId ===
+                                                                                  participant.id
+                                                                                    ? 'Sending...'
+                                                                                    : 'Resend'
+                                                                                : sendingCertificateParticipantId ===
+                                                                                    participant.id
+                                                                                  ? 'Sending...'
+                                                                                  : 'Send PDF'}
+                                                                        </Button>
+                                                                    ) : null}
                                                                 </div>
                                                             </div>
                                                         );

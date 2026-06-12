@@ -190,6 +190,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('event-management.participants');
         Route::post('event-management/{programme}/participants/certificates.pdf', [ProgrammeController::class, 'downloadParticipantCertificatesPdf'])
             ->name('event-management.participants.certificates.pdf');
+        Route::post('event-management/{programme}/participants/{participant}/certificates/send', [ProgrammeController::class, 'sendParticipantCertificateEmail'])
+            ->name('event-management.participants.certificates.send');
         Route::patch('programmes/{programme}/registration-fields', [ProgrammeController::class, 'updateRegistrationFields'])
             ->name('programmes.registration-fields.update');
         Route::patch('programmes/{programme}/active-registration', [ProgrammeController::class, 'activateRegistration'])

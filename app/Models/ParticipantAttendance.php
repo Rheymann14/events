@@ -14,10 +14,12 @@ class ParticipantAttendance extends Model
         'programme_id',
         'status',
         'scanned_at',
+        'certificate_sent_at',
     ];
 
     protected $casts = [
         'scanned_at' => 'datetime',
+        'certificate_sent_at' => 'datetime',
     ];
 
     public function participant()
