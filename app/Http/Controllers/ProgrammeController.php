@@ -495,6 +495,14 @@ class ProgrammeController extends Controller
             $validated['is_registration_active'] = false;
         }
 
+        unset(
+            $validated['image'],
+            $validated['pdf'],
+            $validated['materials'],
+            $validated['signatory_signature'],
+            $validated['signatory_signature_remove'],
+        );
+
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $imageName = Str::uuid()->toString().'.'.$file->getClientOriginalExtension();

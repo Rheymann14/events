@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserType;
 use App\Services\WelcomeNotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -522,6 +523,30 @@ test('admin can download checked-in participant certificates as a pdf', function
         ->assertHeader('Content-Type', 'application/pdf');
 
     expect($response->headers->get('Content-Disposition'))->toContain('participant-certificates-asean-event-');
+});
+
+test('admin can save programme signatory details with signature upload', function () {
+    $admin = adminUser();
+    [, , $programme] = participantFixture();
+
+    $this->actingAs($admin)
+        ->post(route('programmes.update', $programme), [
+            '_method' => 'patch',
+            'signatory_name' => 'Dr. Signatory',
+            'signatory_title' => 'Chairperson',
+            'signatory_signature' => UploadedFile::fake()->image('signature.png', 320, 120),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $programme->refresh();
+
+    expect($programme->signatory_name)->toBe('Dr. Signatory')
+        ->and($programme->signatory_title)->toBe('Chairperson')
+        ->and($programme->signatory_signature_url)->not->toBeNull()
+        ->and(File::exists(public_path('signatures/'.$programme->signatory_signature_url)))->toBeTrue();
+
+    File::delete(public_path('signatures/'.$programme->signatory_signature_url));
 });
 
 test('admin can email a checked-in participant certificate pdf', function () {
