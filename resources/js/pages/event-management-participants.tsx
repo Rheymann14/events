@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -51,6 +52,8 @@ type ProgrammeRow = {
 type PageProps = {
     programme: ProgrammeRow;
 };
+
+type CertificateEmailFilter = 'all' | 'sent' | 'not_sent';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Event Management', href: '/event-management' },
@@ -219,6 +222,8 @@ export default function EventManagementParticipants() {
         React.useState(false);
     const [isSavingSignatory, setIsSavingSignatory] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
+    const [certificateEmailFilter, setCertificateEmailFilter] =
+        React.useState<CertificateEmailFilter>('all');
     const [entriesPerPage, setEntriesPerPage] = React.useState<number>(10);
     const [currentPage, setCurrentPage] = React.useState(1);
     const [isDownloadingCertificates, setIsDownloadingCertificates] =
@@ -231,6 +236,15 @@ export default function EventManagementParticipants() {
         React.useState<Map<number, string>>(() =>
             initialCertificateSentAtByParticipant(participantsList),
         );
+    const sentCertificateEmailCount = participantsList.filter(
+        (participant) =>
+            participant.checked_in_at &&
+            certificateSentAtByParticipant.has(participant.id),
+    ).length;
+    const notSentCertificateEmailCount = Math.max(
+        0,
+        checkedInCount - sentCertificateEmailCount,
+    );
     const signatoryHasUnsavedChanges =
         signatoryName !== (programme.signatory_name ?? '') ||
         signatoryTitle !== (programme.signatory_title ?? '') ||
@@ -246,17 +260,37 @@ export default function EventManagementParticipants() {
 
     const filteredParticipants = React.useMemo(() => {
         const query = searchQuery.trim().toLocaleLowerCase('en-PH');
+        const filteredByCertificateEmail = participantsList.filter(
+            (participant) => {
+                if (certificateEmailFilter === 'all') return true;
 
-        if (!query) return participantsList;
+                if (!participant.checked_in_at) return false;
 
-        return participantsList.filter((participant) => {
+                const certificateSent = certificateSentAtByParticipant.has(
+                    participant.id,
+                );
+
+                return certificateEmailFilter === 'sent'
+                    ? certificateSent
+                    : !certificateSent;
+            },
+        );
+
+        if (!query) return filteredByCertificateEmail;
+
+        return filteredByCertificateEmail.filter((participant) => {
             return [participant.name, participant.email, participant.display_id]
                 .filter(Boolean)
                 .some((value) =>
                     String(value).toLocaleLowerCase('en-PH').includes(query),
                 );
         });
-    }, [participantsList, searchQuery]);
+    }, [
+        certificateEmailFilter,
+        certificateSentAtByParticipant,
+        participantsList,
+        searchQuery,
+    ]);
 
     const totalPages = Math.max(
         1,
@@ -270,7 +304,7 @@ export default function EventManagementParticipants() {
 
     React.useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, entriesPerPage]);
+    }, [searchQuery, entriesPerPage, certificateEmailFilter]);
 
     React.useEffect(() => {
         if (currentPage > totalPages) {
@@ -526,6 +560,62 @@ export default function EventManagementParticipants() {
                                 {participantsList.length.toLocaleString()}{' '}
                                 joined · {checkedInCount.toLocaleString()}{' '}
                                 checked in
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <Badge
+                                    asChild
+                                    className={cn(
+                                        'cursor-pointer border-transparent bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300',
+                                        certificateEmailFilter === 'sent' &&
+                                            'ring-2 ring-emerald-500/40',
+                                    )}
+                                >
+                                    <button
+                                        type="button"
+                                        aria-pressed={
+                                            certificateEmailFilter === 'sent'
+                                        }
+                                        onClick={() =>
+                                            setCertificateEmailFilter(
+                                                certificateEmailFilter ===
+                                                    'sent'
+                                                    ? 'all'
+                                                    : 'sent',
+                                            )
+                                        }
+                                    >
+                                        Sent email:{' '}
+                                        {sentCertificateEmailCount.toLocaleString()}
+                                    </button>
+                                </Badge>
+                                <Badge
+                                    asChild
+                                    className={cn(
+                                        'cursor-pointer border-transparent bg-rose-100 text-rose-700 hover:bg-rose-100 dark:bg-rose-500/15 dark:text-rose-300',
+                                        certificateEmailFilter ===
+                                            'not_sent' &&
+                                            'ring-2 ring-rose-500/40',
+                                    )}
+                                >
+                                    <button
+                                        type="button"
+                                        aria-pressed={
+                                            certificateEmailFilter ===
+                                            'not_sent'
+                                        }
+                                        onClick={() =>
+                                            setCertificateEmailFilter(
+                                                certificateEmailFilter ===
+                                                    'not_sent'
+                                                    ? 'all'
+                                                    : 'not_sent',
+                                            )
+                                        }
+                                    >
+                                        Not sent:{' '}
+                                        {notSentCertificateEmailCount.toLocaleString()}
+                                    </button>
+                                </Badge>
                             </div>
                         </div>
 

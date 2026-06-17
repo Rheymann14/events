@@ -71,9 +71,11 @@ type ReportRow = {
     suffix?: string | null;
     name: string;
     display_id?: string | null;
+    email?: string | null;
     country_name?: string | null;
     registrant_type?: string | null;
     organization_name?: string | null;
+    position_title?: string | null;
     other_user_type?: string | null;
     attend_welcome_dinner: boolean;
     avail_transport_from_makati_to_peninsula: boolean;
@@ -229,6 +231,14 @@ function displayRegistrantType(row: ReportRow) {
     return row.registrant_type ?? '-';
 }
 
+function displayParticipantDesignation(row: ReportRow) {
+    return row.position_title?.trim() || '-';
+}
+
+function displayParticipantEmail(row: ReportRow) {
+    return row.email?.trim() || '-';
+}
+
 function getCheckinTime(
     row: ReportRow,
     selectedEventId: number | null,
@@ -356,6 +366,25 @@ function ReportDetailItem({
                 {children || '-'}
             </div>
         </div>
+    );
+}
+
+function ReportDetailSection({
+    title,
+    children,
+}: {
+    title: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <section className="min-w-0">
+            <h3 className="mb-2 border-b border-slate-200 pb-1 text-xs font-semibold tracking-wide text-slate-700 uppercase dark:border-slate-800 dark:text-slate-300">
+                {title}
+            </h3>
+            <div className="grid min-w-0 gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+                {children}
+            </div>
+        </section>
     );
 }
 
@@ -694,6 +723,8 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
             return [
                 buildDisplayName(row),
                 displayRegistrantType(row),
+                displayParticipantDesignation(row),
+                displayParticipantEmail(row),
                 row.organization_name ?? '',
                 asemme10Registration?.badge_name ?? '',
                 asemme10Registration?.email ?? '',
@@ -905,6 +936,8 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                     <tr>
                         <td>${index + 1}</td>
                         <td>${escapeHtml(buildDisplayName(row))}</td>
+                        <td>${escapeHtml(displayParticipantDesignation(row))}</td>
+                        <td>${escapeHtml(displayParticipantEmail(row))}</td>
                         <td>${escapeHtml(displayRegistrantType(row))}</td>
                         <td>${escapeHtml(row.organization_name ?? '-')}</td>
                         <td>${escapeHtml(getTableAssignment(row, selectedEventId) ?? '-')}</td>
@@ -924,7 +957,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                   'Registration Type',
                   'Role',
                   'Organization',
-                  'Position',
+                  'Designation',
                   'Email',
                   'Dietary Requirements',
                   'Mobility or Special Needs',
@@ -937,6 +970,8 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
             : [
                   'Seq',
                   'Name',
+                  'Designation',
+                  'Email',
                   'Registrant Type',
                   'Organization',
                   'Table Assignment',
@@ -1234,7 +1269,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                   'Registration Type',
                   'Role',
                   'Organization',
-                  'Position',
+                  'Designation',
                   'Email',
                   'Dietary Requirements',
                   'Mobility or Special Needs',
@@ -1247,6 +1282,8 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
             : [
                   'Seq',
                   'Name',
+                  'Designation',
+                  'Email',
                   'Registrant Type',
                   'Organization',
                   'Table Assignment',
@@ -1290,6 +1327,8 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
             return [
                 index + 1,
                 buildDisplayName(row),
+                displayParticipantDesignation(row),
+                displayParticipantEmail(row),
                 displayRegistrantType(row),
                 row.organization_name ?? '-',
                 getTableAssignment(row, selectedEventId) ?? '-',
@@ -1768,7 +1807,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                     onChange={(event) =>
                                         setSearch(event.target.value)
                                     }
-                                    placeholder="Search name, registrant type, organization, or check-in"
+                                    placeholder="Search name, designation, email, registrant type, organization, or check-in"
                                     className="col-span-2 w-full min-w-0 xl:w-80"
                                 />
 
@@ -1900,11 +1939,18 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                         </p>
                                                     ) : null}
                                                     {!isAsemme10Selected ? (
-                                                        <p className="mt-1 text-xs break-words text-slate-500 dark:text-slate-400">
-                                                            {displayRegistrantType(
-                                                                row,
-                                                            )}
-                                                        </p>
+                                                        <>
+                                                            <p className="mt-1 text-xs break-words text-slate-500 dark:text-slate-400">
+                                                                {displayRegistrantType(
+                                                                    row,
+                                                                )}
+                                                            </p>
+                                                            <p className="mt-1 text-xs break-words text-slate-500 dark:text-slate-400">
+                                                                {displayParticipantDesignation(
+                                                                    row,
+                                                                )}
+                                                            </p>
+                                                        </>
                                                     ) : null}
                                                     <div className="mt-2">
                                                         {hasCheckin ? (
@@ -1946,116 +1992,140 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                         )}
                                                     />
                                                     {isExpanded
-                                                        ? 'Less'
-                                                        : 'More'}
+                                                        ? 'Hide'
+                                                        : 'Details'}
                                                 </Button>
                                             </div>
 
                                             {isExpanded ? (
                                                 <div className="border-t bg-slate-50/50 px-3 py-3 dark:bg-slate-900/20">
-                                                    <div className="grid min-w-0 gap-y-3">
+                                                    <div className="grid min-w-0 gap-3">
                                                         {isAsemme10Selected ? (
                                                             <>
-                                                                <ReportDetailItem label="Badge Name">
-                                                                    {registration?.badge_name ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Organization">
-                                                                    {registration?.organization_name ??
-                                                                        row.organization_name ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Position">
-                                                                    {registration?.position_title ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Email">
-                                                                    {registration?.email ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Dietary Requirements">
-                                                                    {registration?.dietary_requirements ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Mobility or Special Needs">
-                                                                    {registration?.mobility_or_special_needs ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Focal Person">
-                                                                    {registration?.focal_name ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Focal Email">
-                                                                    {registration?.focal_email ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Focal Phone">
-                                                                    {registration?.focal_phone ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
+                                                                <ReportDetailSection title="Participant Details">
+                                                                    <ReportDetailItem label="Badge Name">
+                                                                        {registration?.badge_name ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Organization">
+                                                                        {registration?.organization_name ??
+                                                                            row.organization_name ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Designation">
+                                                                        {registration?.position_title ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Email">
+                                                                        {registration?.email ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                </ReportDetailSection>
+                                                                <ReportDetailSection title="Requirements">
+                                                                    <ReportDetailItem label="Dietary Requirements">
+                                                                        {registration?.dietary_requirements ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Mobility or Special Needs">
+                                                                        {registration?.mobility_or_special_needs ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                </ReportDetailSection>
+                                                                <ReportDetailSection title="Focal Person">
+                                                                    <ReportDetailItem label="Name">
+                                                                        {registration?.focal_name ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Email">
+                                                                        {registration?.focal_email ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Phone">
+                                                                        {registration?.focal_phone ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                </ReportDetailSection>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <ReportDetailItem label="Organization">
-                                                                    {row.organization_name ??
-                                                                        '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Table Assignment">
-                                                                    {getTableAssignment(
-                                                                        row,
-                                                                        selectedEventId,
-                                                                    ) ?? '-'}
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Vehicle Assignment">
-                                                                    {getVehicleAssignment(
-                                                                        row,
-                                                                        selectedEventId,
-                                                                    ) ?? '-'}
-                                                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                                                        Plate:{' '}
-                                                                        {getVehiclePlateNumber(
+                                                                <ReportDetailSection title="Participant Details">
+                                                                    <ReportDetailItem label="Designation">
+                                                                        {displayParticipantDesignation(
+                                                                            row,
+                                                                        )}
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Email">
+                                                                        {displayParticipantEmail(
+                                                                            row,
+                                                                        )}
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Organization">
+                                                                        {row.organization_name ??
+                                                                            '-'}
+                                                                    </ReportDetailItem>
+                                                                </ReportDetailSection>
+                                                                <ReportDetailSection title="Assignments">
+                                                                    <ReportDetailItem label="Table">
+                                                                        {getTableAssignment(
                                                                             row,
                                                                             selectedEventId,
                                                                         ) ??
                                                                             '-'}
-                                                                    </p>
-                                                                </ReportDetailItem>
-                                                                <ReportDetailItem label="Notification">
-                                                                    <Button
-                                                                        type="button"
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        onClick={() =>
-                                                                            handleSendNotification(
+                                                                    </ReportDetailItem>
+                                                                    <ReportDetailItem label="Vehicle">
+                                                                        {getVehicleAssignment(
+                                                                            row,
+                                                                            selectedEventId,
+                                                                        ) ??
+                                                                            '-'}
+                                                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                                            Plate:{' '}
+                                                                            {getVehiclePlateNumber(
                                                                                 row,
-                                                                            )
-                                                                        }
-                                                                        disabled={
-                                                                            disableNotificationButton
-                                                                        }
-                                                                        className={cn(
-                                                                            'w-full min-w-0 sm:w-auto',
-                                                                            notificationSentAt
-                                                                                ? 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 hover:text-white'
-                                                                                : '',
-                                                                        )}
-                                                                    >
-                                                                        {sendingNotificationByUser[
-                                                                            row
-                                                                                .id
-                                                                        ]
-                                                                            ? 'Sending...'
-                                                                            : notificationButtonState.label}
-                                                                    </Button>
-                                                                    {notificationSentAt ? (
-                                                                        <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
-                                                                            Sent:{' '}
-                                                                            {formatDateTime(
-                                                                                notificationSentAt,
-                                                                            )}
+                                                                                selectedEventId,
+                                                                            ) ??
+                                                                                '-'}
                                                                         </p>
-                                                                    ) : null}
-                                                                </ReportDetailItem>
+                                                                    </ReportDetailItem>
+                                                                </ReportDetailSection>
+                                                                <ReportDetailSection title="Notification">
+                                                                    <ReportDetailItem label="Assignment Email">
+                                                                        <Button
+                                                                            type="button"
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            onClick={() =>
+                                                                                handleSendNotification(
+                                                                                    row,
+                                                                                )
+                                                                            }
+                                                                            disabled={
+                                                                                disableNotificationButton
+                                                                            }
+                                                                            className={cn(
+                                                                                'w-full min-w-0 sm:w-auto',
+                                                                                notificationSentAt
+                                                                                    ? 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 hover:text-white'
+                                                                                    : '',
+                                                                            )}
+                                                                        >
+                                                                            {sendingNotificationByUser[
+                                                                                row
+                                                                                    .id
+                                                                            ]
+                                                                                ? 'Sending...'
+                                                                                : notificationButtonState.label}
+                                                                        </Button>
+                                                                        {notificationSentAt ? (
+                                                                            <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                                                                                Sent:{' '}
+                                                                                {formatDateTime(
+                                                                                    notificationSentAt,
+                                                                                )}
+                                                                            </p>
+                                                                        ) : null}
+                                                                    </ReportDetailItem>
+                                                                </ReportDetailSection>
                                                             </>
                                                         )}
                                                     </div>
@@ -2085,6 +2155,9 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                 </TableHead>
                                                 <TableHead className="hidden lg:table-cell">
                                                     Registration Type
+                                                </TableHead>
+                                                <TableHead className="hidden xl:table-cell">
+                                                    Designation
                                                 </TableHead>
                                                 <TableHead className="hidden lg:table-cell">
                                                     Role
@@ -2125,6 +2198,9 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                     Seq
                                                 </TableHead>
                                                 <TableHead>Name</TableHead>
+                                                <TableHead className="hidden lg:table-cell">
+                                                    Designation
+                                                </TableHead>
                                                 <TableHead className="hidden md:table-cell">
                                                     <Button
                                                         type="button"
@@ -2298,13 +2374,17 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                                             )}
                                                                         />
                                                                         {isExpanded
-                                                                            ? 'Less'
-                                                                            : 'More'}
+                                                                            ? 'Hide'
+                                                                            : 'Details'}
                                                                     </Button>
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell className="hidden break-words lg:table-cell">
                                                                 {registration?.registration_type ??
+                                                                    '-'}
+                                                            </TableCell>
+                                                            <TableCell className="hidden break-words xl:table-cell">
+                                                                {registration?.position_title ??
                                                                     '-'}
                                                             </TableCell>
                                                             <TableCell className="hidden break-words lg:table-cell">
@@ -2355,55 +2435,61 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                                         )}
                                                                     />
                                                                     {isExpanded
-                                                                        ? 'Collapse'
-                                                                        : 'View all'}
+                                                                        ? 'Hide'
+                                                                        : 'Details'}
                                                                 </Button>
                                                             </TableCell>
                                                         </TableRow>
                                                         {isExpanded ? (
                                                             <TableRow className="border-b bg-slate-50/50 dark:bg-slate-900/20">
                                                                 <TableCell
-                                                                    colSpan={6}
+                                                                    colSpan={7}
                                                                     className="px-3 py-3 sm:px-6"
                                                                 >
-                                                                    <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                                                        <ReportDetailItem label="Badge Name">
-                                                                            {registration?.badge_name ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
-                                                                        <ReportDetailItem label="Organization">
-                                                                            {registration?.organization_name ??
-                                                                                row.organization_name ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
-                                                                        <ReportDetailItem label="Position">
-                                                                            {registration?.position_title ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
-                                                                        <ReportDetailItem label="Email">
-                                                                            {registration?.email ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
-                                                                        <ReportDetailItem label="Dietary Requirements">
-                                                                            {registration?.dietary_requirements ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
-                                                                        <ReportDetailItem label="Mobility or Special Needs">
-                                                                            {registration?.mobility_or_special_needs ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
-                                                                        <ReportDetailItem label="Focal Person">
-                                                                            {registration?.focal_name ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
-                                                                        <ReportDetailItem label="Focal Email">
-                                                                            {registration?.focal_email ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
-                                                                        <ReportDetailItem label="Focal Phone">
-                                                                            {registration?.focal_phone ??
-                                                                                '-'}
-                                                                        </ReportDetailItem>
+                                                                    <div className="grid gap-3 xl:grid-cols-3">
+                                                                        <ReportDetailSection title="Participant Details">
+                                                                            <ReportDetailItem label="Badge Name">
+                                                                                {registration?.badge_name ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                            <ReportDetailItem label="Organization">
+                                                                                {registration?.organization_name ??
+                                                                                    row.organization_name ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                            <ReportDetailItem label="Designation">
+                                                                                {registration?.position_title ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                            <ReportDetailItem label="Email">
+                                                                                {registration?.email ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                        </ReportDetailSection>
+                                                                        <ReportDetailSection title="Requirements">
+                                                                            <ReportDetailItem label="Dietary Requirements">
+                                                                                {registration?.dietary_requirements ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                            <ReportDetailItem label="Mobility or Special Needs">
+                                                                                {registration?.mobility_or_special_needs ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                        </ReportDetailSection>
+                                                                        <ReportDetailSection title="Focal Person">
+                                                                            <ReportDetailItem label="Name">
+                                                                                {registration?.focal_name ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                            <ReportDetailItem label="Email">
+                                                                                {registration?.focal_email ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                            <ReportDetailItem label="Phone">
+                                                                                {registration?.focal_phone ??
+                                                                                    '-'}
+                                                                            </ReportDetailItem>
+                                                                        </ReportDetailSection>
                                                                     </div>
                                                                 </TableCell>
                                                             </TableRow>
@@ -2434,6 +2520,11 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                                     </p>
                                                                     <p className="mt-1 text-xs break-words text-slate-500 md:hidden dark:text-slate-400">
                                                                         {displayRegistrantType(
+                                                                            row,
+                                                                        )}
+                                                                    </p>
+                                                                    <p className="mt-1 text-xs break-words text-slate-500 lg:hidden dark:text-slate-400">
+                                                                        {displayParticipantDesignation(
                                                                             row,
                                                                         )}
                                                                     </p>
@@ -2481,10 +2572,15 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                                         )}
                                                                     />
                                                                     {isExpanded
-                                                                        ? 'Less'
-                                                                        : 'More'}
+                                                                        ? 'Hide'
+                                                                        : 'Details'}
                                                                 </Button>
                                                             </div>
+                                                        </TableCell>
+                                                        <TableCell className="hidden break-words lg:table-cell">
+                                                            {displayParticipantDesignation(
+                                                                row,
+                                                            )}
                                                         </TableCell>
                                                         <TableCell className="hidden break-words md:table-cell">
                                                             {displayRegistrantType(
@@ -2533,79 +2629,95 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                                                     )}
                                                                 />
                                                                 {isExpanded
-                                                                    ? 'Collapse'
-                                                                    : 'View all'}
+                                                                    ? 'Hide'
+                                                                    : 'Details'}
                                                             </Button>
                                                         </TableCell>
                                                     </TableRow>
                                                     {isExpanded ? (
                                                         <TableRow className="border-b bg-slate-50/50 dark:bg-slate-900/20">
                                                             <TableCell
-                                                                colSpan={5}
+                                                                colSpan={6}
                                                                 className="px-3 py-3 sm:px-6"
                                                             >
-                                                                <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                                                    <ReportDetailItem label="Organization">
-                                                                        {row.organization_name ??
-                                                                            '-'}
-                                                                    </ReportDetailItem>
-                                                                    <ReportDetailItem label="Table Assignment">
-                                                                        {getTableAssignment(
-                                                                            row,
-                                                                            selectedEventId,
-                                                                        ) ??
-                                                                            '-'}
-                                                                    </ReportDetailItem>
-                                                                    <ReportDetailItem label="Vehicle Assignment">
-                                                                        {getVehicleAssignment(
-                                                                            row,
-                                                                            selectedEventId,
-                                                                        ) ??
-                                                                            '-'}
-                                                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                                                            Plate:{' '}
-                                                                            {getVehiclePlateNumber(
+                                                                <div className="grid gap-3 xl:grid-cols-3">
+                                                                    <ReportDetailSection title="Participant Details">
+                                                                        <ReportDetailItem label="Designation">
+                                                                            {displayParticipantDesignation(
+                                                                                row,
+                                                                            )}
+                                                                        </ReportDetailItem>
+                                                                        <ReportDetailItem label="Email">
+                                                                            {displayParticipantEmail(
+                                                                                row,
+                                                                            )}
+                                                                        </ReportDetailItem>
+                                                                        <ReportDetailItem label="Organization">
+                                                                            {row.organization_name ??
+                                                                                '-'}
+                                                                        </ReportDetailItem>
+                                                                    </ReportDetailSection>
+                                                                    <ReportDetailSection title="Assignments">
+                                                                        <ReportDetailItem label="Table">
+                                                                            {getTableAssignment(
                                                                                 row,
                                                                                 selectedEventId,
                                                                             ) ??
                                                                                 '-'}
-                                                                        </p>
-                                                                    </ReportDetailItem>
-                                                                    <ReportDetailItem label="Notification">
-                                                                        <Button
-                                                                            type="button"
-                                                                            size="sm"
-                                                                            variant="outline"
-                                                                            onClick={() =>
-                                                                                handleSendNotification(
+                                                                        </ReportDetailItem>
+                                                                        <ReportDetailItem label="Vehicle">
+                                                                            {getVehicleAssignment(
+                                                                                row,
+                                                                                selectedEventId,
+                                                                            ) ??
+                                                                                '-'}
+                                                                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                                                Plate:{' '}
+                                                                                {getVehiclePlateNumber(
                                                                                     row,
-                                                                                )
-                                                                            }
-                                                                            disabled={
-                                                                                disableNotificationButton
-                                                                            }
-                                                                            className={cn(
-                                                                                notificationSentAt
-                                                                                    ? 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 hover:text-white'
-                                                                                    : '',
-                                                                            )}
-                                                                        >
-                                                                            {sendingNotificationByUser[
-                                                                                row
-                                                                                    .id
-                                                                            ]
-                                                                                ? 'Sending...'
-                                                                                : notificationButtonState.label}
-                                                                        </Button>
-                                                                        {notificationSentAt ? (
-                                                                            <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
-                                                                                Sent:{' '}
-                                                                                {formatDateTime(
-                                                                                    notificationSentAt,
-                                                                                )}
+                                                                                    selectedEventId,
+                                                                                ) ??
+                                                                                    '-'}
                                                                             </p>
-                                                                        ) : null}
-                                                                    </ReportDetailItem>
+                                                                        </ReportDetailItem>
+                                                                    </ReportDetailSection>
+                                                                    <ReportDetailSection title="Notification">
+                                                                        <ReportDetailItem label="Assignment Email">
+                                                                            <Button
+                                                                                type="button"
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                onClick={() =>
+                                                                                    handleSendNotification(
+                                                                                        row,
+                                                                                    )
+                                                                                }
+                                                                                disabled={
+                                                                                    disableNotificationButton
+                                                                                }
+                                                                                className={cn(
+                                                                                    notificationSentAt
+                                                                                        ? 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 hover:text-white'
+                                                                                        : '',
+                                                                                )}
+                                                                            >
+                                                                                {sendingNotificationByUser[
+                                                                                    row
+                                                                                        .id
+                                                                                ]
+                                                                                    ? 'Sending...'
+                                                                                    : notificationButtonState.label}
+                                                                            </Button>
+                                                                            {notificationSentAt ? (
+                                                                                <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                                                                                    Sent:{' '}
+                                                                                    {formatDateTime(
+                                                                                        notificationSentAt,
+                                                                                    )}
+                                                                                </p>
+                                                                            ) : null}
+                                                                        </ReportDetailItem>
+                                                                    </ReportDetailSection>
                                                                 </div>
                                                             </TableCell>
                                                         </TableRow>
@@ -2617,7 +2729,7 @@ export default function Reports({ summary, rows, events, now_iso }: PageProps) {
                                         <TableRow>
                                             <TableCell
                                                 colSpan={
-                                                    isAsemme10Selected ? 6 : 5
+                                                    isAsemme10Selected ? 7 : 6
                                                 }
                                                 className="text-center text-slate-500"
                                             >
