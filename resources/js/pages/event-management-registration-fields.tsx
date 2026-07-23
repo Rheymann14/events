@@ -1,5 +1,13 @@
 import { Button } from '@/components/ui/button';
 import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from '@/components/ui/command';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -9,6 +17,11 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -17,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
@@ -24,7 +38,9 @@ import {
     ArrowDown,
     ArrowUp,
     CalendarDays,
+    Check,
     ChevronLeft,
+    ChevronsUpDown,
     CircleDot,
     Eye,
     FileText,
@@ -109,6 +125,115 @@ function FieldTypeDisplay({ fieldType }: { fieldType: FieldType }) {
 
 const PRIMARY_BUTTON =
     'bg-[#00359c] text-white hover:bg-[#00359c]/90 focus-visible:ring-[#00359c]/30';
+
+function BranchDestinationPicker({
+    value,
+    onValueChange,
+    targets,
+    optionNumber,
+}: {
+    value: string | null;
+    onValueChange: (value: string | null) => void;
+    targets: RegistrationField[];
+    optionNumber: number;
+}) {
+    const [open, setOpen] = React.useState(false);
+    const selected = targets.find((target) => target.field_key === value);
+    const selectedLabel = selected
+        ? `${selected.field_type === 'section' ? 'Section' : 'Question'}: ${
+              selected.label.trim() || 'Untitled field'
+          }`
+        : 'Continue normally';
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-label={`Destination for option ${optionNumber}`}
+                    className="h-9 w-full min-w-0 justify-between overflow-hidden px-3 font-normal"
+                    title={selectedLabel}
+                >
+                    <span className="min-w-0 flex-1 truncate text-left">
+                        {selectedLabel}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent
+                align="start"
+                className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] min-w-0 p-0"
+            >
+                <Command className="min-w-0">
+                    <CommandInput placeholder="Search destinations..." />
+                    <CommandEmpty>No destination found.</CommandEmpty>
+                    <CommandList className="max-h-72 min-w-0">
+                        <CommandGroup>
+                            <CommandItem
+                                value="Continue normally"
+                                onSelect={() => {
+                                    onValueChange(null);
+                                    setOpen(false);
+                                }}
+                                className="min-w-0 items-start"
+                            >
+                                <Check
+                                    className={cn(
+                                        'mt-0.5 h-4 w-4 shrink-0',
+                                        value === null
+                                            ? 'opacity-100'
+                                            : 'opacity-0',
+                                    )}
+                                />
+                                <span className="min-w-0 break-words whitespace-normal">
+                                    Continue normally
+                                </span>
+                            </CommandItem>
+                            {targets.map((target) => {
+                                const typeLabel =
+                                    target.field_type === 'section'
+                                        ? 'Section'
+                                        : 'Question';
+                                const label =
+                                    target.label.trim() || 'Untitled field';
+
+                                return (
+                                    <CommandItem
+                                        key={target.field_key}
+                                        value={`${typeLabel}: ${label} ${target.field_key}`}
+                                        onSelect={() => {
+                                            onValueChange(target.field_key!);
+                                            setOpen(false);
+                                        }}
+                                        className="min-w-0 items-start"
+                                    >
+                                        <Check
+                                            className={cn(
+                                                'mt-0.5 h-4 w-4 shrink-0',
+                                                value === target.field_key
+                                                    ? 'opacity-100'
+                                                    : 'opacity-0',
+                                            )}
+                                        />
+                                        <span className="min-w-0 break-words whitespace-normal">
+                                            <span className="font-medium">
+                                                {typeLabel}:
+                                            </span>{' '}
+                                            {label}
+                                        </span>
+                                    </CommandItem>
+                                );
+                            })}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 function normalize(fields: RegistrationField[]) {
     return fields.map((field, index) => ({
@@ -759,13 +884,13 @@ export default function EventManagementRegistrationFields({
                                                                                 placeholder={`Option ${optionIndex + 1}`}
                                                                                 aria-label={`Option ${optionIndex + 1}`}
                                                                             />
-                                                                            <Select
+                                                                            <BranchDestinationPicker
                                                                                 value={
                                                                                     field
                                                                                         .option_routes?.[
                                                                                         optionIndex
                                                                                     ] ??
-                                                                                    '__continue__'
+                                                                                    null
                                                                                 }
                                                                                 onValueChange={(
                                                                                     value,
@@ -773,59 +898,27 @@ export default function EventManagementRegistrationFields({
                                                                                     updateOptionRoute(
                                                                                         index,
                                                                                         optionIndex,
-                                                                                        value ===
-                                                                                            '__continue__'
-                                                                                            ? null
-                                                                                            : value,
+                                                                                        value,
                                                                                     )
                                                                                 }
-                                                                            >
-                                                                                <SelectTrigger
-                                                                                    aria-label={`Destination for option ${optionIndex + 1}`}
-                                                                                >
-                                                                                    <SelectValue placeholder="Continue normally" />
-                                                                                </SelectTrigger>
-                                                                                <SelectContent>
-                                                                                    <SelectItem value="__continue__">
-                                                                                        Continue
-                                                                                        normally
-                                                                                    </SelectItem>
-                                                                                    {form.data.registration_fields
-                                                                                        .slice(
-                                                                                            index +
-                                                                                                1,
-                                                                                        )
-                                                                                        .filter(
-                                                                                            (
-                                                                                                target,
-                                                                                            ) =>
-                                                                                                Boolean(
-                                                                                                    target.field_key,
-                                                                                                ),
-                                                                                        )
-                                                                                        .map(
-                                                                                            (
-                                                                                                target,
-                                                                                            ) => (
-                                                                                                <SelectItem
-                                                                                                    key={
-                                                                                                        target.field_key
-                                                                                                    }
-                                                                                                    value={
-                                                                                                        target.field_key!
-                                                                                                    }
-                                                                                                >
-                                                                                                    {target.field_type ===
-                                                                                                    'section'
-                                                                                                        ? 'Section: '
-                                                                                                        : 'Question: '}
-                                                                                                    {target.label.trim() ||
-                                                                                                        'Untitled field'}
-                                                                                                </SelectItem>
+                                                                                targets={form.data.registration_fields
+                                                                                    .slice(
+                                                                                        index +
+                                                                                            1,
+                                                                                    )
+                                                                                    .filter(
+                                                                                        (
+                                                                                            target,
+                                                                                        ) =>
+                                                                                            Boolean(
+                                                                                                target.field_key,
                                                                                             ),
-                                                                                        )}
-                                                                                </SelectContent>
-                                                                            </Select>
+                                                                                    )}
+                                                                                optionNumber={
+                                                                                    optionIndex +
+                                                                                    1
+                                                                                }
+                                                                            />
                                                                         </div>
                                                                         <Button
                                                                             type="button"
