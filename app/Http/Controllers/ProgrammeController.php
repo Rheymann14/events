@@ -48,6 +48,7 @@ class ProgrammeController extends Controller
                             'id' => $venue->id,
                             'name' => $venue->name,
                             'address' => $venue->address,
+                            'is_tba' => $venue->is_tba,
                             'google_maps_url' => $venue->google_maps_url,
                             'embed_url' => $venue->embed_url,
                             'is_active' => $venue->is_active,

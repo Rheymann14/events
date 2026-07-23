@@ -5,6 +5,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -117,6 +118,7 @@ type ProgrammeRow = {
         id: number;
         name: string;
         address?: string | null;
+        is_tba?: boolean;
         google_maps_url?: string | null;
         embed_url?: string | null;
         is_active?: boolean;
@@ -790,12 +792,14 @@ export default function EventManagement(props: PageProps) {
     const venueForm = useForm<{
         name: string;
         address: string;
+        is_tba: boolean;
         google_maps_url: string;
         embed_url: string;
         is_active: boolean;
     }>({
         name: '',
         address: '',
+        is_tba: false,
         google_maps_url: '',
         embed_url: '',
         is_active: true,
@@ -809,12 +813,19 @@ export default function EventManagement(props: PageProps) {
 
     const venueEmbedPreviewUrl = React.useMemo(
         () =>
-            resolveVenueEmbedUrl(
-                venueForm.data.name,
-                venueForm.data.address,
-                venueForm.data.embed_url,
-            ),
-        [venueForm.data.name, venueForm.data.address, venueForm.data.embed_url],
+            venueForm.data.is_tba
+                ? ''
+                : resolveVenueEmbedUrl(
+                      venueForm.data.name,
+                      venueForm.data.address,
+                      venueForm.data.embed_url,
+                  ),
+        [
+            venueForm.data.name,
+            venueForm.data.address,
+            venueForm.data.embed_url,
+            venueForm.data.is_tba,
+        ],
     );
 
     function resetImagePreview(next: string | null) {
@@ -1181,6 +1192,7 @@ export default function EventManagement(props: PageProps) {
         venueForm.setData({
             name: item.venue?.name ?? '',
             address: item.venue?.address ?? '',
+            is_tba: item.venue?.is_tba ?? false,
             google_maps_url: item.venue?.google_maps_url ?? '',
             embed_url: item.venue?.embed_url ?? '',
             is_active: item.venue?.is_active ?? true,
@@ -1205,13 +1217,16 @@ export default function EventManagement(props: PageProps) {
             programme_id: venueTarget.id,
             name: data.name.trim(),
             address: data.address.trim(),
+            is_tba: !!data.is_tba,
             google_maps_url: data.google_maps_url.trim() || null,
             embed_url:
-                resolveVenueEmbedUrl(
-                    data.name.trim(),
-                    data.address.trim(),
-                    data.embed_url,
-                ) || null,
+                (data.is_tba
+                    ? data.embed_url.trim()
+                    : resolveVenueEmbedUrl(
+                          data.name.trim(),
+                          data.address.trim(),
+                          data.embed_url,
+                      )) || null,
             is_active: !!data.is_active,
         }));
 
@@ -1329,7 +1344,11 @@ export default function EventManagement(props: PageProps) {
                     </div>
                 ) : null}
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {item.venue.google_maps_url ? (
+                    {item.venue.is_tba ? (
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                            TBA
+                        </span>
+                    ) : item.venue.google_maps_url ? (
                         <a
                             href={item.venue.google_maps_url}
                             target="_blank"
@@ -3164,6 +3183,30 @@ export default function EventManagement(props: PageProps) {
                         <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
                             <div className="min-w-0 space-y-4">
                                 <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 sm:col-span-2 dark:border-amber-900/60 dark:bg-amber-950/20">
+                                        <Checkbox
+                                            checked={venueForm.data.is_tba}
+                                            onCheckedChange={(checked) =>
+                                                venueForm.setData(
+                                                    'is_tba',
+                                                    checked === true,
+                                                )
+                                            }
+                                            className="mt-0.5"
+                                        />
+                                        <span className="min-w-0">
+                                            <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                                Venue is TBA
+                                            </span>
+                                            <span className="mt-0.5 block text-xs text-slate-600 dark:text-slate-400">
+                                                Check this when the venue is
+                                                still to be announced. No map or
+                                                Google Maps link will appear
+                                                publicly.
+                                            </span>
+                                        </span>
+                                    </label>
+
                                     <div className="space-y-1.5 sm:col-span-2">
                                         <div className="text-sm font-medium">
                                             Venue name{' '}
@@ -3218,6 +3261,7 @@ export default function EventManagement(props: PageProps) {
                                             Google Maps link
                                         </div>
                                         <Input
+                                            disabled={venueForm.data.is_tba}
                                             value={
                                                 venueForm.data.google_maps_url
                                             }
@@ -3244,6 +3288,7 @@ export default function EventManagement(props: PageProps) {
                                             Embed URL or iframe
                                         </div>
                                         <Input
+                                            disabled={venueForm.data.is_tba}
                                             value={venueForm.data.embed_url}
                                             onChange={(e) =>
                                                 venueForm.setData(
@@ -3306,7 +3351,8 @@ export default function EventManagement(props: PageProps) {
                                     <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                         Map Preview
                                     </div>
-                                    {venueForm.data.google_maps_url ? (
+                                    {!venueForm.data.is_tba &&
+                                    venueForm.data.google_maps_url ? (
                                         <Button
                                             asChild
                                             variant="secondary"
@@ -3327,12 +3373,27 @@ export default function EventManagement(props: PageProps) {
                                     ) : null}
                                 </div>
 
-                                <VenueMapPreview
-                                    embedUrl={venueEmbedPreviewUrl}
-                                    googleMapsUrl={
-                                        venueForm.data.google_maps_url
-                                    }
-                                />
+                                {venueForm.data.is_tba ? (
+                                    <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-6 text-center dark:border-amber-800 dark:bg-amber-950/20">
+                                        <div className="max-w-xs space-y-2">
+                                            <MapPin className="mx-auto h-8 w-8 text-amber-600 dark:text-amber-400" />
+                                            <p className="font-semibold text-slate-900 dark:text-slate-100">
+                                                Venue to be announced
+                                            </p>
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                                                The public page will not show a
+                                                map or navigation link.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <VenueMapPreview
+                                        embedUrl={venueEmbedPreviewUrl}
+                                        googleMapsUrl={
+                                            venueForm.data.google_maps_url
+                                        }
+                                    />
+                                )}
                             </div>
                         </div>
 

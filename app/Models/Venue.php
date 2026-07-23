@@ -14,12 +14,14 @@ class Venue extends Model
         'programme_id',
         'name',
         'address',
+        'is_tba',
         'google_maps_url',
         'embed_url',
         'is_active',
     ];
 
     protected $casts = [
+        'is_tba' => 'boolean',
         'is_active' => 'boolean',
     ];
 

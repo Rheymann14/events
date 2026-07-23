@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Programme;
-use App\Models\VenueSection;
 use App\Models\Venue;
+use App\Models\VenueSection;
 use App\Support\EventDefaults;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,6 +36,7 @@ class VenueController extends Controller
                 'programme_id' => $venue->programme_id,
                 'name' => $venue->name,
                 'address' => $venue->address,
+                'is_tba' => $venue->is_tba,
                 'google_maps_url' => $venue->google_maps_url,
                 'embed_url' => $venue->embed_url,
                 'is_active' => $venue->is_active,
@@ -64,6 +65,7 @@ class VenueController extends Controller
             'programme_id' => $venue->programme_id,
             'name' => $venue->name,
             'address' => $venue->address,
+            'is_tba' => $venue->is_tba,
             'google_maps_url' => $venue->google_maps_url,
             'embed_url' => $venue->embed_url,
             'programme' => $venue->programme
@@ -146,6 +148,7 @@ class VenueController extends Controller
             'programme_id' => ['nullable', 'exists:programmes,id'],
             'name' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string'],
+            'is_tba' => ['nullable', 'boolean'],
             'google_maps_url' => ['nullable', 'url'],
             'embed_url' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
@@ -157,6 +160,7 @@ class VenueController extends Controller
             'programme_id' => $validated['programme_id'] ?? null,
             'name' => $validated['name'],
             'address' => $validated['address'],
+            'is_tba' => $validated['is_tba'] ?? false,
             'google_maps_url' => $validated['google_maps_url'] ?? null,
             'embed_url' => $validated['embed_url'] ?: null,
             'is_active' => $validated['is_active'] ?? true,
@@ -171,6 +175,7 @@ class VenueController extends Controller
             'programme_id' => ['sometimes', 'nullable', 'exists:programmes,id'],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'address' => ['sometimes', 'required', 'string'],
+            'is_tba' => ['sometimes', 'boolean'],
             'google_maps_url' => ['sometimes', 'nullable', 'url'],
             'embed_url' => ['sometimes', 'nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
@@ -194,7 +199,7 @@ class VenueController extends Controller
 
     private function extractIframeSrc(?string $value): ?string
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 
@@ -203,7 +208,7 @@ class VenueController extends Controller
             return null;
         }
 
-        if (!str_contains($trimmed, '<iframe')) {
+        if (! str_contains($trimmed, '<iframe')) {
             return $trimmed;
         }
 

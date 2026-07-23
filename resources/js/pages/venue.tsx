@@ -35,6 +35,7 @@ type VenueRow = {
     programme_id: number | null;
     name: string;
     address: string;
+    is_tba: boolean;
     google_maps_url: string | null;
     embed_url: string | null;
     programme?: ProgrammeRow | null;
@@ -46,6 +47,7 @@ type EventVenue = {
     dateLabel?: string;
     venueName: string;
     address: string;
+    isTba: boolean;
     googleMapsLink?: string;
     embedUrl?: string | null;
     tip?: string;
@@ -167,10 +169,27 @@ function EventVenuePanel({ event }: { event: EventVenue }) {
     return (
         <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-12">
             <Card className="overflow-hidden rounded-2xl border-slate-200/70 bg-white shadow-[0_12px_40px_-25px_rgba(2,6,23,0.35)] lg:col-span-8 dark:border-white/10 dark:bg-slate-900">
-                <MapEmbed
-                    embedUrl={event.embedUrl}
-                    googleMapsLink={event.googleMapsLink}
-                />
+                {event.isTba ? (
+                    <div className="flex min-h-[360px] items-center justify-center bg-slate-50 p-8 text-center dark:bg-slate-900/60">
+                        <div className="max-w-md space-y-3">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                                <MapPin className="h-7 w-7" />
+                            </div>
+                            <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                Venue to be announced
+                            </p>
+                            <p className="text-sm text-slate-600 dark:text-slate-300">
+                                Location details and the map will appear here
+                                once the venue is confirmed.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <MapEmbed
+                        embedUrl={event.embedUrl}
+                        googleMapsLink={event.googleMapsLink}
+                    />
+                )}
             </Card>
 
             <Card className="rounded-2xl border-slate-200/70 bg-white/70 p-6 shadow-[0_12px_40px_-25px_rgba(2,6,23,0.35)] backdrop-blur-md lg:col-span-4 dark:border-white/10 dark:bg-slate-900/40">
@@ -197,7 +216,11 @@ function EventVenuePanel({ event }: { event: EventVenue }) {
                 </div>
 
                 <div className="mt-6 grid gap-3">
-                    {event.googleMapsLink ? (
+                    {event.isTba ? (
+                        <div className="rounded-2xl bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+                            Map and navigation details are not available yet.
+                        </div>
+                    ) : event.googleMapsLink ? (
                         <Button
                             asChild
                             className="h-11 rounded-2xl bg-gradient-to-r from-[#0033A0] to-[#1e3c73] text-white hover:opacity-95"
@@ -222,15 +245,17 @@ function EventVenuePanel({ event }: { event: EventVenue }) {
                     )}
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4 text-sm text-amber-950 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-100">
-                    <p className="font-medium text-amber-950 dark:text-amber-50">
-                        Tip
-                    </p>
-                    <p className="mt-1 text-amber-900/90 dark:text-amber-100/90">
-                        {event.tip ??
-                            'Tap “Open in Google Maps” for the exact pin and navigation directions.'}
-                    </p>
-                </div>
+                {!event.isTba ? (
+                    <div className="mt-6 rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4 text-sm text-amber-950 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-100">
+                        <p className="font-medium text-amber-950 dark:text-amber-50">
+                            Tip
+                        </p>
+                        <p className="mt-1 text-amber-900/90 dark:text-amber-100/90">
+                            {event.tip ??
+                                'Tap “Open in Google Maps” for the exact pin and navigation directions.'}
+                        </p>
+                    </div>
+                ) : null}
             </Card>
         </div>
     );
@@ -322,8 +347,11 @@ export default function Venue({
                 ) ?? undefined,
             venueName: venue.name,
             address: venue.address,
-            googleMapsLink: venue.google_maps_url ?? undefined,
-            embedUrl: venue.embed_url ?? undefined,
+            isTba: venue.is_tba,
+            googleMapsLink: venue.is_tba
+                ? undefined
+                : (venue.google_maps_url ?? undefined),
+            embedUrl: venue.is_tba ? undefined : (venue.embed_url ?? undefined),
             tip: 'Tap “Open in Google Maps” for the exact pin and navigation directions.',
         }));
     }, [venues]);
@@ -338,8 +366,11 @@ export default function Venue({
                 ) ?? undefined,
             venueName: venue.name,
             address: venue.address,
-            googleMapsLink: venue.google_maps_url ?? undefined,
-            embedUrl: venue.embed_url ?? undefined,
+            isTba: venue.is_tba,
+            googleMapsLink: venue.is_tba
+                ? undefined
+                : (venue.google_maps_url ?? undefined),
+            embedUrl: venue.is_tba ? undefined : (venue.embed_url ?? undefined),
             tip: 'Tap "Open in Google Maps" for the exact pin and navigation directions.',
         }));
     }, [all_venues]);
