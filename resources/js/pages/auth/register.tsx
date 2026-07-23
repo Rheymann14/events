@@ -91,6 +91,7 @@ type RegistrationFieldOption = {
         | 'checkbox'
         | 'select';
     options: string[];
+    option_routes?: (string | null)[];
     placeholder?: string | null;
     help_text?: string | null;
     is_required: boolean;
@@ -307,6 +308,47 @@ function isRegistrationFieldVisible(
     field: RegistrationFieldOption,
     responses: Record<string, Record<string, string | string[]>>,
 ) {
+    const fields = programme.registration_fields ?? [];
+    const routedTargetKeys = new Set(
+        fields.flatMap((candidate) =>
+            (candidate.option_routes ?? []).filter((target): target is string =>
+                Boolean(target),
+            ),
+        ),
+    );
+
+    if (routedTargetKeys.size > 0) {
+        const activeTargets = new Set<string>();
+
+        fields.forEach((source) => {
+            const routes = source.option_routes ?? [];
+            if (!routes.some(Boolean)) return;
+
+            const answer =
+                responses[String(programme.id)]?.[String(source.id)] ?? '';
+            const selectedAnswers = Array.isArray(answer)
+                ? answer.map(String)
+                : [String(answer)];
+
+            source.options.forEach((option, optionIndex) => {
+                const target = routes[optionIndex];
+                if (target && selectedAnswers.includes(option)) {
+                    activeTargets.add(target);
+                }
+            });
+        });
+
+        let owningTarget: string | null = null;
+        for (const candidate of fields) {
+            if (routedTargetKeys.has(candidate.field_key)) {
+                owningTarget = candidate.field_key;
+            }
+            if (candidate.id === field.id) break;
+        }
+
+        return owningTarget === null || activeTargets.has(owningTarget);
+    }
+
     if (!programmeHasRegistrationType(programme)) {
         return true;
     }
@@ -2487,7 +2529,7 @@ export default function Register({
                     />
                 </Link>
 
-                <h1 className="text-2xl font-semibold tracking-tight text-balance text-slate-700/90 sm:text-3xl">
+                <h1 className="max-w-full text-2xl font-semibold tracking-tight text-balance [overflow-wrap:anywhere] break-words text-slate-700/90 sm:text-3xl">
                     <span className="relative inline-block">
                         <span className="relative z-10">
                             {activeProgramme
@@ -2503,7 +2545,7 @@ export default function Register({
                 key={formKey}
                 {...store.form()}
                 encType="multipart/form-data"
-                className="flex flex-col gap-6"
+                className="flex min-w-0 flex-col gap-6"
                 noValidate
                 data-test="register-form"
                 transform={(data) => {
@@ -2613,12 +2655,12 @@ export default function Register({
                             {/* Card */}
                             <div
                                 className={cn(
-                                    'relative rounded-2xl border border-slate-200/70 bg-white/70 p-6',
+                                    'relative max-w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/70 p-6',
                                     'shadow-[0_18px_50px_-40px_rgba(2,6,23,0.35)] backdrop-blur-xl',
                                     'ring-1 ring-white/40',
                                 )}
                             >
-                                <div className="grid gap-5">
+                                <div className="grid min-w-0 gap-5">
                                     <div className="mt-3 rounded-lg border border-amber-200/70 bg-amber-50/60 px-3 py-2">
                                         <p className="text-[11px] leading-snug text-amber-800">
                                             Please accomplish this form in its
@@ -3872,7 +3914,7 @@ export default function Register({
                                             eventDetailsStepIndex
                                         }
                                         className={cn(
-                                            'grid gap-3 text-left',
+                                            'grid max-w-full min-w-0 gap-3 text-left',
                                             currentStep ===
                                                 eventDetailsStepIndex
                                                 ? ''
@@ -3884,10 +3926,10 @@ export default function Register({
                                                 (programme) => (
                                                     <div
                                                         key={programme.id}
-                                                        className="rounded-xl border border-slate-200/70 bg-white/70 p-3 backdrop-blur"
+                                                        className="max-w-full min-w-0 overflow-hidden rounded-xl border border-slate-200/70 bg-white/70 p-3 backdrop-blur"
                                                     >
-                                                        <div>
-                                                            <p className="text-[11px] font-semibold tracking-wide text-slate-700 uppercase">
+                                                        <div className="min-w-0">
+                                                            <p className="text-[11px] font-semibold tracking-wide [overflow-wrap:anywhere] break-words whitespace-pre-wrap text-slate-700 uppercase">
                                                                 {
                                                                     programme.title
                                                                 }
@@ -3899,7 +3941,7 @@ export default function Register({
                                                             </p>
                                                         </div>
 
-                                                        <div className="mt-4 grid gap-4">
+                                                        <div className="mt-4 grid min-w-0 gap-4">
                                                             {(
                                                                 programme.registration_fields ??
                                                                 []
@@ -3999,15 +4041,15 @@ export default function Register({
                                                                                     key={
                                                                                         field.id
                                                                                     }
-                                                                                    className="border-t border-slate-200 pt-4 first:border-t-0 first:pt-0"
+                                                                                    className="max-w-full min-w-0 overflow-hidden border-t border-slate-200 pt-4 first:border-t-0 first:pt-0"
                                                                                 >
-                                                                                    <p className="text-sm font-semibold tracking-wide text-slate-800 uppercase">
+                                                                                    <p className="text-sm font-semibold tracking-wide [overflow-wrap:anywhere] break-words whitespace-pre-wrap text-slate-800 uppercase">
                                                                                         {
                                                                                             field.label
                                                                                         }
                                                                                     </p>
                                                                                     {field.help_text ? (
-                                                                                        <p className="mt-1 text-sm text-slate-500">
+                                                                                        <p className="mt-1 text-sm [overflow-wrap:anywhere] break-words whitespace-pre-wrap text-slate-500">
                                                                                             {
                                                                                                 field.help_text
                                                                                             }
@@ -4029,9 +4071,9 @@ export default function Register({
                                                                                     data-error-key={
                                                                                         fieldErrorKey
                                                                                     }
-                                                                                    className="grid gap-2"
+                                                                                    className="grid max-w-full min-w-0 gap-2 overflow-hidden"
                                                                                 >
-                                                                                    <Label>
+                                                                                    <Label className="block max-w-full min-w-0 [overflow-wrap:anywhere] break-words whitespace-pre-wrap">
                                                                                         {
                                                                                             field.label
                                                                                         }
@@ -4346,9 +4388,9 @@ export default function Register({
                                                                                 data-error-key={
                                                                                     fieldErrorKey
                                                                                 }
-                                                                                className="grid gap-2"
+                                                                                className="grid max-w-full min-w-0 gap-2 overflow-hidden"
                                                                             >
-                                                                                <Label>
+                                                                                <Label className="block max-w-full min-w-0 [overflow-wrap:anywhere] break-words whitespace-pre-wrap">
                                                                                     {
                                                                                         field.label
                                                                                     }
@@ -4430,7 +4472,7 @@ export default function Register({
                                                                                 ) : null}
 
                                                                                 {isAsemme10ConsentField ? (
-                                                                                    <label className="flex items-start gap-2 rounded-md border border-slate-200 px-2.5 py-2 text-sm">
+                                                                                    <label className="flex min-w-0 items-start gap-2 overflow-hidden rounded-md border border-slate-200 px-2.5 py-2 text-sm">
                                                                                         <Checkbox
                                                                                             checked={
                                                                                                 !!stringValue
@@ -4449,7 +4491,7 @@ export default function Register({
                                                                                                 )
                                                                                             }
                                                                                         />
-                                                                                        <span>
+                                                                                        <span className="min-w-0 [overflow-wrap:anywhere] break-words">
                                                                                             {field
                                                                                                 .options?.[0] ??
                                                                                                 'Yes'}
@@ -4460,7 +4502,7 @@ export default function Register({
                                                                                 {field.field_type ===
                                                                                     'radio' &&
                                                                                 !isAsemme10ConsentField ? (
-                                                                                    <div className="grid gap-2 sm:grid-cols-2">
+                                                                                    <div className="grid min-w-0 gap-2 sm:grid-cols-2">
                                                                                         {(
                                                                                             field.options ??
                                                                                             []
@@ -4472,10 +4514,11 @@ export default function Register({
                                                                                                     key={
                                                                                                         option
                                                                                                     }
-                                                                                                    className="flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-2 text-sm"
+                                                                                                    className="flex min-w-0 items-start gap-2 overflow-hidden rounded-md border border-slate-200 px-2.5 py-2 text-sm"
                                                                                                 >
                                                                                                     <input
                                                                                                         type="radio"
+                                                                                                        className="mt-0.5 shrink-0"
                                                                                                         name={`dynamic-${programme.id}-${field.id}`}
                                                                                                         checked={
                                                                                                             stringValue ===
@@ -4489,7 +4532,7 @@ export default function Register({
                                                                                                             )
                                                                                                         }
                                                                                                     />
-                                                                                                    <span>
+                                                                                                    <span className="min-w-0 [overflow-wrap:anywhere] break-words">
                                                                                                         {
                                                                                                             option
                                                                                                         }
@@ -4502,7 +4545,7 @@ export default function Register({
 
                                                                                 {field.field_type ===
                                                                                 'checkbox' ? (
-                                                                                    <div className="grid gap-2 sm:grid-cols-2">
+                                                                                    <div className="grid min-w-0 gap-2 sm:grid-cols-2">
                                                                                         {(
                                                                                             field.options ??
                                                                                             []
@@ -4522,7 +4565,7 @@ export default function Register({
                                                                                                         key={
                                                                                                             option
                                                                                                         }
-                                                                                                        className="flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-2 text-sm"
+                                                                                                        className="flex min-w-0 items-start gap-2 overflow-hidden rounded-md border border-slate-200 px-2.5 py-2 text-sm"
                                                                                                     >
                                                                                                         <Checkbox
                                                                                                             checked={checkedValues.includes(
@@ -4541,7 +4584,7 @@ export default function Register({
                                                                                                                 )
                                                                                                             }
                                                                                                         />
-                                                                                                        <span>
+                                                                                                        <span className="min-w-0 [overflow-wrap:anywhere] break-words">
                                                                                                             {
                                                                                                                 option
                                                                                                             }
@@ -4644,9 +4687,11 @@ export default function Register({
                                                                                                                                 : 'opacity-0',
                                                                                                                         )}
                                                                                                                     />
-                                                                                                                    {
-                                                                                                                        option
-                                                                                                                    }
+                                                                                                                    <span className="min-w-0 [overflow-wrap:anywhere] break-words">
+                                                                                                                        {
+                                                                                                                            option
+                                                                                                                        }
+                                                                                                                    </span>
                                                                                                                 </CommandItem>
                                                                                                             ),
                                                                                                         )}
@@ -4699,7 +4744,7 @@ export default function Register({
                                                                                 ) : null}
 
                                                                                 {field.help_text ? (
-                                                                                    <p className="text-xs text-slate-500">
+                                                                                    <p className="text-xs [overflow-wrap:anywhere] break-words whitespace-pre-wrap text-slate-500">
                                                                                         {
                                                                                             field.help_text
                                                                                         }

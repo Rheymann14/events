@@ -188,6 +188,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('event-management', [ProgrammeController::class, 'index'])->name('event-management');
         Route::get('event-management/{programme}/participants', [ProgrammeController::class, 'participants'])
             ->name('event-management.participants');
+        Route::get('event-management/{programme}/registration-fields', [ProgrammeController::class, 'registrationFields'])
+            ->name('event-management.registration-fields');
         Route::post('event-management/{programme}/participants/certificates.pdf', [ProgrammeController::class, 'downloadParticipantCertificatesPdf'])
             ->name('event-management.participants.certificates.pdf');
         Route::post('event-management/{programme}/participants/{participant}/certificates/send', [ProgrammeController::class, 'sendParticipantCertificateEmail'])

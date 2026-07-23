@@ -1383,6 +1383,7 @@ class ParticipantController extends Controller
                 'label' => $field->label,
                 'field_type' => $field->field_type,
                 'options' => $field->options ?? [],
+                'option_routes' => $field->option_routes ?? [],
                 'placeholder' => $field->placeholder,
                 'help_text' => $field->help_text,
                 'is_required' => $field->is_required,
@@ -1403,59 +1404,66 @@ class ParticipantController extends Controller
             ? $request->input('registration_responses')
             : [];
 
-        RegistrationField::query()
+        $fields = RegistrationField::query()
             ->where('programme_id', $programmeId)
             ->orderBy('sort_order')
-            ->get()
-            ->each(function (RegistrationField $field) use ($validator, $responses, $programmeId) {
-                if ($field->field_type === 'section') {
-                    return;
-                }
+            ->get();
+        $programmeResponses = $responses[$programmeId] ?? $responses[(string) $programmeId] ?? [];
+        $visibleFieldIds = RegistrationField::visibleFieldIds($fields, is_array($programmeResponses) ? $programmeResponses : []);
 
-                $value = $responses[$programmeId][$field->id]
-                    ?? $responses[(string) $programmeId][(string) $field->id]
-                    ?? $responses[(string) $programmeId][$field->id]
-                    ?? $responses[$programmeId][(string) $field->id]
-                    ?? null;
+        $fields->each(function (RegistrationField $field) use ($validator, $responses, $programmeId, $visibleFieldIds) {
+            if (! in_array($field->id, $visibleFieldIds, true)) {
+                return;
+            }
 
-                $attribute = "registration_responses.{$programmeId}.{$field->id}";
+            if ($field->field_type === 'section') {
+                return;
+            }
 
-                if ($field->is_required && $this->isBlankDynamicAnswer($value)) {
-                    $validator->errors()->add($attribute, "{$field->label} is required.");
+            $value = $responses[$programmeId][$field->id]
+                ?? $responses[(string) $programmeId][(string) $field->id]
+                ?? $responses[(string) $programmeId][$field->id]
+                ?? $responses[$programmeId][(string) $field->id]
+                ?? null;
 
-                    return;
-                }
+            $attribute = "registration_responses.{$programmeId}.{$field->id}";
 
-                if ($this->isBlankDynamicAnswer($value)) {
-                    return;
-                }
+            if ($field->is_required && $this->isBlankDynamicAnswer($value)) {
+                $validator->errors()->add($attribute, "{$field->label} is required.");
 
-                $options = collect($field->options ?? [])->map(fn ($option) => (string) $option)->all();
+                return;
+            }
 
-                if (in_array($field->field_type, ['radio', 'select'], true) && $options && ! in_array((string) $value, $options, true)) {
+            if ($this->isBlankDynamicAnswer($value)) {
+                return;
+            }
+
+            $options = collect($field->options ?? [])->map(fn ($option) => (string) $option)->all();
+
+            if (in_array($field->field_type, ['radio', 'select'], true) && $options && ! in_array((string) $value, $options, true)) {
+                $validator->errors()->add($attribute, "{$field->label} has an invalid selection.");
+            }
+
+            if ($field->field_type === 'checkbox') {
+                if (! is_array($value)) {
                     $validator->errors()->add($attribute, "{$field->label} has an invalid selection.");
+
+                    return;
                 }
 
-                if ($field->field_type === 'checkbox') {
-                    if (! is_array($value)) {
+                foreach ($value as $selected) {
+                    if ($options && ! in_array((string) $selected, $options, true)) {
                         $validator->errors()->add($attribute, "{$field->label} has an invalid selection.");
 
                         return;
                     }
-
-                    foreach ($value as $selected) {
-                        if ($options && ! in_array((string) $selected, $options, true)) {
-                            $validator->errors()->add($attribute, "{$field->label} has an invalid selection.");
-
-                            return;
-                        }
-                    }
                 }
+            }
 
-                if ($field->field_type === 'email' && ! filter_var((string) $value, FILTER_VALIDATE_EMAIL)) {
-                    $validator->errors()->add($attribute, "{$field->label} must be a valid email address.");
-                }
-            });
+            if ($field->field_type === 'email' && ! filter_var((string) $value, FILTER_VALIDATE_EMAIL)) {
+                $validator->errors()->add($attribute, "{$field->label} must be a valid email address.");
+            }
+        });
     }
 
     private function syncSelectedProgrammeAndResponses(User $user, Request $request): void
@@ -1473,10 +1481,25 @@ class ParticipantController extends Controller
 
         $fields = RegistrationField::query()
             ->where('programme_id', $programmeId)
-            ->where('field_type', '!=', 'section')
+            ->orderBy('sort_order')
             ->get();
+        $programmeResponses = $responses[$programmeId] ?? $responses[(string) $programmeId] ?? [];
+        $visibleFieldIds = RegistrationField::visibleFieldIds($fields, is_array($programmeResponses) ? $programmeResponses : []);
 
         foreach ($fields as $field) {
+            if ($field->field_type === 'section') {
+                continue;
+            }
+
+            if (! in_array($field->id, $visibleFieldIds, true)) {
+                $user->registrationFieldResponses()
+                    ->where('programme_id', $programmeId)
+                    ->where('registration_field_id', $field->id)
+                    ->delete();
+
+                continue;
+            }
+
             $value = $responses[$programmeId][$field->id]
                 ?? $responses[(string) $programmeId][(string) $field->id]
                 ?? $responses[(string) $programmeId][$field->id]

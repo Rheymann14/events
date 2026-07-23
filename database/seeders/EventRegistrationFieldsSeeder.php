@@ -59,7 +59,13 @@ class EventRegistrationFieldsSeeder extends Seeder
                 'ASEAN Secretariat',
                 'European Union',
                 'Other',
-            ], true),
+            ], true, [
+                'country_delegation',
+                'stakeholder_delegation',
+                'asean_secretariat',
+                'european_union',
+                'single_participant_other',
+            ]),
 
             $this->section('Country Delegation'),
             $this->text('country_delegation_country', 'Country'),
@@ -152,9 +158,9 @@ class EventRegistrationFieldsSeeder extends Seeder
         return $this->field($key, $label, 'tel', isRequired: $required);
     }
 
-    private function radio(string $key, string $label, array $options, bool $required = false): array
+    private function radio(string $key, string $label, array $options, bool $required = false, array $optionRoutes = []): array
     {
-        return $this->field($key, $label, 'radio', $options, $required);
+        return $this->field($key, $label, 'radio', $options, $required, $optionRoutes);
     }
 
     private function checkbox(string $key, string $label, array $options, bool $required = false): array
@@ -162,13 +168,14 @@ class EventRegistrationFieldsSeeder extends Seeder
         return $this->field($key, $label, 'checkbox', $options, $required);
     }
 
-    private function field(string $key, string $label, string $type, array $options = [], bool $isRequired = false): array
+    private function field(string $key, string $label, string $type, array $options = [], bool $isRequired = false, array $optionRoutes = []): array
     {
         return [
             'field_key' => $key,
             'label' => $label,
             'field_type' => $type,
             'options' => $options,
+            'option_routes' => $optionRoutes,
             'is_required' => $isRequired,
         ];
     }

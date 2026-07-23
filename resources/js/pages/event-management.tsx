@@ -130,7 +130,6 @@ type ProgrammeRow = {
         file_path: string;
         file_type: string | null;
     }[];
-    registration_fields?: RegistrationFieldRow[];
     signatory_name?: string | null;
     signatory_title?: string | null;
     signatory_signature_url?: string | null;
@@ -1061,12 +1060,7 @@ export default function EventManagement(props: PageProps) {
     }
 
     function openRegistrationFields(item: ProgrammeRow) {
-        setRegistrationTarget(item);
-        registrationForm.setData(
-            'registration_fields',
-            normalizeRegistrationFields(item.registration_fields ?? []),
-        );
-        registrationForm.clearErrors();
+        router.get(`/event-management/${item.id}/registration-fields`);
     }
 
     function closeRegistrationFields() {

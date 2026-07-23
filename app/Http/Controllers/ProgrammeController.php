@@ -26,7 +26,6 @@ class ProgrammeController extends Controller
             ->with([
                 'user',
                 'materials',
-                'registrationFields',
                 'venues' => fn ($query) => $query->orderBy('id'),
             ])
             ->withCount('participants')
@@ -65,7 +64,6 @@ class ProgrammeController extends Controller
                         ])
                         ->values()
                         ->all(),
-                    'registration_fields' => $this->registrationFieldsPayload($programme),
                     'signatory_name' => $programme->signatory_name,
                     'signatory_title' => $programme->signatory_title,
                     'signatory_signature_url' => $programme->signatory_signature_url,
@@ -161,6 +159,19 @@ class ProgrammeController extends Controller
                     })
                     ->values()
                     ->all(),
+            ],
+        ]);
+    }
+
+    public function registrationFields(Programme $programme)
+    {
+        $programme->load('registrationFields');
+
+        return Inertia::render('event-management-registration-fields', [
+            'programme' => [
+                'id' => $programme->id,
+                'title' => $programme->title,
+                'registration_fields' => $this->registrationFieldsPayload($programme),
             ],
         ]);
     }
@@ -606,11 +617,13 @@ class ProgrammeController extends Controller
         $validated = $request->validate([
             'registration_fields' => ['nullable', 'array'],
             'registration_fields.*.id' => ['nullable', 'integer', 'exists:registration_fields,id'],
-            'registration_fields.*.label' => ['required', 'string', 'max:500'],
+            'registration_fields.*.label' => ['required', 'string'],
             'registration_fields.*.field_key' => ['nullable', 'string', 'max:100'],
             'registration_fields.*.field_type' => ['required', 'string', 'in:section,text,textarea,email,tel,date,radio,checkbox,select'],
             'registration_fields.*.options' => ['nullable', 'array'],
             'registration_fields.*.options.*' => ['nullable', 'string', 'max:255'],
+            'registration_fields.*.option_routes' => ['nullable', 'array'],
+            'registration_fields.*.option_routes.*' => ['nullable', 'string', 'max:100'],
             'registration_fields.*.placeholder' => ['nullable', 'string', 'max:255'],
             'registration_fields.*.help_text' => ['nullable', 'string', 'max:1000'],
             'registration_fields.*.is_required' => ['nullable', 'boolean'],
@@ -635,6 +648,10 @@ class ProgrammeController extends Controller
                     ->values()
                     ->all()
                 : [];
+            $submittedRoutes = array_values($field['option_routes'] ?? []);
+            $optionRoutes = collect($options)
+                ->map(fn ($option, $optionIndex) => trim((string) ($submittedRoutes[$optionIndex] ?? '')) ?: null)
+                ->all();
 
             $baseKey = trim((string) ($field['field_key'] ?? ''));
             $key = $this->uniqueFieldKey($baseKey ?: (string) $field['label'], $usedKeys);
@@ -645,6 +662,7 @@ class ProgrammeController extends Controller
                 'label' => trim((string) $field['label']),
                 'field_type' => $type,
                 'options' => $options,
+                'option_routes' => $optionRoutes,
                 'placeholder' => trim((string) ($field['placeholder'] ?? '')) ?: null,
                 'help_text' => trim((string) ($field['help_text'] ?? '')) ?: null,
                 'is_required' => $type !== 'section' && (bool) ($field['is_required'] ?? false),
@@ -722,6 +740,7 @@ class ProgrammeController extends Controller
                 'label' => $field->label,
                 'field_type' => $field->field_type,
                 'options' => $field->options ?? [],
+                'option_routes' => $field->option_routes ?? [],
                 'placeholder' => $field->placeholder,
                 'help_text' => $field->help_text,
                 'is_required' => $field->is_required,

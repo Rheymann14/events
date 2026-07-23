@@ -116,54 +116,66 @@ class CreateNewUser implements CreatesNewUsers
                 ? $input['registration_responses']
                 : [];
 
-            RegistrationField::query()
+            $registrationFields = RegistrationField::query()
                 ->whereIn('programme_id', $programmeIds)
                 ->orderBy('sort_order')
-                ->get()
-                ->each(function (RegistrationField $field) use ($validator, $responses) {
-                    if ($field->field_type === 'section') {
-                        return;
-                    }
+                ->get();
+            $visibleIdsByProgramme = $registrationFields
+                ->groupBy('programme_id')
+                ->map(function ($fields, $programmeId) use ($responses) {
+                    $programmeResponses = $responses[$programmeId] ?? $responses[(string) $programmeId] ?? [];
 
-                    $value = $this->registrationResponseValue($responses, $field);
-                    $attribute = "registration_responses.{$field->programme_id}.{$field->id}";
+                    return RegistrationField::visibleFieldIds($fields, is_array($programmeResponses) ? $programmeResponses : []);
+                });
 
-                    if ($field->is_required && $this->isBlankDynamicAnswer($value)) {
-                        $validator->errors()->add($attribute, "{$field->label} is required.");
+            $registrationFields->each(function (RegistrationField $field) use ($validator, $responses, $visibleIdsByProgramme) {
+                if (! in_array($field->id, $visibleIdsByProgramme->get($field->programme_id, []), true)) {
+                    return;
+                }
 
-                        return;
-                    }
+                if ($field->field_type === 'section') {
+                    return;
+                }
 
-                    if ($this->isBlankDynamicAnswer($value)) {
-                        return;
-                    }
+                $value = $this->registrationResponseValue($responses, $field);
+                $attribute = "registration_responses.{$field->programme_id}.{$field->id}";
 
-                    $options = collect($field->options ?? [])->map(fn ($option) => (string) $option)->all();
+                if ($field->is_required && $this->isBlankDynamicAnswer($value)) {
+                    $validator->errors()->add($attribute, "{$field->label} is required.");
 
-                    if (in_array($field->field_type, ['radio', 'select'], true) && $options && ! in_array((string) $value, $options, true)) {
+                    return;
+                }
+
+                if ($this->isBlankDynamicAnswer($value)) {
+                    return;
+                }
+
+                $options = collect($field->options ?? [])->map(fn ($option) => (string) $option)->all();
+
+                if (in_array($field->field_type, ['radio', 'select'], true) && $options && ! in_array((string) $value, $options, true)) {
+                    $validator->errors()->add($attribute, "{$field->label} has an invalid selection.");
+                }
+
+                if ($field->field_type === 'checkbox') {
+                    if (! is_array($value)) {
                         $validator->errors()->add($attribute, "{$field->label} has an invalid selection.");
+
+                        return;
                     }
 
-                    if ($field->field_type === 'checkbox') {
-                        if (! is_array($value)) {
+                    foreach ($value as $selected) {
+                        if ($options && ! in_array((string) $selected, $options, true)) {
                             $validator->errors()->add($attribute, "{$field->label} has an invalid selection.");
 
                             return;
                         }
-
-                        foreach ($value as $selected) {
-                            if ($options && ! in_array((string) $selected, $options, true)) {
-                                $validator->errors()->add($attribute, "{$field->label} has an invalid selection.");
-
-                                return;
-                            }
-                        }
                     }
+                }
 
-                    if ($field->field_type === 'email' && ! filter_var((string) $value, FILTER_VALIDATE_EMAIL)) {
-                        $validator->errors()->add($attribute, "{$field->label} must be a valid email address.");
-                    }
-                });
+                if ($field->field_type === 'email' && ! filter_var((string) $value, FILTER_VALIDATE_EMAIL)) {
+                    $validator->errors()->add($attribute, "{$field->label} must be a valid email address.");
+                }
+            });
         })->validate();
 
         $programmeIds = $this->programmeIdsFromInput($input);
@@ -349,10 +361,25 @@ class CreateNewUser implements CreatesNewUsers
 
         $fields = RegistrationField::query()
             ->whereIn('programme_id', $programmeIds)
-            ->where('field_type', '!=', 'section')
+            ->orderBy('sort_order')
             ->get();
 
+        $visibleIdsByProgramme = $fields
+            ->groupBy('programme_id')
+            ->map(function ($programmeFields, $programmeId) use ($responses) {
+                $programmeResponses = $responses[$programmeId] ?? $responses[(string) $programmeId] ?? [];
+
+                return RegistrationField::visibleFieldIds($programmeFields, is_array($programmeResponses) ? $programmeResponses : []);
+            });
+
         foreach ($fields as $field) {
+            if (
+                $field->field_type === 'section'
+                || ! in_array($field->id, $visibleIdsByProgramme->get($field->programme_id, []), true)
+            ) {
+                continue;
+            }
+
             $value = $this->registrationResponseValue($responses, $field);
 
             if ($this->isBlankDynamicAnswer($value)) {

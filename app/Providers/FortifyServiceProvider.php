@@ -260,6 +260,7 @@ class FortifyServiceProvider extends ServiceProvider
                     'label' => $field->label,
                     'field_type' => $field->field_type,
                     'options' => $field->options ?? [],
+                    'option_routes' => $field->option_routes ?? [],
                     'placeholder' => $field->placeholder,
                     'help_text' => $field->help_text,
                     'is_required' => $field->is_required,
