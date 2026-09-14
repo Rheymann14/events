@@ -198,6 +198,7 @@ class Asemme10RegistrationController extends Controller
                     'email' => $this->blankToNull($attendee['email'] ?? null),
                     'display_id' => $user->display_id,
                     'qr_payload' => $user->qr_payload,
+                    'qr_token' => $user->qr_token,
                     'role' => $attendee['role'],
                     'profile_photo_url' => $user->profile_photo_path ? asset($user->profile_photo_path) : null,
                     'virtual_id_email_sent' => $this->canEmailAttendee($attendee, $user),

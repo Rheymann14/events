@@ -47,7 +47,7 @@ import {
     ChevronsUpDown,
     QrCodeIcon,
 } from 'lucide-react';
-import QRCode from 'qrcode';
+import { participantQrValue, renderQrDataUrl } from '@/lib/qr';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -70,6 +70,7 @@ type Participant = {
     id: number;
     display_id?: string | null;
     qr_payload?: string | null;
+    qr_token?: string | null;
     profile_photo_url?: string | null;
     full_name: string;
     email: string | null;
@@ -208,21 +209,17 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
         participant.profile_photo_url || '/img/ched_logo.png';
     const name = participant.full_name || '—';
     const displayId = participant.display_id || '—';
+    const qrValue = participantQrValue(participant);
 
     React.useEffect(() => {
         let active = true;
         const run = async () => {
-            const value = participant.qr_payload?.trim() ?? '';
-            if (!value) {
+            if (!qrValue) {
                 setQrDataUrl(null);
                 return;
             }
             try {
-                const url = await QRCode.toDataURL(value, {
-                    margin: 1,
-                    width: 240,
-                    errorCorrectionLevel: 'M',
-                });
+                const url = await renderQrDataUrl(qrValue);
                 if (active) setQrDataUrl(url);
             } catch {
                 if (active) setQrDataUrl(null);
@@ -233,7 +230,7 @@ function VirtualLandscapeId({ participant }: { participant: Participant }) {
         return () => {
             active = false;
         };
-    }, [participant.qr_payload]);
+    }, [qrValue]);
 
     return (
         <div className="mx-auto w-full max-w-[520px]">

@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 import { Form, Head, Link, router, useRemember } from '@inertiajs/react';
-import QRCode from 'qrcode';
+import { participantQrValue, renderQrDataUrl } from '@/lib/qr';
 import * as React from 'react';
 import Confetti from 'react-confetti';
 import type { Crop, PixelCrop } from 'react-image-crop';
@@ -113,6 +113,7 @@ type RegisteredParticipant = {
     email: string;
     display_id: string;
     qr_payload: string;
+    qr_token?: string | null;
     event_title?: string | null;
     country_code?: string | null;
     country_name?: string | null;
@@ -128,6 +129,7 @@ type Asemme10Submission = {
         email?: string | null;
         display_id: string;
         qr_payload: string;
+        qr_token?: string | null;
         role?: string | null;
         country_code?: string | null;
         country_name?: string | null;
@@ -142,6 +144,7 @@ type VirtualIdParticipant = {
     email?: string | null;
     display_id: string;
     qr_payload: string;
+    qr_token?: string | null;
     event_title?: string | null;
     country_code?: string | null;
     country_name?: string | null;
@@ -1990,21 +1993,17 @@ export default function Register({
 
     React.useEffect(() => {
         let active = true;
-        const value = virtualIdParticipant?.qr_payload?.trim();
+        const value = virtualIdParticipant
+            ? participantQrValue(virtualIdParticipant)
+            : '';
 
         if (!value) {
             setSuccessQrDataUrl(null);
             return;
         }
 
-        QRCode.toDataURL(value, {
-            width: 320,
-            margin: 1,
-            errorCorrectionLevel: 'M',
-            color: {
-                dark: '#000000',
-                light: '#ffffff',
-            },
+        renderQrDataUrl(value, {
+            color: { dark: '#000000', light: '#ffffff' },
         })
             .then((url) => {
                 if (active) setSuccessQrDataUrl(url);
@@ -2016,7 +2015,7 @@ export default function Register({
         return () => {
             active = false;
         };
-    }, [virtualIdParticipant?.qr_payload]);
+    }, [virtualIdParticipant]);
 
     const inputClass =
         'h-11 rounded-xl border-slate-200 bg-white shadow-[inset_0_1px_2px_rgba(2,6,23,0.06)] ' +
@@ -2167,7 +2166,10 @@ export default function Register({
             ctx.fillStyle = '#334155';
             ctx.font = '700 18px Arial, sans-serif';
             ctx.fillText('QR Code', 858, 211);
+            // Keep module edges hard when the QR is rescaled into the card canvas.
+            ctx.imageSmoothingEnabled = false;
             ctx.drawImage(qrImage, 778, 244, 314, 314);
+            ctx.imageSmoothingEnabled = true;
 
             ctx.fillStyle = '#334155';
             ctx.font = '700 18px Arial, sans-serif';

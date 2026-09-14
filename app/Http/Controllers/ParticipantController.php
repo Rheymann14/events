@@ -11,8 +11,7 @@ use App\Models\User;
 use App\Models\UserType;
 use App\Services\WelcomeNotificationService;
 use App\Support\EventDefaults;
-use BaconQrCode\Common\ErrorCorrectionLevel;
-use BaconQrCode\Encoder\Encoder;
+use App\Support\ParticipantQr;
 use Dompdf\Cpdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -206,6 +205,7 @@ class ParticipantController extends Controller
                         'full_name' => $fullName ?: ($attendee->badge_name ?: ($user?->name ?? 'Participant')),
                         'display_id' => $user?->display_id,
                         'qr_payload' => $user?->qr_payload,
+                        'qr_token' => $user?->qr_token,
                         'profile_image_url' => $user?->profile_photo_path ? asset($user->profile_photo_path) : null,
                         'profile_photo_url' => $user?->profile_photo_path ? asset($user->profile_photo_path) : null,
                         'profile_photo_path' => $user?->profile_photo_path,
@@ -361,6 +361,7 @@ class ParticipantController extends Controller
                         'full_name' => $user->name,
                         'display_id' => $user->display_id,
                         'qr_payload' => $user->qr_payload,
+                        'qr_token' => $user->qr_token,
                         'profile_image_url' => $user->profile_photo_path ? asset($user->profile_photo_path) : null,
                         'profile_photo_url' => $user->profile_photo_path ? asset($user->profile_photo_path) : null,
                         'profile_photo_path' => $user->profile_photo_path,
@@ -816,6 +817,7 @@ class ParticipantController extends Controller
                 'name',
                 'display_id',
                 'qr_payload',
+                'qr_token',
                 'user_type_id',
                 'profile_photo_path',
             ])
@@ -834,6 +836,7 @@ class ParticipantController extends Controller
                 'name' => $user->name ?: 'Participant',
                 'display_id' => $user->display_id ?: (string) $user->id,
                 'qr_payload' => $user->qr_payload ?: ($user->display_id ?: (string) $user->id),
+                'qr_token' => $user->qr_token ?: ($user->display_id ?: (string) $user->id),
                 'type_name' => $user->userType?->name ?: '',
                 'photo_path' => $this->participantIdPhotoPath($user->profile_photo_path),
             ])
@@ -996,7 +999,7 @@ class ParticipantController extends Controller
 
         $name = $this->pdfText((string) $participant['name']);
         $displayId = $this->pdfText((string) $participant['display_id']);
-        $qrPayload = (string) ($participant['qr_payload'] ?? $participant['display_id']);
+        $qrPayload = (string) ($participant['display_id'] ?? $participant['qr_token']);
         $photoPath = $participant['photo_path'] ?? null;
         $bodyTop = $top - $pad - 43.0;
         $this->drawText($pdf, 'PARTICIPANT', $x + $pad, $bodyTop, $isLandscape ? 6.4 : 7.0, [0.39, 0.46, 0.57]);
@@ -1205,8 +1208,8 @@ class ParticipantController extends Controller
 
     private function drawQr(Cpdf $pdf, string $payload, float $x, float $y, float $size): void
     {
-        $matrix = Encoder::encode($payload, ErrorCorrectionLevel::M())->getMatrix();
-        $quietModules = 2;
+        $matrix = ParticipantQr::matrix($payload);
+        $quietModules = ParticipantQr::QUIET_MODULES;
         $matrixSize = $matrix->getWidth();
         $moduleSize = $size / ($matrixSize + ($quietModules * 2));
         $originX = $x + ($quietModules * $moduleSize);

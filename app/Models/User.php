@@ -145,6 +145,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Programme::class, 'participant_programmes')->withTimestamps();
     }
 
+    public function participantAttendances(): HasMany
+    {
+        return $this->hasMany(ParticipantAttendance::class);
+    }
+
     public function tableAssignments(): HasMany
     {
         return $this->hasMany(ParticipantTableAssignment::class);

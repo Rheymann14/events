@@ -204,6 +204,8 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('scanner', [ScannerController::class, 'index'])->name('scanner');
         Route::post('scanner/scan', [ScannerController::class, 'scan'])->name('scanner.scan');
+        Route::get('scanner/participants', [ScannerController::class, 'participants'])
+            ->name('scanner.participants');
     });
 });
 

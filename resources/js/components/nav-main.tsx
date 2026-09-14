@@ -39,9 +39,11 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
     const isActiveHref = (href?: NavItem['href']) =>
         href ? page.url.startsWith(resolveUrl(href)) : false;
 
-    // Start "Page Settings" group from Section Management after standalone venue management was removed.
+    // Anchors the "Page Settings" group at its first item. Re-point this if
+    // that item changes — previously Section Management, and venue management
+    // before that.
     const pageSettingsStartIndex = items.findIndex(
-        (item) => item.title === 'Section Management',
+        (item) => item.title === 'Events & Certificates',
     );
 
     const registrationItems =

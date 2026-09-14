@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\Programme;
 use App\Models\User;
+use App\Support\ParticipantQr;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -40,8 +41,6 @@ class ParticipantWelcomeMail extends Mailable
 
     public function data(): array
     {
-        $qrUrl = $this->qrUrl();
-
         $events = $this->user->joinedProgrammes
             ->sortBy('starts_at')
             ->values()
@@ -70,8 +69,7 @@ class ParticipantWelcomeMail extends Mailable
             'events' => $events,
             'primaryEventTitle' => $events->first()['title'] ?? 'CHED Events Registration',
             'assignments' => $assignments,
-            'qrImage' => null,
-            'qrUrl' => $qrUrl,
+            'qrImage' => ParticipantQr::png(ParticipantQr::value($this->user)),
             'user' => $this->user,
         ];
     }
@@ -79,20 +77,6 @@ class ParticipantWelcomeMail extends Mailable
     public function attachments(): array
     {
         return [];
-    }
-
-    private function qrUrl(): string
-    {
-        $query = http_build_query([
-            'size' => '220x220',
-            'margin' => '0',
-            'format' => 'png',
-            'color' => '000000',
-            'bgcolor' => 'FFFFFF',
-            'data' => (string) $this->user->qr_payload,
-        ]);
-
-        return "https://api.qrserver.com/v1/create-qr-code/?{$query}";
     }
 
     private function confirmationEventTitle(): string

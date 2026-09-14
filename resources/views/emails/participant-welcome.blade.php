@@ -48,7 +48,7 @@
                             <td style="padding: 0 32px 24px;">
                                 <h2 style="margin: 0 0 12px; font-size: 16px; color: #0f172a;">System-generated ID</h2>
                                 @php
-                                    $qrSrc = $qrImage && isset($message) ? $message->embedData($qrImage, 'participant-qr.png', 'image/png') : $qrUrl;
+                                    $qrSrc = $qrImage && isset($message) ? $message->embedData($qrImage, 'participant-qr.png', 'image/png') : null;
                                 @endphp
                                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #dbeafe; border-radius: 18px; padding: 16px; background-color: #eff6ff;">
                                     <tr>
@@ -95,7 +95,7 @@
                                                     <td bgcolor="#ffffff" style="width: 40%; text-align: center; vertical-align: top; background-color: #ffffff !important; color-scheme: light only; forced-color-adjust: none;">
                                                         <div style="background: #ffffff !important; background-color: #ffffff !important; border-radius: 14px; padding: 10px; border: 1px solid #dbeafe; display: inline-block; color-scheme: light only; forced-color-adjust: none;">
                                                             <div style="font-size: 11px; font-weight: 600; color: #475569 !important; margin-bottom: 6px;">QR Code</div>
-                                                            <img src="{{ $qrSrc }}" alt="Participant QR code" width="160" height="160" style="display: block; width: 160px; height: 160px; border-radius: 10px; border: 1px solid #e2e8f0; background-color: #ffffff !important; color-scheme: light only; forced-color-adjust: none;" />
+                                                            <img src="{{ $qrSrc }}" alt="Participant QR code" width="232" height="232" style="display: block; width: 232px; height: 232px; border-radius: 10px; border: 1px solid #e2e8f0; background-color: #ffffff !important; color-scheme: light only; forced-color-adjust: none;" />
                                                         </div>
                                                         <div style="margin-top: 8px; font-size: 11px; color: #64748b;">Scan for attendance check-in</div>
                                                     </td>

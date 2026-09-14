@@ -219,7 +219,7 @@ export default function Issuances(props: PageProps) {
 
         QRCode.toDataURL(url, {
             width: 200,
-            margin: 1,
+            margin: 4,
             color: {
                 dark: '#0033A0',
                 light: '#ffffff',

@@ -9,7 +9,9 @@ use App\Support\EventDefaults;
 use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class ScannerController extends Controller
@@ -25,6 +27,7 @@ class ScannerController extends Controller
                 return [
                     'id' => $programme->id,
                     'title' => $programme->title,
+                    'image_url' => $programme->image_url,
                     'starts_at' => $programme->starts_at?->toISOString(),
                     'ends_at' => $programme->ends_at?->toISOString(),
                     'is_active' => $programme->is_active,
@@ -69,7 +72,16 @@ class ScannerController extends Controller
             ]);
         }
 
-        $participant = $this->resolveParticipant($validated['code']);
+        $matches = $this->resolveParticipants($validated['code']);
+
+        if ($matches->count() > 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Several participants share that code. Enter the full Participant ID.',
+            ]);
+        }
+
+        $participant = $matches->first();
         if (! $participant) {
             return response()->json([
                 'ok' => false,
@@ -110,26 +122,7 @@ class ScannerController extends Controller
 
         $participant->loadMissing(['country', 'userType', 'joinedProgrammes']);
 
-        $rawProfilePath = $participant->profile_image_path
-        ?? $participant->profile_image
-        ?? $participant->profile_photo_path
-        ?? null;
-
-        $profileImageUrl = null;
-        if ($rawProfilePath) {
-            $rawProfilePath = ltrim((string) $rawProfilePath, '/');
-
-            if (str_starts_with($rawProfilePath, 'http://') || str_starts_with($rawProfilePath, 'https://')) {
-                $profileImageUrl = $rawProfilePath;
-            } else {
-                $relative = str_starts_with($rawProfilePath, 'profile-image/')
-                    || str_starts_with($rawProfilePath, 'storage/profile-image/')
-                    ? $rawProfilePath
-                    : 'profile-image/'.$rawProfilePath;
-
-                $profileImageUrl = asset($relative);
-            }
-        }
+        $profileImageUrl = $this->profileImageUrl($participant);
 
         return response()->json([
             'ok' => true,
@@ -167,14 +160,110 @@ class ScannerController extends Controller
         ]);
     }
 
-    private function resolveParticipant(string $code): ?User
+    /**
+     * Search everyone registered for an event, with their check-in state.
+     *
+     * The scanner's own recent list is capped and lives only in the page's
+     * memory, so this is what answers "has this person already checked in?"
+     * once a queue has moved through.
+     */
+    public function participants(Request $request)
+    {
+        $validated = $request->validate([
+            'event_id' => ['required', 'exists:programmes,id'],
+            'q' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $eventId = $validated['event_id'];
+        $term = trim((string) ($validated['q'] ?? ''));
+
+        $participants = User::query()
+            ->whereHas('joinedProgrammes', fn ($query) => $query->where('programmes.id', $eventId))
+            // Grouped so the orWhere cannot escape the event constraint above.
+            ->when($term !== '', fn ($query) => $query->where(fn ($group) => $group
+                ->where('name', 'like', '%'.$term.'%')
+                ->orWhere('display_id', 'like', '%'.$term.'%')))
+            ->with(['participantAttendances' => fn ($query) => $query->where('programme_id', $eventId)])
+            ->orderBy('name')
+            ->limit(50)
+            ->get()
+            ->map(function (User $participant) {
+                $attendance = $participant->participantAttendances->first();
+
+                return [
+                    'id' => $participant->id,
+                    'full_name' => $participant->name,
+                    'display_id' => $participant->display_id,
+                    'profile_image_url' => $this->profileImageUrl($participant),
+                    'checked_in' => (bool) $attendance,
+                    'scanned_at' => $attendance?->scanned_at?->toISOString(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'participants' => $participants,
+        ]);
+    }
+
+    /**
+     * Public URL for a participant's photo, whichever column it landed in.
+     */
+    private function profileImageUrl(User $participant): ?string
+    {
+        $rawProfilePath = $participant->profile_image_path
+            ?? $participant->profile_image
+            ?? $participant->profile_photo_path
+            ?? null;
+
+        if (! $rawProfilePath) {
+            return null;
+        }
+
+        $rawProfilePath = ltrim((string) $rawProfilePath, '/');
+
+        if (str_starts_with($rawProfilePath, 'http://') || str_starts_with($rawProfilePath, 'https://')) {
+            return $rawProfilePath;
+        }
+
+        $relative = str_starts_with($rawProfilePath, 'profile-image/')
+            || str_starts_with($rawProfilePath, 'storage/profile-image/')
+            ? $rawProfilePath
+            : 'profile-image/'.$rawProfilePath;
+
+        return asset($relative);
+    }
+
+    /**
+     * Every participant a scanned or typed code could refer to.
+     *
+     * Returns a collection rather than a single user so the caller can tell an
+     * unknown code apart from an ambiguous one. A bare middle group is not
+     * guaranteed unique, and silently taking the first match would check in
+     * the wrong person.
+     */
+    private function resolveParticipants(string $code): Collection
     {
         $participant = User::query()
             ->where('display_id', $code)
             ->first();
 
         if ($participant) {
-            return $participant;
+            return collect([$participant]);
+        }
+
+        // A bare middle group, e.g. "GCIY" from CHED-GCIY-OAB1. display_id has
+        // exactly three segments, so the surrounding hyphens pin this to the
+        // middle one: it can match neither the prefix nor the trailing group.
+        // The character class is also what keeps LIKE wildcards out of $code.
+        if (preg_match('/^[A-Za-z0-9]{4}$/', $code)) {
+            $matches = User::query()
+                ->where('display_id', 'like', '%-'.Str::upper($code).'-%')
+                ->get();
+
+            if ($matches->isNotEmpty()) {
+                return $matches;
+            }
         }
 
         try {
@@ -188,7 +277,7 @@ class ScannerController extends Controller
                 ->first();
         }
 
-        return $participant;
+        return $participant ? collect([$participant]) : collect();
     }
 
     private function resolvePhase(Programme $programme, Carbon $now): string

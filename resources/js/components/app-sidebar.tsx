@@ -22,13 +22,12 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     Bus,
     CalendarDays,
+    FileBarChart2,
     House,
-    Image,
     MapPin,
     ScanLine,
     ScrollText,
     Table,
-    FileBarChart2,
     User,
     Users,
 } from 'lucide-react';
@@ -91,11 +90,9 @@ export function AppSidebar() {
                   icon: Users,
               },
               ...managementNavItems,
-              {
-                  title: 'Section Management',
-                  href: '/section-management',
-                  icon: Image,
-              },
+              // 'Section Management' (/section-management, icon: Image) is
+              // temporarily hidden from the sidebar. The route and page are
+              // still active and reachable by direct URL.
               {
                   title: 'Events & Certificates',
                   href: '/event-management',

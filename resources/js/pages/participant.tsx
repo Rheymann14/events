@@ -100,7 +100,7 @@ import {
     Users,
     XCircle,
 } from 'lucide-react';
-import QRCode from 'qrcode';
+import { participantQrDataUrl, participantQrValue } from '@/lib/qr';
 
 type Country = {
     id: number;
@@ -163,6 +163,7 @@ type ParticipantRow = {
     id: number;
     display_id?: string | null;
     qr_payload?: string | null;
+    qr_token?: string | null;
     profile_image_url?: string | null;
     profile_photo_url?: string | null;
     profile_photo_path?: string | null;
@@ -844,7 +845,6 @@ type PrintJob = {
 };
 
 const QR_BATCH_SIZE = 24;
-const QR_DATA_URL_WIDTH = 192;
 
 function hasPrintableParticipantId(
     participant: ParticipantRow,
@@ -1611,7 +1611,7 @@ export default function ParticipantPage(props: PageProps) {
 
     async function ensureQrForParticipants(list: ParticipantRow[]) {
         const pending = list.filter(
-            (p) => !!p.qr_payload && !qrCacheRef.current[p.id],
+            (p) => !!participantQrValue(p) && !qrCacheRef.current[p.id],
         );
 
         if (pending.length === 0) return;
@@ -1624,15 +1624,8 @@ export default function ParticipantPage(props: PageProps) {
             const results = await Promise.all(
                 batch.map(async (p) => {
                     try {
-                        const dataUrl = await QRCode.toDataURL(
-                            p.qr_payload ?? '',
-                            {
-                                margin: 1,
-                                width: QR_DATA_URL_WIDTH,
-                                errorCorrectionLevel: 'M',
-                            },
-                        );
-                        return { id: p.id, dataUrl };
+                        const dataUrl = await participantQrDataUrl(p);
+                        return dataUrl ? { id: p.id, dataUrl } : null;
                     } catch {
                         return null;
                     }

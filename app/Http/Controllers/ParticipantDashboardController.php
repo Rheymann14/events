@@ -17,6 +17,7 @@ class ParticipantDashboardController extends Controller
             'participant' => [
                 'display_id' => $user->display_id,
                 'qr_payload' => $user->qr_payload,
+                'qr_token' => $user->qr_token,
                 'name' => $user->name,
                 'email' => $user->email,
                 'profile_photo_url' => $user->profile_photo_path ? asset($user->profile_photo_path) : null,

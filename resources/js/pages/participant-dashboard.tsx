@@ -33,12 +33,13 @@ import {
     Upload,
     User2,
 } from 'lucide-react';
-import QRCode from 'qrcode';
+import { participantQrValue, renderQrDataUrl } from '@/lib/qr';
 import { toast } from 'sonner';
 
 type Participant = {
     display_id: string; // ✅ safe display ID (NOT user.id)
-    qr_payload: string; // ✅ encrypted/opaque payload (NOT user.id)
+    qr_payload: string; // legacy encrypted payload, kept for old badges
+    qr_token?: string | null; // what the QR actually encodes
     name: string;
     email: string;
     profile_photo_url?: string | null;
@@ -479,7 +480,7 @@ export default function ParticipantDashboard({ participant }: PageProps) {
             ),
         [participant.food_restrictions],
     );
-    const qrValue = participant.qr_payload;
+    const qrValue = participantQrValue(participant);
 
     // ✅ DEFAULT OPEN = LANDSCAPE
     const [orientation, setOrientation] = React.useState<
@@ -536,11 +537,7 @@ export default function ParticipantDashboard({ participant }: PageProps) {
                     return;
                 }
 
-                const dataUrl = await QRCode.toDataURL(qrValue, {
-                    margin: 1,
-                    scale: 8,
-                    errorCorrectionLevel: 'M',
-                });
+                const dataUrl = await renderQrDataUrl(qrValue);
 
                 if (mounted) setQrDataUrl(dataUrl);
             } catch {
@@ -1256,7 +1253,7 @@ export default function ParticipantDashboard({ participant }: PageProps) {
                                         </form>
 
                                         {/* Warning ONLY */}
-                                        {!participant.qr_payload ? (
+                                        {!qrValue ? (
                                             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                                                 QR payload is missing. Please
                                                 generate it on the server for
