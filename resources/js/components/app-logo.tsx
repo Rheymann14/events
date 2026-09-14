@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 type AppLogoProps = {
@@ -7,7 +6,11 @@ type AppLogoProps = {
     iconClassName?: string;
 };
 
-export default function AppLogo({ className, bannerClassName, iconClassName }: AppLogoProps) {
+export default function AppLogo({
+    className,
+    bannerClassName,
+    iconClassName,
+}: AppLogoProps) {
     return (
         <div className={cn('flex items-center', className)}>
             {/* ✅ Collapsed ONLY: show small logo */}
@@ -16,7 +19,7 @@ export default function AppLogo({ className, bannerClassName, iconClassName }: A
                 alt="CHED"
                 className={cn(
                     'hidden h-8 w-8 shrink-0 object-contain group-data-[state=collapsed]:block',
-                    iconClassName
+                    iconClassName,
                 )}
                 draggable={false}
                 decoding="async"
@@ -29,7 +32,7 @@ export default function AppLogo({ className, bannerClassName, iconClassName }: A
                 alt="CHED Events"
                 className={cn(
                     'h-8 w-auto max-w-[190px] object-contain group-data-[state=collapsed]:hidden sm:h-9 md:h-10',
-                    bannerClassName
+                    bannerClassName,
                 )}
                 draggable={false}
                 decoding="async"

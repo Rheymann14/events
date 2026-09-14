@@ -142,9 +142,10 @@ export default function EventKitSurvey() {
     );
 
     const checkedInProgrammes = React.useMemo(() => {
-        return programmes.filter((p) => Boolean(attendanceByProgramme.get(p.id)));
+        return programmes.filter((p) =>
+            Boolean(attendanceByProgramme.get(p.id)),
+        );
     }, [programmes, attendanceByProgramme]);
-
 
     const joinedProgrammeIds = React.useMemo(
         () => new Set(joined_programme_ids),
@@ -155,8 +156,9 @@ export default function EventKitSurvey() {
         : null;
 
     const selectedProgramme =
-        checkedInProgrammes.find((programme) => programme.id === selectedProgrammeId) ??
-        null;
+        checkedInProgrammes.find(
+            (programme) => programme.id === selectedProgrammeId,
+        ) ?? null;
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -225,7 +227,7 @@ export default function EventKitSurvey() {
                                                     'mt-3 h-11 w-full justify-between rounded-xl border-slate-200 bg-white/80 text-left',
                                                     'dark:border-slate-700 dark:bg-slate-900/60',
                                                     errors?.programme_id &&
-                                                    'border-rose-500',
+                                                        'border-rose-500',
                                                 )}
                                             >
                                                 <span className="truncate">
@@ -249,91 +251,108 @@ export default function EventKitSurvey() {
                                             <Command className="w-full">
                                                 <CommandInput placeholder="Search events..." />
                                                 <CommandList className="max-h-[min(60vh,420px)] overflow-y-auto">
-                                                    <CommandEmpty>No checked-in events found.</CommandEmpty>
+                                                    <CommandEmpty>
+                                                        No checked-in events
+                                                        found.
+                                                    </CommandEmpty>
 
                                                     <CommandGroup>
-                                                        {checkedInProgrammes.map((programme) => {
-                                                            const scannedAt =
-                                                                attendanceByProgramme.get(programme.id) ?? null;
+                                                        {checkedInProgrammes.map(
+                                                            (programme) => {
+                                                                const scannedAt =
+                                                                    attendanceByProgramme.get(
+                                                                        programme.id,
+                                                                    ) ?? null;
 
-                                                            const isSelected = programme.id === selectedProgrammeId;
+                                                                const isSelected =
+                                                                    programme.id ===
+                                                                    selectedProgrammeId;
 
-                                                            return (
-                                                                <CommandItem
-                                                                    key={programme.id}
-                                                                    value={programme.title}
-                                                                    onSelect={() => {
-                                                                        form.setData('programme_id', programme.id);
-                                                                        setOpen(false);
-                                                                    }}
-                                                                    className="px-3 py-3"
-                                                                >
-                                                                    <div className="flex w-full items-start gap-3">
-                                                                        <div className="min-w-0 flex-1">
-                                                                            <div className="flex items-start justify-between gap-2">
-                                                                                <span
-                                                                                    className={cn(
-                                                                                        'min-w-0 flex-1 text-sm font-medium text-slate-900 dark:text-slate-100',
-                                                                                        // prevents forcing width; wraps nicely
-                                                                                        'line-clamp-2 break-words whitespace-normal',
-                                                                                    )}
-                                                                                    title={
-                                                                                        programme.title
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        programme.title
-                                                                                    }
-                                                                                </span>
-
-                                                                                {isSelected ? (
-                                                                                    <CircleCheck className="h-4 w-4 flex-none text-emerald-500" />
-                                                                                ) : null}
-                                                                            </div>
-
-                                                                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                                                                <span>
-                                                                                    {formatEventWindow(
-                                                                                        programme.starts_at,
-                                                                                        programme.ends_at,
-                                                                                    )}
-                                                                                </span>
-                                                                                {programme.location ? (
-                                                                                    <span>
-                                                                                        •{' '}
+                                                                return (
+                                                                    <CommandItem
+                                                                        key={
+                                                                            programme.id
+                                                                        }
+                                                                        value={
+                                                                            programme.title
+                                                                        }
+                                                                        onSelect={() => {
+                                                                            form.setData(
+                                                                                'programme_id',
+                                                                                programme.id,
+                                                                            );
+                                                                            setOpen(
+                                                                                false,
+                                                                            );
+                                                                        }}
+                                                                        className="px-3 py-3"
+                                                                    >
+                                                                        <div className="flex w-full items-start gap-3">
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <div className="flex items-start justify-between gap-2">
+                                                                                    <span
+                                                                                        className={cn(
+                                                                                            'min-w-0 flex-1 text-sm font-medium text-slate-900 dark:text-slate-100',
+                                                                                            // prevents forcing width; wraps nicely
+                                                                                            'line-clamp-2 break-words whitespace-normal',
+                                                                                        )}
+                                                                                        title={
+                                                                                            programme.title
+                                                                                        }
+                                                                                    >
                                                                                         {
-                                                                                            programme.location
+                                                                                            programme.title
                                                                                         }
                                                                                     </span>
-                                                                                ) : null}
-                                                                            </div>
 
-                                                                            <div className="mt-1 flex items-center gap-2 text-[11px]">
-                                                                                {scannedAt ? (
-                                                                                    <span className="inline-flex items-center gap-1 text-emerald-600">
-                                                                                        <CircleCheck className="h-3 w-3" />
-                                                                                        Checked-in
+                                                                                    {isSelected ? (
+                                                                                        <CircleCheck className="h-4 w-4 flex-none text-emerald-500" />
+                                                                                    ) : null}
+                                                                                </div>
+
+                                                                                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                                                                    <span>
+                                                                                        {formatEventWindow(
+                                                                                            programme.starts_at,
+                                                                                            programme.ends_at,
+                                                                                        )}
                                                                                     </span>
-                                                                                ) : joinedProgrammeIds.has(
-                                                                                    programme.id,
-                                                                                ) ? (
-                                                                                    <span className="inline-flex items-center gap-1 text-sky-600">
-                                                                                        <CircleCheck className="h-3 w-3" />
-                                                                                        Joined
-                                                                                    </span>
-                                                                                ) : (
-                                                                                    <span className="inline-flex items-center gap-1 text-rose-500">
-                                                                                        <CircleX className="h-3 w-3" />
-                                                                                        No
-                                                                                        attendance
-                                                                                    </span>
-                                                                                )}
+                                                                                    {programme.location ? (
+                                                                                        <span>
+                                                                                            •{' '}
+                                                                                            {
+                                                                                                programme.location
+                                                                                            }
+                                                                                        </span>
+                                                                                    ) : null}
+                                                                                </div>
+
+                                                                                <div className="mt-1 flex items-center gap-2 text-[11px]">
+                                                                                    {scannedAt ? (
+                                                                                        <span className="inline-flex items-center gap-1 text-emerald-600">
+                                                                                            <CircleCheck className="h-3 w-3" />
+                                                                                            Checked-in
+                                                                                        </span>
+                                                                                    ) : joinedProgrammeIds.has(
+                                                                                          programme.id,
+                                                                                      ) ? (
+                                                                                        <span className="inline-flex items-center gap-1 text-sky-600">
+                                                                                            <CircleCheck className="h-3 w-3" />
+                                                                                            Joined
+                                                                                        </span>
+                                                                                    ) : (
+                                                                                        <span className="inline-flex items-center gap-1 text-rose-500">
+                                                                                            <CircleX className="h-3 w-3" />
+                                                                                            No
+                                                                                            attendance
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            );
-                                                        },
+                                                                    </CommandItem>
+                                                                );
+                                                            },
                                                         )}
                                                     </CommandGroup>
                                                 </CommandList>

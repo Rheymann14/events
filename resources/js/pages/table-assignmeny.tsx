@@ -4,6 +4,16 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import * as React from 'react';
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +23,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Command,
     CommandEmpty,
@@ -44,6 +55,9 @@ import {
 } from '@/components/ui/table';
 import {
     Armchair,
+    ArrowDown,
+    ArrowUp,
+    ArrowUpDown,
     Check,
     ChevronDown,
     ChevronLeft,
@@ -53,6 +67,7 @@ import {
     Printer,
     Search,
     Table as TableIcon,
+    Trash2,
     Users2,
     Wand2,
     XCircle,
@@ -75,6 +90,8 @@ type UserType = {
 type Participant = {
     id: number;
     full_name: string;
+    /** Printed on the badge, e.g. CHED-ARUG-QEKG. Seated occupants only. */
+    display_id?: string | null;
     position_title?: string | null;
     country?: Country | null;
     user_type?: UserType | null;
@@ -91,6 +108,20 @@ type TableAssignment = {
     seat_number: number;
     assigned_at?: string | null;
     participant?: Participant | null;
+};
+
+type AutoAssignPlanEntry = {
+    tableId: number;
+    tableNumber: string;
+    participantIds: number[];
+    /** Human-readable delegation breakdown, e.g. "6 PH, 2 MY". */
+    delegations: string;
+};
+
+type AutoAssignPlan = {
+    entries: AutoAssignPlanEntry[];
+    assignedCount: number;
+    remainingCount: number;
 };
 
 type TableRow = {
@@ -126,13 +157,50 @@ const ENDPOINTS = {
         store: '/table-assignment/tables',
         update: (id: number) => `/table-assignment/tables/${id}`,
         destroy: (id: number) => `/table-assignment/tables/${id}`,
+        bulkUpdate: '/table-assignment/tables',
     },
     assignments: {
         store: '/table-assignment/assignments',
         update: (id: number) => `/table-assignment/assignments/${id}`,
         destroy: (id: number) => `/table-assignment/assignments/${id}`,
+        bulkDestroy: '/table-assignment/assignments',
     },
 };
+
+/**
+ * Orders table names the way a person reads them: "Table 2" before "Table 10".
+ *
+ * table_number is a string column and the server sorts it lexicographically, so
+ * without this the list reads 1, 10, 11, 2 -- which makes an operator scanning
+ * for a table number think it is missing.
+ */
+const TABLE_NAME_COLLATOR = new Intl.Collator(undefined, {
+    numeric: true,
+    sensitivity: 'base',
+});
+
+/**
+ * Does this seat's occupant match the seating-plan search?
+ *
+ * Matches the participant's name or their badge ID -- an operator holding a
+ * badge has the ID in front of them, and `includes` means the middle group
+ * alone ("ARUG") is enough, the same shorthand the scanner's manual entry takes.
+ *
+ * Shared by the table filter and the seat highlight so the two can never
+ * disagree about what "matches" means. Expects an already lowercased, trimmed
+ * query; returns false for an empty query so an idle search highlights nothing.
+ */
+function seatMatchesQuery(
+    participant: Participant | null | undefined,
+    query: string,
+): boolean {
+    if (!query) return false;
+
+    return (
+        (participant?.full_name ?? '').toLowerCase().includes(query) ||
+        (participant?.display_id ?? '').toLowerCase().includes(query)
+    );
+}
 
 const PRIMARY_BTN =
     'bg-[#00359c] text-white hover:bg-[#00359c]/90 focus-visible:ring-[#00359c]/30 dark:bg-[#00359c] dark:hover:bg-[#00359c]/90';
@@ -285,7 +353,7 @@ function SearchableDropdown({
                                         onValueChange(item.value);
                                         setOpen(false);
                                     }}
-                                    className="min-w-0 overflow-hidden gap-2"
+                                    className="min-w-0 gap-2 overflow-hidden"
                                 >
                                     <Check
                                         className={cn(
@@ -324,7 +392,16 @@ export default function TableAssignmenyPage(props: PageProps) {
     const isAdminRole = roleValue === 'ADMIN';
     const isChedAdmin = isAdminRole || roleValue.startsWith('CHED ');
     const chedView = props.view === 'assignment' ? 'assignment' : 'create';
-    const tables = props.tables ?? [];
+    // Sorted here rather than in the controller so ordering is consistent
+    // everywhere the list is used: the seat plan, the table pickers, and the
+    // order auto-assign fills tables in.
+    const tables = React.useMemo(
+        () =>
+            [...(props.tables ?? [])].sort((a, b) =>
+                TABLE_NAME_COLLATOR.compare(a.table_number, b.table_number),
+            ),
+        [props.tables],
+    );
     const participants = props.participants ?? [];
     const events = props.events ?? [];
 
@@ -352,9 +429,42 @@ export default function TableAssignmenyPage(props: PageProps) {
     const [removingAssignmentIds, setRemovingAssignmentIds] = React.useState<
         number[]
     >([]);
+
+    // Table deletion cascades to every seat on the table, so it is confirmed.
+    // Sort control for the "Created tables" list.
+    const [tableSort, setTableSort] = React.useState<{
+        key: 'table_number' | 'capacity';
+        dir: 'asc' | 'desc';
+    }>({ key: 'table_number', dir: 'asc' });
+
+    const [tableDeleteOpen, setTableDeleteOpen] = React.useState(false);
+    const [tableDeleteTarget, setTableDeleteTarget] =
+        React.useState<TableRow | null>(null);
+    const [tableDeleting, setTableDeleting] = React.useState(false);
+
+    // Multi-select over seated participants, for bulk unassignment.
+    const [selectedAssignmentIds, setSelectedAssignmentIds] = React.useState<
+        number[]
+    >([]);
+    const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+    const [bulkRemoving, setBulkRemoving] = React.useState(false);
+
+    // Auto-assign is previewed before it commits; this holds the pending plan.
+    const [autoAssignPlan, setAutoAssignPlan] =
+        React.useState<AutoAssignPlan | null>(null);
+
     const [printingSeatPlan, setPrintingSeatPlan] = React.useState(false);
     const [currentTimestamp] = React.useState(() => Date.now());
     const hasHydrated = React.useRef(false);
+
+    // The values the server last sent, used to tell an untouched draft from an
+    // edited one when a reload arrives.
+    const lastServerTablesRef = React.useRef<{
+        capacity: Record<number, string>;
+        name: Record<number, string>;
+    }>({ capacity: {}, name: {} });
+
+    const [savingAllTables, setSavingAllTables] = React.useState(false);
     const selectedEvent = selectedEventId
         ? events.find((event) => String(event.id) === selectedEventId)
         : null;
@@ -363,15 +473,58 @@ export default function TableAssignmenyPage(props: PageProps) {
         : null;
     const isEventClosed = selectedEventPhase === 'closed';
 
+    /**
+     * Sync drafts from the server, keeping any the operator has edited.
+     *
+     * Saving one table reloads the page, and blindly rebuilding every draft
+     * from the response discarded unsaved edits to the other rows. A draft is
+     * only overwritten when it still matches the value the server last sent,
+     * i.e. when the operator has not touched it.
+     */
     React.useEffect(() => {
-        const nextDrafts: Record<number, string> = {};
-        const nextNumberDrafts: Record<number, string> = {};
+        const serverCapacity: Record<number, string> = {};
+        const serverName: Record<number, string> = {};
+
         tables.forEach((table) => {
-            nextDrafts[table.id] = String(table.capacity ?? '');
-            nextNumberDrafts[table.id] = table.table_number ?? '';
+            serverCapacity[table.id] = String(table.capacity ?? '');
+            serverName[table.id] = table.table_number ?? '';
         });
-        setCapacityDrafts(nextDrafts);
-        setTableNumberDrafts(nextNumberDrafts);
+
+        const previous = lastServerTablesRef.current;
+        lastServerTablesRef.current = {
+            capacity: serverCapacity,
+            name: serverName,
+        };
+
+        setCapacityDrafts((drafts) => {
+            const next: Record<number, string> = {};
+
+            Object.keys(serverCapacity).forEach((key) => {
+                const id = Number(key);
+                const draft = drafts[id];
+                const untouched =
+                    draft === undefined || draft === previous.capacity[id];
+
+                next[id] = untouched ? serverCapacity[id] : draft;
+            });
+
+            return next;
+        });
+
+        setTableNumberDrafts((drafts) => {
+            const next: Record<number, string> = {};
+
+            Object.keys(serverName).forEach((key) => {
+                const id = Number(key);
+                const draft = drafts[id];
+                const untouched =
+                    draft === undefined || draft === previous.name[id];
+
+                next[id] = untouched ? serverName[id] : draft;
+            });
+
+            return next;
+        });
     }, [tables]);
 
     const chedBasePath =
@@ -432,6 +585,19 @@ export default function TableAssignmenyPage(props: PageProps) {
             return;
         }
 
+        // Nothing to save: skip the round-trip and say so, rather than
+        // reporting a success the operator did not actually cause.
+        const current = tables.find((table) => table.id === tableId);
+
+        if (
+            current &&
+            current.table_number === tableNumber &&
+            current.capacity === capacity
+        ) {
+            toast.info('No changes made.');
+            return;
+        }
+
         router.patch(
             ENDPOINTS.tables.update(tableId),
             { table_number: tableNumber, capacity },
@@ -443,15 +609,149 @@ export default function TableAssignmenyPage(props: PageProps) {
         );
     }
 
-    function removeTable(tableId: number) {
-        router.delete(ENDPOINTS.tables.destroy(tableId), {
+    // Deleting a table cascades to every seat on it, so the confirmation names
+    // the occupant count rather than asking a generic "are you sure?".
+    const sortedCreatedTables = React.useMemo(() => {
+        const rows = [...tables];
+
+        rows.sort((a, b) => {
+            const result =
+                tableSort.key === 'capacity'
+                    ? a.capacity - b.capacity
+                    : TABLE_NAME_COLLATOR.compare(
+                          a.table_number,
+                          b.table_number,
+                      );
+
+            return tableSort.dir === 'asc' ? result : -result;
+        });
+
+        return rows;
+    }, [tables, tableSort]);
+
+    /** Tables whose draft differs from what the server holds. */
+    const dirtyTables = React.useMemo(
+        () =>
+            tables.filter((table) => {
+                const name = tableNumberDrafts[table.id];
+                const capacity = capacityDrafts[table.id];
+
+                if (name === undefined || capacity === undefined) return false;
+
+                return (
+                    name.trim() !== table.table_number ||
+                    capacity.trim() !== String(table.capacity)
+                );
+            }),
+        [tables, tableNumberDrafts, capacityDrafts],
+    );
+
+    function isTableDirty(tableId: number) {
+        return dirtyTables.some((table) => table.id === tableId);
+    }
+
+    function discardTableEdits() {
+        const capacity: Record<number, string> = {};
+        const name: Record<number, string> = {};
+
+        tables.forEach((table) => {
+            capacity[table.id] = String(table.capacity ?? '');
+            name[table.id] = table.table_number ?? '';
+        });
+
+        setCapacityDrafts(capacity);
+        setTableNumberDrafts(name);
+        toast.info('Changes discarded.');
+    }
+
+    function saveAllTableEdits() {
+        if (savingAllTables || dirtyTables.length === 0) return;
+
+        const payload = dirtyTables.map((table) => ({
+            id: table.id,
+            table_number: (tableNumberDrafts[table.id] ?? '').trim(),
+            capacity: Number(capacityDrafts[table.id]),
+        }));
+
+        const invalid = payload.find(
+            (row) =>
+                !row.table_number ||
+                !Number.isFinite(row.capacity) ||
+                (isAdminRole ? row.capacity < 0 : row.capacity <= 0),
+        );
+
+        if (invalid) {
+            toast.error('Check the table names and capacities before saving.');
+            return;
+        }
+
+        const count = payload.length;
+        setSavingAllTables(true);
+
+        router.patch(
+            ENDPOINTS.tables.bulkUpdate,
+            { tables: payload },
+            {
+                preserveScroll: true,
+                onSuccess: () =>
+                    toast.success(
+                        `Updated ${count} table${count === 1 ? '' : 's'}.`,
+                    ),
+                onError: (errors) =>
+                    toast.error(
+                        errors.tables ?? 'Unable to save the table changes.',
+                    ),
+                onFinish: () => setSavingAllTables(false),
+            },
+        );
+    }
+
+    function toggleTableSort(key: 'table_number' | 'capacity') {
+        setTableSort((prev) =>
+            prev.key === key
+                ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                : { key, dir: 'asc' },
+        );
+    }
+
+    function requestRemoveTable(tableId: number) {
+        const table = tables.find((t) => t.id === tableId) ?? null;
+        if (!table) return;
+
+        setTableDeleteTarget(table);
+        setTableDeleteOpen(true);
+    }
+
+    function confirmRemoveTable() {
+        const target = tableDeleteTarget;
+        if (!target || tableDeleting) return;
+
+        setTableDeleting(true);
+
+        router.delete(ENDPOINTS.tables.destroy(target.id), {
             preserveScroll: true,
-            onSuccess: () => toast.success('Table deleted.'),
+            onSuccess: () => {
+                toast.success(`Table ${target.table_number} deleted.`);
+                setTableDeleteOpen(false);
+                setTableDeleteTarget(null);
+            },
             onError: () => toast.error('Unable to delete table.'),
+            onFinish: () => setTableDeleting(false),
         });
     }
 
-    function removeAssignment(id: number) {
+    /**
+     * Removing one participant stays immediate -- a confirm on every row would
+     * punish the operator at a busy desk. It is reversible instead: the seat is
+     * free the moment the delete lands, so re-posting the original table and
+     * seat restores the exact position.
+     */
+    function removeAssignment(
+        id: number,
+        previousTableId?: number | null,
+        previousSeatNumber?: number | null,
+        previousParticipantId?: number | null,
+    ) {
         if (removingAssignmentIds.includes(id)) {
             return;
         }
@@ -460,13 +760,104 @@ export default function TableAssignmenyPage(props: PageProps) {
 
         router.delete(ENDPOINTS.assignments.destroy(id), {
             preserveScroll: true,
-            onSuccess: () => toast.success('Participant removed from table.'),
+            onSuccess: () => {
+                const canUndo =
+                    Boolean(previousParticipantId) &&
+                    Boolean(previousTableId) &&
+                    Boolean(selectedEventId) &&
+                    !isEventClosed;
+
+                toast.success(
+                    'Participant removed from table.',
+                    canUndo
+                        ? {
+                              action: {
+                                  label: 'Undo',
+                                  onClick: () =>
+                                      restoreAssignment(
+                                          previousParticipantId as number,
+                                          previousTableId as number,
+                                          previousSeatNumber,
+                                      ),
+                              },
+                          }
+                        : undefined,
+                );
+            },
             onError: () => toast.error('Unable to remove participant.'),
             onFinish: () => {
                 setRemovingAssignmentIds((prev) =>
                     prev.filter((assignmentId) => assignmentId !== id),
                 );
             },
+        });
+    }
+
+    function restoreAssignment(
+        participantId: number,
+        tableId: number,
+        seatNumber?: number | null,
+    ) {
+        router.post(
+            ENDPOINTS.assignments.store,
+            {
+                programme_id: selectedEventId,
+                participant_table_id: String(tableId),
+                participant_ids: [participantId],
+                ...(seatNumber ? { seat_number: seatNumber } : {}),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => toast.success('Removal undone.'),
+                onError: () => toast.error('Unable to undo the removal.'),
+            },
+        );
+    }
+
+    // Takes the page's ids rather than reading paginatedData itself: a handler
+    // that closes over a memoised value and then escapes into a prop makes the
+    // React Compiler drop that memoization.
+    function toggleSelectAllOnPage(pageIds: number[]) {
+        const allSelected =
+            pageIds.length > 0 &&
+            pageIds.every((id) => selectedAssignmentIds.includes(id));
+
+        setSelectedAssignmentIds((prev) => {
+            if (allSelected) {
+                return prev.filter((id) => !pageIds.includes(id));
+            }
+
+            return [...new Set([...prev, ...pageIds])];
+        });
+    }
+
+    function toggleRowSelection(assignmentId: number) {
+        setSelectedAssignmentIds((prev) =>
+            prev.includes(assignmentId)
+                ? prev.filter((id) => id !== assignmentId)
+                : [...prev, assignmentId],
+        );
+    }
+
+    function confirmBulkUnassign() {
+        if (selectedAssignmentIds.length === 0 || bulkRemoving) return;
+
+        const count = selectedAssignmentIds.length;
+        setBulkRemoving(true);
+
+        router.delete(ENDPOINTS.assignments.bulkDestroy, {
+            data: { assignment_ids: selectedAssignmentIds },
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success(
+                    `Removed ${count} participant${count === 1 ? '' : 's'} from tables.`,
+                );
+                setSelectedAssignmentIds([]);
+                setBulkDeleteOpen(false);
+            },
+            onError: () =>
+                toast.error('Unable to remove the selected participants.'),
+            onFinish: () => setBulkRemoving(false),
         });
     }
 
@@ -764,6 +1155,108 @@ export default function TableAssignmenyPage(props: PageProps) {
     // Manual auto-assign: admin clicks a button to distribute all unassigned participants in one go
     const [autoAssignRunning, setAutoAssignRunning] = React.useState(false);
 
+    /**
+     * Order participants so delegations stay together.
+     *
+     * The previous behaviour fed the server's alphabetical-by-name list straight
+     * into the fill loop, which split each country across whichever tables
+     * happened to have room. Grouping by country and seating the largest
+     * delegations first keeps them contiguous; a delegation bigger than the
+     * remaining capacity still spills into the next table, but in one block
+     * rather than scattered.
+     */
+    function orderParticipantsByDelegation(list: Participant[]): Participant[] {
+        const groups = new Map<string, Participant[]>();
+
+        list.forEach((participant) => {
+            // Participants with no country are pooled together and seated last.
+            const key = participant.country?.id
+                ? String(participant.country.id)
+                : 'unaffiliated';
+            const group = groups.get(key);
+
+            if (group) {
+                group.push(participant);
+            } else {
+                groups.set(key, [participant]);
+            }
+        });
+
+        return [...groups.entries()]
+            .sort(([keyA, groupA], [keyB, groupB]) => {
+                const unaffiliatedA = keyA === 'unaffiliated';
+                const unaffiliatedB = keyB === 'unaffiliated';
+
+                if (unaffiliatedA !== unaffiliatedB) {
+                    return unaffiliatedA ? 1 : -1;
+                }
+
+                // Largest delegation first, so big blocks claim whole tables.
+                if (groupA.length !== groupB.length) {
+                    return groupB.length - groupA.length;
+                }
+
+                const nameA = groupA[0]?.country?.name ?? '';
+                const nameB = groupB[0]?.country?.name ?? '';
+
+                return nameA.localeCompare(nameB);
+            })
+            .flatMap(([, group]) => group);
+    }
+
+    /**
+     * Build the assignment plan without committing it, so the operator can see
+     * exactly what a single click is about to do.
+     */
+    function buildAutoAssignPlan(): AutoAssignPlan | null {
+        const entries: AutoAssignPlanEntry[] = [];
+        const remaining = orderParticipantsByDelegation(participants);
+
+        for (const table of tables) {
+            if (remaining.length === 0) break;
+            const available = table.capacity - table.assigned_count;
+            if (available <= 0) continue;
+            const batch = remaining.splice(0, available);
+
+            entries.push({
+                tableId: table.id,
+                tableNumber: table.table_number,
+                participantIds: batch.map((p) => p.id),
+                delegations: summariseDelegations(batch),
+            });
+        }
+
+        if (entries.length === 0) return null;
+
+        return {
+            entries,
+            assignedCount: entries.reduce(
+                (sum, entry) => sum + entry.participantIds.length,
+                0,
+            ),
+            remainingCount: remaining.length,
+        };
+    }
+
+    /** "6 PH, 2 MY" -- the per-table delegation breakdown shown in the preview. */
+    function summariseDelegations(batch: Participant[]): string {
+        const counts = new Map<string, number>();
+
+        batch.forEach((participant) => {
+            const label =
+                participant.country?.code ||
+                participant.country?.name ||
+                'No country';
+
+            counts.set(label, (counts.get(label) ?? 0) + 1);
+        });
+
+        return [...counts.entries()]
+            .sort(([, a], [, b]) => b - a)
+            .map(([label, count]) => `${count} ${label}`)
+            .join(', ');
+    }
+
     function triggerAutoAssign() {
         if (autoAssignRunning) return;
         if (
@@ -776,34 +1269,30 @@ export default function TableAssignmenyPage(props: PageProps) {
             return;
         }
 
-        // Build assignment plan: distribute participants across tables
-        const plan: Array<{ tableId: number; participantIds: number[] }> = [];
-        const remaining = [...participants];
+        const plan = buildAutoAssignPlan();
 
-        for (const table of tables) {
-            if (remaining.length === 0) break;
-            const available = table.capacity - table.assigned_count;
-            if (available <= 0) continue;
-            const batch = remaining.splice(0, available);
-            plan.push({
-                tableId: table.id,
-                participantIds: batch.map((p) => p.id),
-            });
-        }
-
-        if (plan.length === 0) {
+        if (!plan) {
             toast.error(
                 'All tables are full. Increase capacity or add a new table.',
             );
             return;
         }
 
+        setAutoAssignPlan(plan);
+    }
+
+    function commitAutoAssign() {
+        const plan = autoAssignPlan;
+        if (!plan || autoAssignRunning) return;
+
         setAutoAssignRunning(true);
         const csrf = getCsrfToken();
 
-        // Execute all assignments in parallel, then reload once
+        // One request per table. Distinct tables mean distinct
+        // (participant_table_id, seat_number) scopes, so these cannot collide on
+        // the unique constraint and are safe to run in parallel.
         Promise.all(
-            plan.map(({ tableId, participantIds }) =>
+            plan.entries.map((entry) =>
                 fetch(ENDPOINTS.assignments.store, {
                     method: 'POST',
                     headers: {
@@ -814,23 +1303,34 @@ export default function TableAssignmenyPage(props: PageProps) {
                     },
                     body: JSON.stringify({
                         programme_id: selectedEventId,
-                        participant_table_id: String(tableId),
-                        participant_ids: participantIds,
+                        participant_table_id: String(entry.tableId),
+                        participant_ids: entry.participantIds,
                     }),
-                }),
+                }).then((response) => ({ response, entry })),
             ),
         )
-            .then((responses) => {
-                const allOk = responses.every((r) => r.ok);
-                if (allOk) {
+            .then((results) => {
+                const failed = results.filter(({ response }) => !response.ok);
+
+                if (failed.length === 0) {
                     toast.success(
-                        remaining.length > 0
-                            ? `Assigned ${participants.length - remaining.length} participants. ${remaining.length} remain (tables full).`
+                        plan.remainingCount > 0
+                            ? `Assigned ${plan.assignedCount} participants. ${plan.remainingCount} remain (tables full).`
                             : 'All participants have been assigned.',
                     );
                 } else {
-                    toast.error('Some assignments failed.');
+                    // Name the tables that failed -- "some assignments failed"
+                    // left the operator with nothing to act on.
+                    const tableList = failed
+                        .map(({ entry }) => entry.tableNumber)
+                        .join(', ');
+
+                    toast.error(
+                        `Assignment failed for table${failed.length === 1 ? '' : 's'} ${tableList}. Other tables were assigned.`,
+                    );
                 }
+
+                setAutoAssignPlan(null);
                 router.visit(window.location.href, {
                     preserveScroll: true,
                     preserveState: true,
@@ -1049,8 +1549,13 @@ export default function TableAssignmenyPage(props: PageProps) {
     const filteredTables = React.useMemo(() => {
         const q = seatPlanSearch.trim().toLowerCase();
         if (!q) return tables;
-        return tables.filter((t) =>
-            t.table_number.toLowerCase().includes(q),
+
+        // A table matches on its own name, or on any occupant's name -- the
+        // latter is what answers "which table is this person at?".
+        return tables.filter(
+            (t) =>
+                t.table_number.toLowerCase().includes(q) ||
+                t.assignments.some((a) => seatMatchesQuery(a.participant, q)),
         );
     }, [tables, seatPlanSearch]);
 
@@ -1270,9 +1775,11 @@ export default function TableAssignmenyPage(props: PageProps) {
 
         // Print always shows every table; screen shows the paged subset
         const tablesToRender = printMode ? tables : pagedTables;
-        const seatPlanRangeStart = filteredTables.length === 0
-            ? 0
-            : (seatPlanSafePage - 1) * seatPlanPerPage + 1;
+        const seatPlanQuery = seatPlanSearch.trim().toLowerCase();
+        const seatPlanRangeStart =
+            filteredTables.length === 0
+                ? 0
+                : (seatPlanSafePage - 1) * seatPlanPerPage + 1;
         const seatPlanRangeEnd = Math.min(
             seatPlanSafePage * seatPlanPerPage,
             filteredTables.length,
@@ -1360,10 +1867,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {[3, 6, 12, 1000].map((n) => (
-                                        <SelectItem
-                                            key={n}
-                                            value={String(n)}
-                                        >
+                                        <SelectItem key={n} value={String(n)}>
                                             {n === 1000 ? 'All' : n}
                                         </SelectItem>
                                     ))}
@@ -1374,15 +1878,15 @@ export default function TableAssignmenyPage(props: PageProps) {
                         {filteredTables.length > 0 ? (
                             <span className="text-xs text-slate-500 dark:text-slate-400">
                                 Showing {seatPlanRangeStart} to{' '}
-                                {seatPlanRangeEnd} of{' '}
-                                {filteredTables.length} tables
+                                {seatPlanRangeEnd} of {filteredTables.length}{' '}
+                                tables
                             </span>
                         ) : null}
                         <div className="relative flex-1">
                             <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
                                 type="text"
-                                placeholder="Search table number..."
+                                placeholder="Search table, participant name, or ID..."
                                 value={seatPlanSearch}
                                 onChange={(e) =>
                                     setSeatPlanSearch(e.target.value)
@@ -1394,7 +1898,8 @@ export default function TableAssignmenyPage(props: PageProps) {
                 ) : null}
                 {!printMode && filteredTables.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                        No tables match &ldquo;{seatPlanSearch}&rdquo;.{' '}
+                        No tables or participants match &ldquo;
+                        {seatPlanSearch}&rdquo;.{' '}
                         <button
                             type="button"
                             onClick={() => setSeatPlanSearch('')}
@@ -1406,10 +1911,8 @@ export default function TableAssignmenyPage(props: PageProps) {
                 ) : null}
                 <div
                     className={cn(
-                        'grid gap-3 grid-cols-1 print:grid-cols-2',
-                        !printMode &&
-                            filteredTables.length === 0 &&
-                            'hidden',
+                        'grid grid-cols-1 gap-3 print:grid-cols-2',
+                        !printMode && filteredTables.length === 0 && 'hidden',
                     )}
                 >
                     {tablesToRender.map((table) => {
@@ -1458,6 +1961,16 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                     occupiedSeats.get(
                                                         seatNumber,
                                                     );
+                                                // Keyed off the name match
+                                                // alone: searching a table name
+                                                // would otherwise light up
+                                                // every seat on it.
+                                                const isSearchHit =
+                                                    !printMode &&
+                                                    seatMatchesQuery(
+                                                        occupant?.participant,
+                                                        seatPlanQuery,
+                                                    );
 
                                                 return (
                                                     <div
@@ -1470,9 +1983,11 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                         }
                                                         className={cn(
                                                             'min-h-14 rounded-md border px-2 py-1.5',
-                                                            occupant
-                                                                ? 'border-[#00359c]/30 bg-[#00359c]/5 text-slate-900 dark:bg-[#00359c]/20 dark:text-slate-100'
-                                                                : 'border-dashed border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/40',
+                                                            isSearchHit
+                                                                ? 'border-amber-400 bg-amber-50 text-slate-900 ring-2 ring-amber-400/50 dark:border-amber-400/70 dark:bg-amber-500/15 dark:text-slate-100'
+                                                                : occupant
+                                                                  ? 'border-[#00359c]/30 bg-[#00359c]/5 text-slate-900 dark:bg-[#00359c]/20 dark:text-slate-100'
+                                                                  : 'border-dashed border-slate-300 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/40',
                                                         )}
                                                     >
                                                         <div className="text-[11px] font-semibold">
@@ -1826,6 +2341,10 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                 onClick={() =>
                                                     removeAssignment(
                                                         assignment.id,
+                                                        assignment.table_id,
+                                                        assignment.seat_number,
+                                                        assignment.participant
+                                                            ?.id,
                                                     )
                                                 }
                                                 aria-label="Remove participant"
@@ -2176,11 +2695,77 @@ export default function TableAssignmenyPage(props: PageProps) {
                     )}
                 </div>
 
+                {selectedAssignmentIds.length > 0 && !isEventClosed ? (
+                    <div className="flex flex-col gap-2 rounded-lg border border-[#00359c]/30 bg-[#00359c]/5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between dark:border-[#00359c]/40 dark:bg-[#00359c]/10">
+                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                            {selectedAssignmentIds.length} participant
+                            {selectedAssignmentIds.length === 1 ? '' : 's'}{' '}
+                            selected
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setSelectedAssignmentIds([])}
+                            >
+                                Clear
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="bg-red-600 text-white hover:bg-red-700"
+                                onClick={() => setBulkDeleteOpen(true)}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Remove from tables
+                            </Button>
+                        </div>
+                    </div>
+                ) : null}
+
                 {/* All assignments table */}
                 <div className="hidden overflow-x-auto rounded-lg border border-slate-200 lg:block dark:border-slate-800">
                     <Table className="min-w-[900px]">
                         <TableHeader>
                             <TableRow className="bg-slate-50 dark:bg-slate-900/40">
+                                <TableHead className="w-[44px]">
+                                    <Checkbox
+                                        checked={(() => {
+                                            const rows =
+                                                paginatedData.pagedAssigned;
+                                            const picked = rows.filter((row) =>
+                                                selectedAssignmentIds.includes(
+                                                    row.id,
+                                                ),
+                                            ).length;
+
+                                            if (
+                                                rows.length === 0 ||
+                                                picked === 0
+                                            ) {
+                                                return false;
+                                            }
+
+                                            return picked === rows.length
+                                                ? true
+                                                : 'indeterminate';
+                                        })()}
+                                        onCheckedChange={() =>
+                                            toggleSelectAllOnPage(
+                                                paginatedData.pagedAssigned.map(
+                                                    (row) => row.id,
+                                                ),
+                                            )
+                                        }
+                                        disabled={
+                                            isEventClosed ||
+                                            paginatedData.pagedAssigned
+                                                .length === 0
+                                        }
+                                        aria-label="Select all seated participants on this page"
+                                    />
+                                </TableHead>
                                 <TableHead>Participant</TableHead>
                                 <TableHead className="w-[180px]">
                                     Table
@@ -2203,7 +2788,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                             {totalFilteredRows === 0 ? (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={6}
+                                        colSpan={7}
                                         className="py-6 text-center text-sm text-slate-500"
                                     >
                                         {searchQuery || tableFilter !== 'all'
@@ -2233,6 +2818,26 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                             )
                                                         }
                                                     >
+                                                        <TableCell
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                        >
+                                                            <Checkbox
+                                                                checked={selectedAssignmentIds.includes(
+                                                                    assignment.id,
+                                                                )}
+                                                                onCheckedChange={() =>
+                                                                    toggleRowSelection(
+                                                                        assignment.id,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    isEventClosed
+                                                                }
+                                                                aria-label={`Select ${assignment.participant?.full_name ?? 'participant'}`}
+                                                            />
+                                                        </TableCell>
                                                         <TableCell>
                                                             <div className="flex items-center gap-3">
                                                                 <ChevronDown
@@ -2386,6 +2991,11 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                     e.stopPropagation();
                                                                     removeAssignment(
                                                                         assignment.id,
+                                                                        assignment.table_id,
+                                                                        assignment.seat_number,
+                                                                        assignment
+                                                                            .participant
+                                                                            ?.id,
                                                                     );
                                                                 }}
                                                                 aria-label="Remove participant"
@@ -2451,6 +3061,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                             )
                                                         }
                                                     >
+                                                        <TableCell aria-hidden="true" />
                                                         <TableCell>
                                                             <div className="flex items-center gap-3">
                                                                 <ChevronDown
@@ -2979,6 +3590,44 @@ export default function TableAssignmenyPage(props: PageProps) {
                                         Review existing tables for the selected
                                         event.
                                     </CardDescription>
+                                    {/* Only worth showing for 2+ rows -- a single
+                                        edit is served by that row's own Update
+                                        button, and the amber row tint already
+                                        flags it as unsaved. */}
+                                    {dirtyTables.length > 1 &&
+                                    !isEventClosed ? (
+                                        <div className="mt-3 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/40 dark:bg-amber-500/10">
+                                            <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                                                {dirtyTables.length} table
+                                                {dirtyTables.length === 1
+                                                    ? ''
+                                                    : 's'}{' '}
+                                                with unsaved changes
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={discardTableEdits}
+                                                    disabled={savingAllTables}
+                                                >
+                                                    Discard
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className={cn(PRIMARY_BTN)}
+                                                    onClick={saveAllTableEdits}
+                                                    disabled={savingAllTables}
+                                                >
+                                                    {savingAllTables
+                                                        ? 'Saving...'
+                                                        : 'Update all'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : null}
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-3 md:hidden">
@@ -2987,10 +3636,15 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                 No tables created yet.
                                             </div>
                                         ) : (
-                                            tables.map((table) => (
+                                            sortedCreatedTables.map((table) => (
                                                 <div
                                                     key={table.id}
-                                                    className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"
+                                                    className={cn(
+                                                        'rounded-lg border p-3',
+                                                        isTableDirty(table.id)
+                                                            ? 'border-amber-300 bg-amber-50/50 dark:border-amber-500/40 dark:bg-amber-500/5'
+                                                            : 'border-slate-200 dark:border-slate-800',
+                                                    )}
                                                 >
                                                     <div className="grid gap-3">
                                                         <div className="space-y-1">
@@ -3062,7 +3716,7 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                                 variant="ghost"
                                                                 className="text-rose-600 hover:text-rose-700"
                                                                 onClick={() =>
-                                                                    removeTable(
+                                                                    requestRemoveTable(
                                                                         table.id,
                                                                     )
                                                                 }
@@ -3079,11 +3733,70 @@ export default function TableAssignmenyPage(props: PageProps) {
                                         <Table className="min-w-[620px]">
                                             <TableHeader>
                                                 <TableRow className="bg-slate-50 dark:bg-slate-900/40">
-                                                    <TableHead>
-                                                        Table name
+                                                    <TableHead
+                                                        aria-sort={
+                                                            tableSort.key ===
+                                                            'table_number'
+                                                                ? tableSort.dir ===
+                                                                  'asc'
+                                                                    ? 'ascending'
+                                                                    : 'descending'
+                                                                : 'none'
+                                                        }
+                                                    >
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                toggleTableSort(
+                                                                    'table_number',
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-1.5 font-medium hover:text-slate-900 dark:hover:text-slate-100"
+                                                        >
+                                                            Table name
+                                                            {tableSort.key !==
+                                                            'table_number' ? (
+                                                                <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
+                                                            ) : tableSort.dir ===
+                                                              'asc' ? (
+                                                                <ArrowUp className="h-3.5 w-3.5" />
+                                                            ) : (
+                                                                <ArrowDown className="h-3.5 w-3.5" />
+                                                            )}
+                                                        </button>
                                                     </TableHead>
-                                                    <TableHead className="w-[160px]">
-                                                        Capacity
+                                                    <TableHead
+                                                        className="w-[160px]"
+                                                        aria-sort={
+                                                            tableSort.key ===
+                                                            'capacity'
+                                                                ? tableSort.dir ===
+                                                                  'asc'
+                                                                    ? 'ascending'
+                                                                    : 'descending'
+                                                                : 'none'
+                                                        }
+                                                    >
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                toggleTableSort(
+                                                                    'capacity',
+                                                                )
+                                                            }
+                                                            className="flex items-center gap-1.5 font-medium hover:text-slate-900 dark:hover:text-slate-100"
+                                                        >
+                                                            Capacity
+                                                            {tableSort.key !==
+                                                            'capacity' ? (
+                                                                <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
+                                                            ) : tableSort.dir ===
+                                                              'asc' ? (
+                                                                <ArrowUp className="h-3.5 w-3.5" />
+                                                            ) : (
+                                                                <ArrowDown className="h-3.5 w-3.5" />
+                                                            )}
+                                                        </button>
                                                     </TableHead>
                                                     <TableHead className="w-[220px] text-right">
                                                         Actions
@@ -3102,91 +3815,101 @@ export default function TableAssignmenyPage(props: PageProps) {
                                                         </TableCell>
                                                     </TableRow>
                                                 ) : (
-                                                    tables.map((table) => (
-                                                        <TableRow
-                                                            key={table.id}
-                                                        >
-                                                            <TableCell>
-                                                                <Input
-                                                                    value={
-                                                                        tableNumberDrafts[
-                                                                            table
-                                                                                .id
-                                                                        ] ?? ''
-                                                                    }
-                                                                    onChange={(
-                                                                        e,
-                                                                    ) =>
-                                                                        setTableNumberDrafts(
-                                                                            (
-                                                                                prev,
-                                                                            ) => ({
-                                                                                ...prev,
-                                                                                [table.id]:
-                                                                                    e
-                                                                                        .target
-                                                                                        .value,
-                                                                            }),
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Input
-                                                                    type="number"
-                                                                    min={1}
-                                                                    value={
-                                                                        capacityDrafts[
-                                                                            table
-                                                                                .id
-                                                                        ] ?? ''
-                                                                    }
-                                                                    onChange={(
-                                                                        e,
-                                                                    ) =>
-                                                                        setCapacityDrafts(
-                                                                            (
-                                                                                prev,
-                                                                            ) => ({
-                                                                                ...prev,
-                                                                                [table.id]:
-                                                                                    e
-                                                                                        .target
-                                                                                        .value,
-                                                                            }),
-                                                                        )
-                                                                    }
-                                                                />
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <div className="flex flex-wrap justify-end gap-2">
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        onClick={() =>
-                                                                            updateTableInfo(
-                                                                                table.id,
+                                                    sortedCreatedTables.map(
+                                                        (table) => (
+                                                            <TableRow
+                                                                key={table.id}
+                                                                className={cn(
+                                                                    isTableDirty(
+                                                                        table.id,
+                                                                    ) &&
+                                                                        'bg-amber-50/60 dark:bg-amber-500/5',
+                                                                )}
+                                                            >
+                                                                <TableCell>
+                                                                    <Input
+                                                                        value={
+                                                                            tableNumberDrafts[
+                                                                                table
+                                                                                    .id
+                                                                            ] ??
+                                                                            ''
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setTableNumberDrafts(
+                                                                                (
+                                                                                    prev,
+                                                                                ) => ({
+                                                                                    ...prev,
+                                                                                    [table.id]:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                }),
                                                                             )
                                                                         }
-                                                                    >
-                                                                        Update
-                                                                    </Button>
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        className="text-rose-600 hover:text-rose-700"
-                                                                        onClick={() =>
-                                                                            removeTable(
-                                                                                table.id,
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Input
+                                                                        type="number"
+                                                                        min={1}
+                                                                        value={
+                                                                            capacityDrafts[
+                                                                                table
+                                                                                    .id
+                                                                            ] ??
+                                                                            ''
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            setCapacityDrafts(
+                                                                                (
+                                                                                    prev,
+                                                                                ) => ({
+                                                                                    ...prev,
+                                                                                    [table.id]:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                }),
                                                                             )
                                                                         }
-                                                                    >
-                                                                        Delete
-                                                                    </Button>
-                                                                </div>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <div className="flex flex-wrap justify-end gap-2">
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            onClick={() =>
+                                                                                updateTableInfo(
+                                                                                    table.id,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Update
+                                                                        </Button>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            className="text-rose-600 hover:text-rose-700"
+                                                                            onClick={() =>
+                                                                                requestRemoveTable(
+                                                                                    table.id,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Delete
+                                                                        </Button>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ),
+                                                    )
                                                 )}
                                             </TableBody>
                                         </Table>
@@ -3205,6 +3928,185 @@ export default function TableAssignmenyPage(props: PageProps) {
                     </>
                 )}
             </div>
+
+            <AlertDialog
+                open={tableDeleteOpen}
+                onOpenChange={(next) => {
+                    setTableDeleteOpen(next);
+                    if (!next) setTableDeleteTarget(null);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Delete table {tableDeleteTarget?.table_number ?? ''}
+                            ?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {tableDeleteTarget &&
+                            tableDeleteTarget.assigned_count > 0 ? (
+                                <>
+                                    This table currently seats{' '}
+                                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                                        {tableDeleteTarget.assigned_count}{' '}
+                                        participant
+                                        {tableDeleteTarget.assigned_count === 1
+                                            ? ''
+                                            : 's'}
+                                    </span>
+                                    . They will be unassigned and returned to
+                                    the unassigned list. This cannot be undone.
+                                </>
+                            ) : (
+                                <>
+                                    This table is empty. It will be permanently
+                                    removed from this event.
+                                </>
+                            )}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={tableDeleting}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={(event) => {
+                                // Keep the dialog mounted until the request
+                                // settles, so the busy state stays visible.
+                                event.preventDefault();
+                                confirmRemoveTable();
+                            }}
+                            disabled={tableDeleting}
+                        >
+                            {tableDeleting ? 'Deleting...' : 'Delete table'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Remove {selectedAssignmentIds.length} participant
+                            {selectedAssignmentIds.length === 1 ? '' : 's'} from
+                            their tables?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            They will be returned to the unassigned list and can
+                            be assigned again. Remaining seats at each affected
+                            table are renumbered to close the gaps.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={bulkRemoving}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                confirmBulkUnassign();
+                            }}
+                            disabled={bulkRemoving}
+                        >
+                            {bulkRemoving
+                                ? 'Removing...'
+                                : 'Remove from tables'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog
+                open={autoAssignPlan !== null}
+                onOpenChange={(next) => {
+                    if (!next) setAutoAssignPlan(null);
+                }}
+            >
+                <AlertDialogContent className="max-w-lg">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Review auto-assignment
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-1">
+                                <p>
+                                    Seats{' '}
+                                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                                        {autoAssignPlan?.assignedCount ?? 0}
+                                    </span>{' '}
+                                    participants across{' '}
+                                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                                        {autoAssignPlan?.entries.length ?? 0}
+                                    </span>{' '}
+                                    table
+                                    {autoAssignPlan?.entries.length === 1
+                                        ? ''
+                                        : 's'}
+                                    , keeping delegations together where
+                                    capacity allows.
+                                </p>
+                                {autoAssignPlan &&
+                                autoAssignPlan.remainingCount > 0 ? (
+                                    <p className="text-amber-700 dark:text-amber-400">
+                                        {autoAssignPlan.remainingCount}{' '}
+                                        participant
+                                        {autoAssignPlan.remainingCount === 1
+                                            ? ''
+                                            : 's'}{' '}
+                                        will remain unassigned (all tables
+                                        full).
+                                    </p>
+                                ) : null}
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                        <ul className="divide-y divide-slate-200 text-sm dark:divide-slate-800">
+                            {autoAssignPlan?.entries.map((entry) => (
+                                <li
+                                    key={entry.tableId}
+                                    className="flex items-baseline justify-between gap-3 px-3 py-2"
+                                >
+                                    <span className="font-medium text-slate-800 dark:text-slate-100">
+                                        Table {entry.tableNumber}
+                                    </span>
+                                    <span className="text-right text-xs text-slate-500 dark:text-slate-400">
+                                        {entry.participantIds.length} seat
+                                        {entry.participantIds.length === 1
+                                            ? ''
+                                            : 's'}
+                                        {entry.delegations
+                                            ? ` (${entry.delegations})`
+                                            : ''}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={autoAssignRunning}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className={cn(PRIMARY_BTN)}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                commitAutoAssign();
+                            }}
+                            disabled={autoAssignRunning}
+                        >
+                            {autoAssignRunning
+                                ? 'Assigning...'
+                                : 'Confirm assignment'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </AppLayout>
     );
 }

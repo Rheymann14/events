@@ -78,6 +78,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+import { participantQrDataUrl, participantQrValue } from '@/lib/qr';
 import {
     BadgeCheck,
     CalendarDays,
@@ -100,7 +101,6 @@ import {
     Users,
     XCircle,
 } from 'lucide-react';
-import { participantQrDataUrl, participantQrValue } from '@/lib/qr';
 
 type Country = {
     id: number;

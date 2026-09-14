@@ -1,6 +1,5 @@
 // resources/js/pages/welcome.tsx
 import { Button } from '@/components/ui/button';
-import { createPortal } from 'react-dom';
 import PublicLayout, { PUBLIC_NAV_ITEMS } from '@/layouts/public-layout';
 import { cn } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
@@ -13,16 +12,21 @@ import {
     useAnimationFrame,
     useMotionValue,
     useReducedMotion,
-    useScroll,
     useTransform,
 } from 'framer-motion';
-import { ArrowRight, CheckCircle2, MessageCircle, Star, X, MonitorCog } from 'lucide-react';
+import { ArrowRight, CheckCircle2, MessageCircle, Star, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 import * as React from 'react';
 
 // --- TYPES ---
 type FlagItem = { name: string; src: string };
-type LeadershipItem = { id: number; title: string; src: string; description?: string };
+type LeadershipItem = {
+    id: number;
+    title: string;
+    src: string;
+    description?: string;
+};
 type ActiveRegistrationProgramme = {
     id: number;
     tag: string | null;
@@ -64,43 +68,37 @@ const LEADERSHIP_ITEMS: LeadershipItem[] = [
     {
         id: 1,
         title: 'Ferdinand Romualdez Marcos Jr.',
-        description:
-            'President of the Philippines',
+        description: 'President of the Philippines',
         src: '/img/leaders/pbbm.jpg',
     },
     {
         id: 2,
         title: 'Shirley C. Agrupis, Ph.D.',
-        description:
-            'Commission on Higher Education Chairperson',
+        description: 'Commission on Higher Education Chairperson',
         src: '/img/leaders/ched-chair.jpg',
     },
     {
         id: 3,
         title: 'Desiderio R. Apag III, D.Eng, PCpE',
-        description:
-            'Commission on Higher Education Commissioner',
+        description: 'Commission on Higher Education Commissioner',
         src: '/img/leaders/ched-commissioner-apag.jpg',
     },
     {
         id: 4,
         title: 'Ricmar P. Aquino, Ed.D.',
-        description:
-            'Commission on Higher Education Commissioner',
+        description: 'Commission on Higher Education Commissioner',
         src: '/img/leaders/ched-commissioner-aquino.jpg',
     },
     {
         id: 5,
         title: 'Myrna Q. Mallari, DBA, CPA',
-        description:
-            'Commission on Higher Education Commissioner',
+        description: 'Commission on Higher Education Commissioner',
         src: '/img/leaders/ched-commissioner-mallari.jpg',
     },
     {
         id: 6,
         title: 'Michelle A. Ong, DPA',
-        description:
-            'Commission on Higher Education Commissioner',
+        description: 'Commission on Higher Education Commissioner',
         src: '/img/leaders/ched-commissioner-ong.jpg',
     },
     // {
@@ -119,7 +117,6 @@ const LEADERSHIP_ITEMS: LeadershipItem[] = [
     // },
 ];
 
-
 // Split flags for left/right groups
 const LEFT_FLAGS = ASEAN_FLAGS.slice(0, 5);
 const RIGHT_FLAGS = ASEAN_FLAGS.slice(5, 10); // ✅ only 5 flags on the right (exclude Timor-Leste)
@@ -127,11 +124,15 @@ const TIMOR_FLAG = ASEAN_FLAGS[10]; // ✅ Timor-Leste
 
 function resolveEventImageUrl(imageUrl?: string | null) {
     if (!imageUrl) return '/img/ched_co.jpg';
-    if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) return imageUrl;
+    if (imageUrl.startsWith('http') || imageUrl.startsWith('/'))
+        return imageUrl;
     return `/event-images/${imageUrl}`;
 }
 
-function formatEventDateRange(startsAt?: string | null, endsAt?: string | null) {
+function formatEventDateRange(
+    startsAt?: string | null,
+    endsAt?: string | null,
+) {
     if (!startsAt) return 'Date to be announced';
 
     const start = new Date(startsAt);
@@ -162,7 +163,9 @@ function formatEventDateRange(startsAt?: string | null, endsAt?: string | null) 
     }
 
     if (sameMonth) {
-        const monthFormatter = new Intl.DateTimeFormat('en-PH', { month: 'short' });
+        const monthFormatter = new Intl.DateTimeFormat('en-PH', {
+            month: 'short',
+        });
         return `${monthFormatter.format(start)} ${start.getDate()}-${end.getDate()}, ${start.getFullYear()}`;
     }
 
@@ -184,10 +187,6 @@ function useMediaQuery(query: string) {
     return matches;
 }
 
-
-
-
-
 /**
  * --------------------------------------------------------------------------
  * HERO SECTION COMPONENTS
@@ -201,8 +200,8 @@ function FlyingFlag({
     index,
     side,
     progress,
-    target,          // ✅ allow fixed target (mobile rows)
-    size = 'lg',      // ✅ small flags on mobile
+    target, // ✅ allow fixed target (mobile rows)
+    size = 'lg', // ✅ small flags on mobile
 }: {
     flag: FlagItem;
     index: number;
@@ -229,31 +228,35 @@ function FlyingFlag({
         (side === 'left'
             ? (LEFT_X[index] ?? LEFT_X[LEFT_X.length - 1])
             : side === 'right'
-                ? (RIGHT_X[index] ?? RIGHT_X[RIGHT_X.length - 1])
-                : CENTER_X);
+              ? (RIGHT_X[index] ?? RIGHT_X[RIGHT_X.length - 1])
+              : CENTER_X);
 
     const targetY =
         target?.y ??
         (side === 'left'
             ? (LEFT_Y[index] ?? 0)
             : side === 'right'
-                ? (RIGHT_Y[index] ?? 0)
-                : CENTER_Y);
+              ? (RIGHT_Y[index] ?? 0)
+              : CENTER_Y);
 
     const targetR =
         target?.r ??
         (side === 'left'
             ? (LEFT_R[index] ?? 0)
             : side === 'right'
-                ? (RIGHT_R[index] ?? 0)
-                : CENTER_R);
+              ? (RIGHT_R[index] ?? 0)
+              : CENTER_R);
 
     const x = useTransform(progress, [0, 0.6], [0, targetX]);
     const y = useTransform(progress, [0, 0.6], [0, targetY]);
     const rotate = useTransform(progress, [0, 0.6], [0, targetR]);
     const opacity = useTransform(progress, [0, 0.05, 0.2], [0, 0, 1]);
 
-    const scale = useTransform(progress, [0, 0.3], [0.45, target ? 1 : side === 'center' ? 0.9 : 0.8]);
+    const scale = useTransform(
+        progress,
+        [0, 0.3],
+        [0.45, target ? 1 : side === 'center' ? 0.9 : 0.8],
+    );
 
     const sizeClass =
         size === 'sm'
@@ -270,9 +273,11 @@ function FlyingFlag({
                 opacity,
                 zIndex: target ? 65 : side === 'center' ? 65 : (5 - index) * 10,
             }}
-            className="absolute pointer-events-none sm:pointer-events-auto transition-transform duration-300 sm:hover:z-50 sm:hover:scale-100"
+            className="pointer-events-none absolute transition-transform duration-300 sm:pointer-events-auto sm:hover:z-50 sm:hover:scale-100"
         >
-            <div className={`${sizeClass} overflow-hidden rounded-lg shadow-2xl ring-1 ring-white/60`}>
+            <div
+                className={`${sizeClass} overflow-hidden rounded-lg shadow-2xl ring-1 ring-white/60`}
+            >
                 <img
                     src={flag.src}
                     alt={flag.name}
@@ -284,27 +289,33 @@ function FlyingFlag({
     );
 }
 
-
-
-
-function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgramme?: ActiveRegistrationProgramme | null }) {
+function HeroSection({
+    activeRegistrationProgramme,
+}: {
+    activeRegistrationProgramme?: ActiveRegistrationProgramme | null;
+}) {
     const featuredEvent = activeRegistrationProgramme ?? null;
     const featuredImageUrl = resolveEventImageUrl(featuredEvent?.image_url);
     const featuredTitle = featuredEvent?.title ?? 'No featured event';
     const featuredDescription =
-        featuredEvent?.description ??
-        'No featured event yet.';
-    const featuredDate = formatEventDateRange(featuredEvent?.starts_at, featuredEvent?.ends_at);
-    const featuredVenue = featuredEvent?.venue?.name ?? featuredEvent?.location ?? 'Venue to be announced';
-    const featuredSubtitle = featuredEvent ? 'Active registration event' : 'No featured event yet';
+        featuredEvent?.description ?? 'No featured event yet.';
+    const featuredDate = formatEventDateRange(
+        featuredEvent?.starts_at,
+        featuredEvent?.ends_at,
+    );
+    const featuredVenue =
+        featuredEvent?.venue?.name ??
+        featuredEvent?.location ??
+        'Venue to be announced';
+    const featuredSubtitle = featuredEvent
+        ? 'Active registration event'
+        : 'No featured event yet';
 
     return (
         <section className="relative isolate z-20 flex min-h-[90vh] items-center justify-center px-6">
-            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-16">
-
+            <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
                 {/* ================= LEFT SIDE ================= */}
                 <div className="relative z-[90] text-center lg:text-left">
-
                     {/* Logos row */}
                     <div className="mb-6 flex items-center justify-center gap-3 lg:justify-start">
                         <img
@@ -325,23 +336,24 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                     </div>
 
                     {/* Main Title */}
-                    <h1 className="text-[52px] font-extrabold leading-[1.05] tracking-tight text-[#0b1220]">
+                    <h1 className="text-[52px] leading-[1.05] font-extrabold tracking-tight text-[#0b1220]">
                         CHED Events
                         <br />
                         Registration System
                     </h1>
 
                     {/* Subtitle */}
-                    <p className="mt-4 max-w-xl text-[16px] leading-[1.7] text-slate-600 lg:mx-0 mx-auto">
-                        A centralized platform for managing event registration, participant attendance,
-                        and event-related records for CHED activities.
+                    <p className="mx-auto mt-4 max-w-xl text-[16px] leading-[1.7] text-slate-600 lg:mx-0">
+                        A centralized platform for managing event registration,
+                        participant attendance, and event-related records for
+                        CHED activities.
                     </p>
 
                     {/* CTA */}
-                    <div className="relative z-[100] mt-10 flex justify-center pointer-events-auto lg:justify-start">
+                    <div className="pointer-events-auto relative z-[100] mt-10 flex justify-center lg:justify-start">
                         <Link
                             href="/register"
-                            className="group relative z-[100] inline-flex min-h-14 w-full max-w-xs touch-manipulation select-none items-center justify-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:bg-[#002a85] active:scale-[0.98] sm:w-auto"
+                            className="group relative z-[100] inline-flex min-h-14 w-full max-w-xs touch-manipulation items-center justify-center gap-3 rounded-full bg-[#0033A0] px-10 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition select-none hover:bg-[#002a85] active:scale-[0.98] sm:w-auto"
                         >
                             Register Now
                             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 transition group-hover:bg-white/25">
@@ -354,7 +366,6 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                 {/* ================= RIGHT SIDE ================= */}
                 <div className="flex justify-center pb-12 lg:justify-end lg:pb-0">
                     <div className="w-full max-w-[600px] rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.25)]">
-
                         {/* HEADER */}
                         <div className="mb-4">
                             <div className="flex items-center justify-between">
@@ -375,7 +386,6 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                         {/* EVENT CARD */}
                         {featuredEvent ? (
                             <div className="overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-br from-[#0033A0]/5 via-white to-amber-50/40">
-
                                 {/* IMAGE */}
                                 <div className="relative h-32 w-full">
                                     <img
@@ -388,7 +398,7 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-transparent" />
 
                                     {/* badge */}
-                                    <div className="absolute left-3 top-3">
+                                    <div className="absolute top-3 left-3">
                                         <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold tracking-[0.2em] text-white backdrop-blur">
                                             FEATURED
                                         </span>
@@ -396,29 +406,34 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
 
                                     {/* date */}
                                     <div className="absolute bottom-3 left-3">
-                                        <p className="text-[10px] text-white/70 uppercase tracking-wider">
+                                        <p className="text-[10px] tracking-wider text-white/70 uppercase">
                                             Date
                                         </p>
-                                        <p className="text-sm font-semibold text-white">{featuredDate}</p>
+                                        <p className="text-sm font-semibold text-white">
+                                            {featuredDate}
+                                        </p>
                                     </div>
                                 </div>
 
                                 {/* CONTENT */}
                                 <div className="p-4">
-
                                     <h4 className="text-sm font-bold text-slate-900">
                                         {featuredTitle}
                                     </h4>
 
-                                    <p className="mt-1 text-[12px] text-slate-600 leading-relaxed">
+                                    <p className="mt-1 text-[12px] leading-relaxed text-slate-600">
                                         {featuredDescription}
                                     </p>
 
                                     {/* META */}
                                     <div className="mt-4 grid grid-cols-1 gap-2 text-[11px]">
-                                        <div className="rounded-xl bg-slate-50 border border-slate-100 p-2">
-                                            <p className="text-slate-400 uppercase">Venue</p>
-                                            <p className="font-semibold text-slate-800">{featuredVenue}</p>
+                                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-2">
+                                            <p className="text-slate-400 uppercase">
+                                                Venue
+                                            </p>
+                                            <p className="font-semibold text-slate-800">
+                                                {featuredVenue}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -429,19 +444,17 @@ function HeroSection({ activeRegistrationProgramme }: { activeRegistrationProgra
                                     No Featured Event Yet
                                 </p>
                                 <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-slate-400">
-                                    Registration details will appear here once a featured event is available.
+                                    Registration details will appear here once a
+                                    featured event is available.
                                 </p>
                             </div>
                         )}
-
-
                     </div>
                 </div>
             </div>
         </section>
     );
 }
-
 
 function ClientPortal({ children }: { children: React.ReactNode }) {
     const [mounted, setMounted] = React.useState(false);
@@ -453,8 +466,6 @@ function ClientPortal({ children }: { children: React.ReactNode }) {
     if (!mounted) return null;
     return createPortal(children, document.body);
 }
-
-
 
 /**
  * --------------------------------------------------------------------------
@@ -520,7 +531,7 @@ function LeaderModal({
                             >
                                 <button
                                     onClick={onClose}
-                                    className="absolute right-4 top-4 z-10 rounded-full bg-black/10 p-2 transition hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20"
+                                    className="absolute top-4 right-4 z-10 rounded-full bg-black/10 p-2 transition hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20"
                                     aria-label="Close"
                                     type="button"
                                 >
@@ -536,7 +547,7 @@ function LeaderModal({
                                             draggable={false}
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-slate-950/10 to-transparent" />
-                                        <div className="absolute bottom-4 left-4 right-4">
+                                        <div className="absolute right-4 bottom-4 left-4">
                                             <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-[0.22em] text-white backdrop-blur">
                                                 CHED EVENTS
                                             </span>
@@ -566,7 +577,6 @@ function LeaderModal({
         </ClientPortal>
     );
 }
-
 
 /**
  * --------------------------------------------------------------------------
@@ -652,7 +662,8 @@ function ThreeDImageRing({
     React.useEffect(() => {
         const handleResize = () => {
             const viewportWidth = window.innerWidth;
-            const newScale = viewportWidth <= mobileBreakpoint ? mobileScaleFactor : 1;
+            const newScale =
+                viewportWidth <= mobileBreakpoint ? mobileScaleFactor : 1;
             setCurrentScale(newScale);
         };
 
@@ -669,12 +680,14 @@ function ThreeDImageRing({
     const handleDragStart = (event: React.MouseEvent | React.TouchEvent) => {
         if (!draggable) return;
         isDragging.current = true;
-        const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
+        const clientX =
+            'touches' in event ? event.touches[0].clientX : event.clientX;
         startX.current = clientX;
         rotationY.stop();
         velocity.current = 0;
 
-        if (ringRef.current) (ringRef.current as HTMLElement).style.cursor = 'grabbing';
+        if (ringRef.current)
+            (ringRef.current as HTMLElement).style.cursor = 'grabbing';
 
         document.addEventListener('mousemove', handleDrag);
         document.addEventListener('mouseup', handleDragEnd);
@@ -685,7 +698,9 @@ function ThreeDImageRing({
     const handleDrag = (event: MouseEvent | TouchEvent) => {
         if (!draggable || !isDragging.current) return;
         const clientX =
-            'touches' in event ? (event as TouchEvent).touches[0].clientX : (event as MouseEvent).clientX;
+            'touches' in event
+                ? (event as TouchEvent).touches[0].clientX
+                : (event as MouseEvent).clientX;
 
         const deltaX = clientX - startX.current;
         velocity.current = -deltaX * 0.5;
@@ -732,8 +747,14 @@ function ThreeDImageRing({
     return (
         <div
             ref={containerRef}
-            className={cn('relative h-full w-full select-none overflow-visible', containerClassName)}
-            style={{ transform: `scale(${currentScale})`, transformOrigin: 'center center' }}
+            className={cn(
+                'relative h-full w-full overflow-visible select-none',
+                containerClassName,
+            )}
+            style={{
+                transform: `scale(${currentScale})`,
+                transformOrigin: 'center center',
+            }}
             onMouseDown={draggable ? handleDragStart : undefined}
             onTouchStart={draggable ? handleDragStart : undefined}
         >
@@ -785,36 +806,45 @@ function ThreeDImageRing({
                                         duration: animationDuration,
                                         ease: easeOut,
                                     }}
-                                    whileHover={{ scale: 1.05, transition: { duration: 0.15 } }}
+                                    whileHover={{
+                                        scale: 1.05,
+                                        transition: { duration: 0.15 },
+                                    }}
                                 >
                                     {/* ✅ NO LEFT/RIGHT SHIFT: keep center position; only zoom (subtle) */}
                                     <motion.div
                                         className="absolute inset-0 bg-cover bg-center will-change-transform"
-                                        style={{ backgroundImage: `url(${item.src})`, backgroundPosition: 'center' }}
+                                        style={{
+                                            backgroundImage: `url(${item.src})`,
+                                            backgroundPosition: 'center',
+                                        }}
                                         animate={
                                             shouldReduceMotion
                                                 ? undefined
                                                 : {
-                                                    scale: [1.08, 1.02, 1.08],
-                                                }
+                                                      scale: [1.08, 1.02, 1.08],
+                                                  }
                                         }
                                         transition={
                                             shouldReduceMotion
                                                 ? undefined
                                                 : {
-                                                    duration: 9,
-                                                    repeat: Infinity,
-                                                    ease: 'easeInOut',
-                                                }
+                                                      duration: 9,
+                                                      repeat: Infinity,
+                                                      ease: 'easeInOut',
+                                                  }
                                         }
-                                        whileHover={{ scale: 1.14, transition: { duration: 0.25 } }}
+                                        whileHover={{
+                                            scale: 1.14,
+                                            transition: { duration: 0.25 },
+                                        }}
                                     >
                                         <div className="absolute inset-0 bg-slate-950/25 transition-colors group-hover:bg-slate-950/55" />
                                     </motion.div>
 
                                     <div className="absolute inset-x-0 bottom-0 p-6">
                                         <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-md">
-                                            <h3 className="text-balance text-center text-base font-semibold text-white drop-shadow">
+                                            <h3 className="text-center text-base font-semibold text-balance text-white drop-shadow">
                                                 {item.title}
                                             </h3>
                                             {/* <p className="mt-2 line-clamp-3 text-center text-xs leading-relaxed text-white/80"> */}
@@ -824,7 +854,7 @@ function ThreeDImageRing({
                                             <div className="mt-4 flex justify-center">
                                                 <Button
                                                     size="sm"
-                                                    className="rounded-full bg-white/15 text-white hover:bg-white/30 backdrop-blur-sm shadow-lg border border-white/20"
+                                                    className="rounded-full border border-white/20 bg-white/15 text-white shadow-lg backdrop-blur-sm hover:bg-white/30"
                                                 >
                                                     View Profile
                                                 </Button>
@@ -846,32 +876,45 @@ function ThreeDImageRing({
  * --------------------------------------------------------------------------
  */
 
-
-export default function Welcome({ canRegister = true, activeRegistrationProgramme = null }: WelcomeProps) {
-
-
-
-
-
-    const [selectedLeader, setSelectedLeader] = React.useState<LeadershipItem | null>(null);
+export default function Welcome({
+    canRegister = true,
+    activeRegistrationProgramme = null,
+}: WelcomeProps) {
+    const [selectedLeader, setSelectedLeader] =
+        React.useState<LeadershipItem | null>(null);
     const [modalOpen, setModalOpen] = React.useState(false);
 
-    const sectionNavItems = React.useMemo(() => PUBLIC_NAV_ITEMS.filter((i) => i.href.startsWith('#')), []);
+    const sectionNavItems = React.useMemo(
+        () => PUBLIC_NAV_ITEMS.filter((i) => i.href.startsWith('#')),
+        [],
+    );
 
     const [feedbackRating, setFeedbackRating] = React.useState(0);
     const [feedbackOpen, setFeedbackOpen] = React.useState(false);
-    const [feedbackLauncherHidden, setFeedbackLauncherHidden] = React.useState(false);
-    const [includeUserExperience, setIncludeUserExperience] = React.useState(true);
-    const [includeEventFeedback, setIncludeEventFeedback] = React.useState(false);
+    const [feedbackLauncherHidden, setFeedbackLauncherHidden] =
+        React.useState(false);
+    const [includeUserExperience, setIncludeUserExperience] =
+        React.useState(true);
+    const [includeEventFeedback, setIncludeEventFeedback] =
+        React.useState(false);
     const [recommendations, setRecommendations] = React.useState('');
-    const [feedbackStatus, setFeedbackStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+    const [feedbackStatus, setFeedbackStatus] = React.useState<
+        'idle' | 'success' | 'error'
+    >('idle');
     const [feedbackMessage, setFeedbackMessage] = React.useState('');
     const [feedbackSubmitting, setFeedbackSubmitting] = React.useState(false);
-    const [eventRatings, setEventRatings] = React.useState<Record<string, number>>({});
+    const [eventRatings, setEventRatings] = React.useState<
+        Record<string, number>
+    >({});
 
-    const eventCategories = React.useMemo(() => ['Venue', 'Food', 'Speaker', 'Program flow', 'Sound system'], []);
+    const eventCategories = React.useMemo(
+        () => ['Venue', 'Food', 'Speaker', 'Program flow', 'Sound system'],
+        [],
+    );
     const hasEventRatings = React.useMemo(
-        () => includeEventFeedback && Object.values(eventRatings).some((value) => value > 0),
+        () =>
+            includeEventFeedback &&
+            Object.values(eventRatings).some((value) => value > 0),
         [eventRatings, includeEventFeedback],
     );
     const hasUserExperienceRating = includeUserExperience && feedbackRating > 0;
@@ -887,7 +930,9 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
 
         if (!canSubmitFeedback) {
             setFeedbackStatus('error');
-            setFeedbackMessage('Please add at least one rating before sending your feedback.');
+            setFeedbackMessage(
+                'Please add at least one rating before sending your feedback.',
+            );
             return;
         }
 
@@ -895,16 +940,24 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
         setFeedbackStatus('idle');
         setFeedbackMessage('');
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
-        const eventRatingsPayload = Object.fromEntries(Object.entries(eventRatings).filter(([, value]) => value > 0));
+        const csrfToken =
+            document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute('content') ?? '';
+        const eventRatingsPayload = Object.fromEntries(
+            Object.entries(eventRatings).filter(([, value]) => value > 0),
+        );
 
         const payload: Record<string, unknown> = {};
 
-        if (includeUserExperience && feedbackRating > 0) payload.user_experience_rating = feedbackRating;
+        if (includeUserExperience && feedbackRating > 0)
+            payload.user_experience_rating = feedbackRating;
 
-        if (includeEventFeedback && Object.keys(eventRatingsPayload).length > 0) payload.event_ratings = eventRatingsPayload;
+        if (includeEventFeedback && Object.keys(eventRatingsPayload).length > 0)
+            payload.event_ratings = eventRatingsPayload;
 
-        if (recommendations.trim()) payload.recommendations = recommendations.trim();
+        if (recommendations.trim())
+            payload.recommendations = recommendations.trim();
 
         try {
             const response = await fetch('/feedback', {
@@ -919,7 +972,9 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => null);
-                const message = errorData?.message || 'We could not send your feedback. Please try again.';
+                const message =
+                    errorData?.message ||
+                    'We could not send your feedback. Please try again.';
                 setFeedbackStatus('error');
                 setFeedbackMessage(message);
                 return;
@@ -932,7 +987,9 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
             setRecommendations('');
         } catch (error) {
             setFeedbackStatus('error');
-            setFeedbackMessage('We could not send your feedback. Please try again.');
+            setFeedbackMessage(
+                'We could not send your feedback. Please try again.',
+            );
         } finally {
             setFeedbackSubmitting(false);
         }
@@ -967,7 +1024,8 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                 if (!visible.length) return;
 
                 visible.sort((a, b) => {
-                    if (b.intersectionRatio !== a.intersectionRatio) return b.intersectionRatio - a.intersectionRatio;
+                    if (b.intersectionRatio !== a.intersectionRatio)
+                        return b.intersectionRatio - a.intersectionRatio;
                     return a.boundingClientRect.top - b.boundingClientRect.top;
                 });
 
@@ -1007,13 +1065,17 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
 
         const updateFeedbackVisibility = () => {
             const footer = document.querySelector('footer');
-            const shouldHide = footer ? footer.getBoundingClientRect().top <= window.innerHeight - 16 : false;
+            const shouldHide = footer
+                ? footer.getBoundingClientRect().top <= window.innerHeight - 16
+                : false;
             setFeedbackLauncherHidden(shouldHide);
             if (shouldHide) setFeedbackOpen(false);
         };
 
         updateFeedbackVisibility();
-        window.addEventListener('scroll', updateFeedbackVisibility, { passive: true });
+        window.addEventListener('scroll', updateFeedbackVisibility, {
+            passive: true,
+        });
         window.addEventListener('resize', updateFeedbackVisibility);
 
         return () => {
@@ -1026,7 +1088,10 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
         <>
             <Head title="">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
-                <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
+                <link
+                    href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700"
+                    rel="stylesheet"
+                />
             </Head>
 
             <PublicLayout
@@ -1034,8 +1099,10 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                 navActive={activeHref}
                 onNavActiveChange={setActiveHref}
                 background={
-                    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+                    >
                         {/* Base */}
                         <div className="absolute inset-0 bg-white" />
 
@@ -1046,17 +1113,17 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                         <div className="absolute -top-36 -right-40 h-[560px] w-[560px] rounded-full bg-amber-300/[0.18] blur-[130px]" />
 
                         {/* Center soft glow */}
-                        <div className="absolute left-1/2 top-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-200/[0.16] blur-[145px]" />
+                        <div className="absolute top-1/2 left-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-200/[0.16] blur-[145px]" />
 
                         {/* Bottom accent */}
                         <div className="absolute -bottom-44 left-1/3 h-[560px] w-[560px] rounded-full bg-indigo-300/[0.14] blur-[135px]" />
                     </div>
                 }
             >
-
-
                 {/* 1. HERO */}
-                <HeroSection activeRegistrationProgramme={activeRegistrationProgramme} />
+                <HeroSection
+                    activeRegistrationProgramme={activeRegistrationProgramme}
+                />
 
                 {/* 2. 3D RING LEADERSHIP */}
                 {/* 2. 3D RING LEADERSHIP (fade-in on reach) */}
@@ -1083,14 +1150,25 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                         className="mx-auto mb-10 max-w-2xl text-center"
                         variants={{
                             hidden: { opacity: 0, y: 18 },
-                            show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: easeOut } },
+                            show: {
+                                opacity: 1,
+                                y: 0,
+                                transition: { duration: 0.55, ease: easeOut },
+                            },
                         }}
                     >
                         <motion.div
                             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-xs font-medium text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-200"
                             variants={{
                                 hidden: { opacity: 0, y: 10 },
-                                show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: easeOut } },
+                                show: {
+                                    opacity: 1,
+                                    y: 0,
+                                    transition: {
+                                        duration: 0.45,
+                                        ease: easeOut,
+                                    },
+                                },
                             }}
                         >
                             <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
@@ -1101,22 +1179,40 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                             className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl"
                             variants={{
                                 hidden: { opacity: 0, y: 14 },
-                                show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: easeOut } },
+                                show: {
+                                    opacity: 1,
+                                    y: 0,
+                                    transition: {
+                                        duration: 0.55,
+                                        ease: easeOut,
+                                    },
+                                },
                             }}
                         >
-                            <span className="text-[#0033A0]">CHED</span> <span className="text-slate-900">Events</span>{' '}
+                            <span className="text-[#0033A0]">CHED</span>{' '}
+                            <span className="text-slate-900">Events</span>{' '}
                             <span className="text-amber-600">Registration</span>
-                            <div className="span text-lg">Higher Education Sector</div>
+                            <div className="span text-lg">
+                                Higher Education Sector
+                            </div>
                         </motion.h2>
 
                         <motion.p
                             className="mt-3 text-base leading-relaxed text-slate-600"
                             variants={{
                                 hidden: { opacity: 0, y: 14 },
-                                show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: easeOut } },
+                                show: {
+                                    opacity: 1,
+                                    y: 0,
+                                    transition: {
+                                        duration: 0.55,
+                                        ease: easeOut,
+                                    },
+                                },
                             }}
                         >
-                            Leaders supporting CHED Events coordination, protocol, readiness, and delegate services.
+                            Leaders supporting CHED Events coordination,
+                            protocol, readiness, and delegate services.
                         </motion.p>
                     </motion.div>
 
@@ -1141,12 +1237,15 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                     </motion.div>
                 </motion.section>
 
-
                 {/* MODAL */}
-                <LeaderModal item={selectedLeader} isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+                <LeaderModal
+                    item={selectedLeader}
+                    isOpen={modalOpen}
+                    onClose={() => setModalOpen(false)}
+                />
 
                 {/* 3. FEEDBACK FORM (UNCHANGED) */}
-                <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+                <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex flex-col items-end gap-2 sm:right-6 sm:bottom-6">
                     <div
                         className={cn(
                             'w-[280px] max-w-[calc(100vw-2.5rem)] sm:w-[320px]',
@@ -1164,7 +1263,8 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                                     </p>
 
                                     <p className="mt-1 text-xs text-slate-600">
-                                        Share your experience to help us elevate the event.
+                                        Share your experience to help us elevate
+                                        the event.
                                     </p>
                                 </div>
                                 <button
@@ -1177,14 +1277,20 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                             </div>
 
                             <div className="mt-4 space-y-2">
-                                <p className="text-xs font-semibold text-slate-700">Include feedback for</p>
+                                <p className="text-xs font-semibold text-slate-700">
+                                    Include feedback for
+                                </p>
                                 <div className="space-y-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm">
                                     <label className="flex items-center gap-2">
                                         <input
                                             type="checkbox"
                                             className="h-4 w-4 rounded border-slate-300 text-[#1e3c73]"
                                             checked={includeUserExperience}
-                                            onChange={(event) => setIncludeUserExperience(event.target.checked)}
+                                            onChange={(event) =>
+                                                setIncludeUserExperience(
+                                                    event.target.checked,
+                                                )
+                                            }
                                         />
                                         User experience
                                     </label>
@@ -1193,7 +1299,11 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                                             type="checkbox"
                                             className="h-4 w-4 rounded border-slate-300 text-[#1e3c73]"
                                             checked={includeEventFeedback}
-                                            onChange={(event) => setIncludeEventFeedback(event.target.checked)}
+                                            onChange={(event) =>
+                                                setIncludeEventFeedback(
+                                                    event.target.checked,
+                                                )
+                                            }
                                         />
                                         Event
                                     </label>
@@ -1203,10 +1313,13 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                             <div className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
                                 {includeEventFeedback && (
                                     <div>
-                                        <p className="text-xs font-semibold text-slate-700">Event highlights</p>
+                                        <p className="text-xs font-semibold text-slate-700">
+                                            Event highlights
+                                        </p>
                                         <div className="mt-2 space-y-2">
                                             {eventCategories.map((category) => {
-                                                const rating = eventRatings[category] ?? 0;
+                                                const rating =
+                                                    eventRatings[category] ?? 0;
                                                 return (
                                                     <div
                                                         key={category}
@@ -1216,17 +1329,28 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                                                             {category}
                                                         </p>
                                                         <div className="mt-2 flex items-center gap-1.5">
-                                                            {[1, 2, 3, 4, 5].map((star) => {
-                                                                const isActive = star <= rating;
+                                                            {[
+                                                                1, 2, 3, 4, 5,
+                                                            ].map((star) => {
+                                                                const isActive =
+                                                                    star <=
+                                                                    rating;
                                                                 return (
                                                                     <button
-                                                                        key={star}
+                                                                        key={
+                                                                            star
+                                                                        }
                                                                         type="button"
                                                                         onClick={() =>
-                                                                            setEventRatings((current) => ({
-                                                                                ...current,
-                                                                                [category]: star,
-                                                                            }))
+                                                                            setEventRatings(
+                                                                                (
+                                                                                    current,
+                                                                                ) => ({
+                                                                                    ...current,
+                                                                                    [category]:
+                                                                                        star,
+                                                                                }),
+                                                                            )
                                                                         }
                                                                         className={cn(
                                                                             'inline-flex h-8 w-8 items-center justify-center rounded-full border transition',
@@ -1239,14 +1363,18 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                                                                         <Star
                                                                             className={cn(
                                                                                 'h-4 w-4',
-                                                                                isActive ? 'fill-amber-400 text-amber-400' : '',
+                                                                                isActive
+                                                                                    ? 'fill-amber-400 text-amber-400'
+                                                                                    : '',
                                                                             )}
                                                                         />
                                                                     </button>
                                                                 );
                                                             })}
                                                             <span className="text-[10px] font-medium text-slate-500">
-                                                                {rating ? `${rating}/5` : 'Tap a star'}
+                                                                {rating
+                                                                    ? `${rating}/5`
+                                                                    : 'Tap a star'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -1258,15 +1386,22 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
 
                                 {includeUserExperience && (
                                     <div>
-                                        <p className="text-xs font-semibold text-slate-700">Ease of navigation</p>
+                                        <p className="text-xs font-semibold text-slate-700">
+                                            Ease of navigation
+                                        </p>
                                         <div className="mt-2 flex items-center gap-2">
                                             {[1, 2, 3, 4, 5].map((star) => {
-                                                const isActive = star <= feedbackRating;
+                                                const isActive =
+                                                    star <= feedbackRating;
                                                 return (
                                                     <button
                                                         key={star}
                                                         type="button"
-                                                        onClick={() => setFeedbackRating(star)}
+                                                        onClick={() =>
+                                                            setFeedbackRating(
+                                                                star,
+                                                            )
+                                                        }
                                                         className={cn(
                                                             'inline-flex h-8 w-8 items-center justify-center rounded-full border transition',
                                                             isActive
@@ -1278,14 +1413,18 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                                                         <Star
                                                             className={cn(
                                                                 'h-4 w-4',
-                                                                isActive ? 'fill-amber-400 text-amber-400' : '',
+                                                                isActive
+                                                                    ? 'fill-amber-400 text-amber-400'
+                                                                    : '',
                                                             )}
                                                         />
                                                     </button>
                                                 );
                                             })}
                                             <span className="text-[10px] font-medium text-slate-500">
-                                                {feedbackRating ? `${feedbackRating}/5` : 'Tap a star'}
+                                                {feedbackRating
+                                                    ? `${feedbackRating}/5`
+                                                    : 'Tap a star'}
                                             </span>
                                         </div>
                                     </div>
@@ -1297,7 +1436,11 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                                         rows={3}
                                         placeholder="Tell us what would make the experience even better..."
                                         value={recommendations}
-                                        onChange={(event) => setRecommendations(event.target.value)}
+                                        onChange={(event) =>
+                                            setRecommendations(
+                                                event.target.value,
+                                            )
+                                        }
                                         className="mt-2 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm transition outline-none focus:border-[#1e3c73] focus:ring-2 focus:ring-[#1e3c73]/20"
                                     />
                                 </label>
@@ -1307,10 +1450,14 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                                 <Button
                                     type="button"
                                     onClick={sendFeedback}
-                                    disabled={!canSubmitFeedback || feedbackSubmitting}
+                                    disabled={
+                                        !canSubmitFeedback || feedbackSubmitting
+                                    }
                                     className="h-10 w-full rounded-2xl bg-[#1e3c73] text-xs font-semibold text-white shadow-lg shadow-[#1e3c73]/30 transition hover:bg-[#25468a] disabled:cursor-not-allowed disabled:bg-slate-400"
                                 >
-                                    {feedbackSubmitting ? 'Sending...' : 'Send feedback'}
+                                    {feedbackSubmitting
+                                        ? 'Sending...'
+                                        : 'Send feedback'}
                                 </Button>
 
                                 {feedbackMessage && (
@@ -1322,7 +1469,9 @@ export default function Welcome({ canRegister = true, activeRegistrationProgramm
                                                 : 'border-rose-200 bg-rose-50 text-rose-600',
                                         )}
                                     >
-                                        {feedbackStatus === 'success' && <CheckCircle2 className="h-4 w-4" />}
+                                        {feedbackStatus === 'success' && (
+                                            <CheckCircle2 className="h-4 w-4" />
+                                        )}
                                         <span>{feedbackMessage}</span>
                                         {feedbackStatus === 'success' && (
                                             <span className="ml-auto rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] tracking-[0.2em] text-emerald-700 uppercase">

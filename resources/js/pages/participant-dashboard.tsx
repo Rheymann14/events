@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import { participantQrValue, renderQrDataUrl } from '@/lib/qr';
 import {
     Copy,
     Download,
@@ -33,7 +34,6 @@ import {
     Upload,
     User2,
 } from 'lucide-react';
-import { participantQrValue, renderQrDataUrl } from '@/lib/qr';
 import { toast } from 'sonner';
 
 type Participant = {

@@ -33,7 +33,11 @@ export default function ConfirmPassword() {
                                 <InputError message={errors.password} />
                             </div>
 
-                            <Button className="w-full" disabled={processing} data-test="confirm-password-button">
+                            <Button
+                                className="w-full"
+                                disabled={processing}
+                                data-test="confirm-password-button"
+                            >
                                 {processing && <Spinner />}
                                 Confirm password
                             </Button>

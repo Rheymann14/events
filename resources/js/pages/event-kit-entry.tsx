@@ -1,12 +1,12 @@
-import * as React from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import PublicLayout from '@/layouts/public-layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, IdCard, QrCode } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import PublicLayout from '@/layouts/public-layout';
 import { cn } from '@/lib/utils';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import { ArrowRight, IdCard, QrCode } from 'lucide-react';
+import * as React from 'react';
 import { toast } from 'sonner';
 
 type PageProps = {
@@ -36,29 +36,43 @@ export default function EventKitEntry() {
                         <Badge variant="outline" className="mb-3">
                             Event Kit Access
                         </Badge>
-                        <h1 className="text-balance text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance text-slate-900 sm:text-3xl dark:text-slate-100">
                             Enter your participant ID to access the event kit
                         </h1>
                         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                            Use your CHED participant ID (e.g., CHED-XXXX-XXXX) or registered email address.
+                            Use your CHED participant ID (e.g., CHED-XXXX-XXXX)
+                            or registered email address.
                         </p>
                     </div>
 
                     <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
                         <Card className="border-slate-200/70 bg-white/70 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-950/40">
                             <form onSubmit={submit} className="space-y-4">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200" htmlFor="participant-id">
+                                <label
+                                    className="block text-sm font-medium text-slate-700 dark:text-slate-200"
+                                    htmlFor="participant-id"
+                                >
                                     Participant ID / Email
                                 </label>
                                 <Input
                                     id="participant-id"
                                     value={form.data.participant_id}
-                                    onChange={(event) => form.setData('participant_id', event.target.value)}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'participant_id',
+                                            event.target.value,
+                                        )
+                                    }
                                     placeholder="CHED-XXXX-XXXX"
-                                    className={cn(errors?.participant_id && 'border-rose-500 focus-visible:ring-rose-500/30')}
+                                    className={cn(
+                                        errors?.participant_id &&
+                                            'border-rose-500 focus-visible:ring-rose-500/30',
+                                    )}
                                 />
                                 {errors?.participant_id ? (
-                                    <p className="text-xs text-rose-500">{errors.participant_id}</p>
+                                    <p className="text-xs text-rose-500">
+                                        {errors.participant_id}
+                                    </p>
                                 ) : null}
 
                                 <Button
@@ -79,10 +93,13 @@ export default function EventKitEntry() {
                                         <IdCard className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Need your ID?</h2>
+                                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                            Need your ID?
+                                        </h2>
                                         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                                            Check the email confirmation sent after registration. Your Virtual ID appears on your
-                                            QR badge.
+                                            Check the email confirmation sent
+                                            after registration. Your Virtual ID
+                                            appears on your QR badge.
                                         </p>
                                     </div>
                                 </div>
@@ -94,11 +111,19 @@ export default function EventKitEntry() {
                                         <QrCode className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Event kit flow</h2>
+                                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                            Event kit flow
+                                        </h2>
                                         <ul className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
                                             <li>1. Enter participant ID</li>
-                                            <li>2. Answer the event questionnaire</li>
-                                            <li>3. Download event kit + certificates</li>
+                                            <li>
+                                                2. Answer the event
+                                                questionnaire
+                                            </li>
+                                            <li>
+                                                3. Download event kit +
+                                                certificates
+                                            </li>
                                         </ul>
                                     </div>
                                 </div>

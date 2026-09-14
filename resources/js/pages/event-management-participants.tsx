@@ -592,8 +592,7 @@ export default function EventManagementParticipants() {
                                     asChild
                                     className={cn(
                                         'cursor-pointer border-transparent bg-rose-100 text-rose-700 hover:bg-rose-100 dark:bg-rose-500/15 dark:text-rose-300',
-                                        certificateEmailFilter ===
-                                            'not_sent' &&
+                                        certificateEmailFilter === 'not_sent' &&
                                             'ring-2 ring-rose-500/40',
                                     )}
                                 >

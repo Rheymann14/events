@@ -1,15 +1,22 @@
-import * as React from 'react';
 import AppLayout from '@/layouts/app-layout';
-import { Head, useForm } from '@inertiajs/react';
-import { type BreadcrumbItem } from '@/types';
 import { cn } from '@/lib/utils';
+import { type BreadcrumbItem } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 import {
     DropdownMenu,
@@ -21,7 +28,17 @@ import {
 
 import { Textarea } from '@/components/ui/textarea';
 
-import { Mail, Phone, MapPin, MoreHorizontal, Pencil, Save, X, CheckCircle2, XCircle } from 'lucide-react';
+import {
+    CheckCircle2,
+    Mail,
+    MapPin,
+    MoreHorizontal,
+    Pencil,
+    Phone,
+    Save,
+    X,
+    XCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 type ContactCardKey = 'email' | 'phone' | 'office';
@@ -40,7 +57,9 @@ type PageProps = {
     items?: ContactDetail[];
 };
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Contact Details', href: '/contact-details' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Contact Details', href: '/contact-details' },
+];
 
 const ENDPOINTS = {
     update: (id: number) => `/contact-details/${id}`,
@@ -78,7 +97,11 @@ function StatusBadge({ active }: { active: boolean }) {
                     : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
             )}
         >
-            {active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+            {active ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : (
+                <XCircle className="h-3.5 w-3.5" />
+            )}
             {active ? 'Active' : 'Inactive'}
         </span>
     );
@@ -124,7 +147,8 @@ export default function ContactDetails(props: PageProps) {
                 setEditing(null);
                 toast.success('Contact details updated.');
             },
-            onError: (errors) => showToastError(errors as Record<string, string | string[]>),
+            onError: (errors) =>
+                showToastError(errors as Record<string, string | string[]>),
         });
     }
 
@@ -148,7 +172,8 @@ export default function ContactDetails(props: PageProps) {
                         </h1>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Edit what appears on the public Contact Us cards (Email / Phone / Office).
+                        Edit what appears on the public Contact Us cards (Email
+                        / Phone / Office).
                     </p>
                 </div>
 
@@ -165,14 +190,16 @@ export default function ContactDetails(props: PageProps) {
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex items-start gap-4">
                                         <div className="grid size-12 place-items-center rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
-                                            <span className="text-[#00359c]">{iconFor(item.key)}</span>
+                                            <span className="text-[#00359c]">
+                                                {iconFor(item.key)}
+                                            </span>
                                         </div>
 
                                         <div className="min-w-0">
                                             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                                 {item.title}
                                             </div>
-                                            <div className="mt-1 whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">
+                                            <div className="mt-1 text-sm whitespace-pre-line text-slate-600 dark:text-slate-300">
                                                 {item.value}
                                             </div>
                                         </div>
@@ -180,13 +207,24 @@ export default function ContactDetails(props: PageProps) {
 
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="rounded-full">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="rounded-full"
+                                            >
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-48">
-                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => openEdit(item)}>
+                                        <DropdownMenuContent
+                                            align="end"
+                                            className="w-48"
+                                        >
+                                            <DropdownMenuLabel>
+                                                Actions
+                                            </DropdownMenuLabel>
+                                            <DropdownMenuItem
+                                                onClick={() => openEdit(item)}
+                                            >
                                                 <Pencil className="mr-2 h-4 w-4" />
                                                 Edit
                                             </DropdownMenuItem>
@@ -200,9 +238,11 @@ export default function ContactDetails(props: PageProps) {
                                     <div className="flex items-center gap-2">
                                         <StatusBadge active={item.is_active} />
                                     </div>
-                                    <span>Updated: {formatDateTimeSafe(item.updated_at)}</span>
+                                    <span>
+                                        Updated:{' '}
+                                        {formatDateTimeSafe(item.updated_at)}
+                                    </span>
                                 </div>
-                           
                             </div>
                         ))}
                     </div>
@@ -214,7 +254,10 @@ export default function ContactDetails(props: PageProps) {
                 <DialogContent className="sm:max-w-[520px]">
                     <DialogHeader>
                         <DialogTitle>Edit Contact Card</DialogTitle>
-                        <DialogDescription>Update the card title and value shown on the public Contact Us page.</DialogDescription>
+                        <DialogDescription>
+                            Update the card title and value shown on the public
+                            Contact Us page.
+                        </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submit} className="space-y-4">
@@ -222,47 +265,77 @@ export default function ContactDetails(props: PageProps) {
                             <div className="text-sm font-medium">Title</div>
                             <Input
                                 value={form.data.title}
-                                onChange={(e) => form.setData('title', e.target.value)}
+                                onChange={(e) =>
+                                    form.setData('title', e.target.value)
+                                }
                                 placeholder="e.g. Email"
                             />
-                            {form.errors.title ? <div className="text-xs text-red-600">{form.errors.title}</div> : null}
+                            {form.errors.title ? (
+                                <div className="text-xs text-red-600">
+                                    {form.errors.title}
+                                </div>
+                            ) : null}
                         </div>
 
                         <div className="space-y-1.5">
                             <div className="text-sm font-medium">Value</div>
                             <Textarea
                                 value={form.data.value}
-                                onChange={(e) => form.setData('value', e.target.value)}
+                                onChange={(e) =>
+                                    form.setData('value', e.target.value)
+                                }
                                 placeholder="e.g. info@ched.gov.ph"
                                 className="min-h-[110px]"
                             />
-                            {form.errors.value ? <div className="text-xs text-red-600">{form.errors.value}</div> : null}
+                            {form.errors.value ? (
+                                <div className="text-xs text-red-600">
+                                    {form.errors.value}
+                                </div>
+                            ) : null}
                         </div>
 
                         {/* ✅ Switch like your other pages */}
                         <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 dark:border-slate-800">
                             <div className="space-y-0.5">
-                                <div className="text-sm font-medium">{form.data.is_active ? 'Active' : 'Inactive'}</div>
+                                <div className="text-sm font-medium">
+                                    {form.data.is_active
+                                        ? 'Active'
+                                        : 'Inactive'}
+                                </div>
                                 <div className="text-xs text-slate-600 dark:text-slate-400">
-                                    Inactive cards can be hidden from the public page.
+                                    Inactive cards can be hidden from the public
+                                    page.
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-2 text-xs text-slate-500">
-                                <span>{form.data.is_active ? 'On' : 'Off'}</span>
+                                <span>
+                                    {form.data.is_active ? 'On' : 'Off'}
+                                </span>
                                 <Switch
                                     checked={form.data.is_active}
-                                    onCheckedChange={(v) => form.setData('is_active', !!v)}
+                                    onCheckedChange={(v) =>
+                                        form.setData('is_active', !!v)
+                                    }
                                 />
                             </div>
                         </div>
 
                         <DialogFooter className="gap-2 sm:gap-0">
-                            <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={form.processing}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEditOpen(false)}
+                                disabled={form.processing}
+                            >
                                 <X className="mr-2 h-4 w-4" />
                                 Cancel
                             </Button>
-                            <Button type="submit" className={PRIMARY_BTN} disabled={form.processing}>
+                            <Button
+                                type="submit"
+                                className={PRIMARY_BTN}
+                                disabled={form.processing}
+                            >
                                 <Save className="mr-2 h-4 w-4" />
                                 Save
                             </Button>

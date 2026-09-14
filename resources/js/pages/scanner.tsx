@@ -41,6 +41,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 
 import {
+    Armchair,
     CalendarDays,
     Camera,
     Check,
@@ -59,6 +60,7 @@ import {
     ScanLine,
     Search,
     ShieldCheck,
+    TriangleAlert,
     UserRound,
 } from 'lucide-react';
 
@@ -92,6 +94,18 @@ type ParticipantInfo = {
 
 /** One row of the operator's confirmation feed. Kept in memory only -- the
  *  authoritative record is participant_attendances. */
+/**
+ * Where a participant sits at the event being scanned.
+ *
+ * Event-scoped rather than part of the participant's identity -- the same
+ * person has a different seat at a different event -- so it travels alongside
+ * `checked_in_event` rather than inside `participant`.
+ */
+type TableAssignmentInfo = {
+    table_number: string;
+    seat_number: number | null;
+};
+
 type RecentScan = {
     id: string;
     ok: boolean;
@@ -101,6 +115,8 @@ type RecentScan = {
     imageUrl: string | null;
     message: string;
     at: number;
+    tableNumber: string | null;
+    seatNumber: number | null;
 };
 
 type ScanResponse = {
@@ -118,6 +134,7 @@ type ScanResponse = {
         starts_at?: string | null;
     }>;
     checked_in_event?: { id: number; title: string } | null;
+    table_assignment?: TableAssignmentInfo | null;
     already_checked_in?: boolean;
     scanned_at?: string | null;
 };
@@ -160,6 +177,24 @@ function resolveEventImageUrl(imageUrl?: string | null): string | null {
         return imageUrl;
 
     return `/event-images/${imageUrl}`;
+}
+
+/**
+ * "Table 7 - Seat 3" for the compact list rows.
+ *
+ * Returns null when there is no seating, so callers omit the line entirely --
+ * in a scrolling list an absent table is not actionable, and a repeated
+ * "No table" would be noise. The scan panel handles the empty case loudly
+ * instead, because there it IS actionable.
+ */
+function formatSeating(
+    seating?: { table_number: string; seat_number: number | null } | null,
+): string | null {
+    if (!seating) return null;
+
+    return seating.seat_number !== null
+        ? `${seating.table_number} - Seat ${seating.seat_number}`
+        : seating.table_number;
 }
 
 function normalizeManualCode(value: string): string {
@@ -1017,6 +1052,7 @@ type ParticipantSearchRow = {
     profile_image_url?: string | null;
     checked_in: boolean;
     scanned_at?: string | null;
+    table_assignment?: TableAssignmentInfo | null;
 };
 
 /**
@@ -1178,6 +1214,16 @@ const RecentScansDialog = React.memo(function RecentScansDialog({
                                                     {row.display_id}
                                                 </div>
                                             ) : null}
+                                            {formatSeating(
+                                                row.table_assignment,
+                                            ) ? (
+                                                <div className="mt-0.5 flex items-center gap-1 truncate text-xs font-medium text-[#00359c] dark:text-sky-300">
+                                                    <Armchair className="h-3 w-3 shrink-0" />
+                                                    {formatSeating(
+                                                        row.table_assignment,
+                                                    )}
+                                                </div>
+                                            ) : null}
                                             <div className="mt-0.5 truncate text-xs text-slate-500">
                                                 {row.checked_in
                                                     ? `Checked in ${fmtDateTime(row.scanned_at) ?? ''}`
@@ -1232,6 +1278,17 @@ const RecentScansDialog = React.memo(function RecentScansDialog({
                                         {scan.displayId ? (
                                             <div className="truncate font-mono text-xs text-slate-500">
                                                 {scan.displayId}
+                                            </div>
+                                        ) : null}
+                                        {scan.tableNumber ? (
+                                            <div className="mt-0.5 flex items-center gap-1 truncate text-xs font-medium text-[#00359c] dark:text-sky-300">
+                                                <Armchair className="h-3 w-3 shrink-0" />
+                                                {formatSeating({
+                                                    table_number:
+                                                        scan.tableNumber,
+                                                    seat_number:
+                                                        scan.seatNumber,
+                                                })}
                                             </div>
                                         ) : null}
                                         <div className="mt-0.5 truncate text-xs text-slate-500">
@@ -1486,6 +1543,43 @@ function ScanResultPanel({
                     <div className="min-w-0 flex-1">
                         {result.participant ? (
                             <div className="grid gap-1.5 text-xs text-slate-600 dark:text-slate-400">
+                                {/* Unlike every other optional field here, the
+                                    empty case is rendered rather than hidden: a
+                                    blank space cannot be told apart from a field
+                                    that failed to load, and an unassigned
+                                    arrival still has to be sent somewhere. */}
+                                {result.table_assignment ? (
+                                    <div className="mb-1 rounded-lg border border-[#00359c]/25 bg-[#00359c]/5 px-3 py-2 dark:border-[#00359c]/40 dark:bg-[#00359c]/15">
+                                        <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider text-[#00359c] uppercase dark:text-sky-300">
+                                            <Armchair className="h-3.5 w-3.5 shrink-0" />
+                                            Seating
+                                        </div>
+                                        <div className="mt-0.5 truncate text-lg leading-tight font-bold text-slate-900 dark:text-slate-50">
+                                            {
+                                                result.table_assignment
+                                                    .table_number
+                                            }
+                                            {result.table_assignment
+                                                .seat_number !== null ? (
+                                                <span className="text-slate-400 dark:text-slate-500">
+                                                    {' · '}
+                                                </span>
+                                            ) : null}
+                                            {result.table_assignment
+                                                .seat_number !== null
+                                                ? `Seat ${result.table_assignment.seat_number}`
+                                                : ''}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mb-1 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+                                        <TriangleAlert className="h-4 w-4 shrink-0" />
+                                        <span className="text-sm font-semibold">
+                                            No table assigned
+                                        </span>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center gap-2">
                                     <UserRound className="h-4 w-4 shrink-0 text-slate-500" />
                                     <span className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -2050,6 +2144,8 @@ export default function Scanner(props: PageProps) {
                     imageUrl: data.participant?.profile_image_url ?? null,
                     message: data.message,
                     at: Date.now(),
+                    tableNumber: data.table_assignment?.table_number ?? null,
+                    seatNumber: data.table_assignment?.seat_number ?? null,
                 },
                 ...prev,
             ].slice(0, RECENT_SCAN_LIMIT),

@@ -37,6 +37,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { participantQrValue, renderQrDataUrl } from '@/lib/qr';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -47,7 +48,6 @@ import {
     ChevronsUpDown,
     QrCodeIcon,
 } from 'lucide-react';
-import { participantQrValue, renderQrDataUrl } from '@/lib/qr';
 import * as React from 'react';
 import { toast } from 'sonner';
 

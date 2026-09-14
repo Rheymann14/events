@@ -1,12 +1,19 @@
-import * as React from 'react';
-import AppLayout from '@/layouts/app-layout';
-import { Head, router } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import AppLayout from '@/layouts/app-layout';
 import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
+import { Head, router } from '@inertiajs/react';
 import { CalendarDays, MapPin, Users2 } from 'lucide-react';
+import * as React from 'react';
 import { toast } from 'sonner';
 
 const FALLBACK_IMAGE = '/img/ched_co.jpg';
@@ -60,7 +67,8 @@ const breadcrumbs = [
 
 function resolveImageUrl(imageUrl?: string | null) {
     if (!imageUrl) return FALLBACK_IMAGE;
-    if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) return imageUrl;
+    if (imageUrl.startsWith('http') || imageUrl.startsWith('/'))
+        return imageUrl;
     return `/event-images/${imageUrl}`;
 }
 
@@ -77,8 +85,15 @@ function formatEventWindow(startsAt: string, endsAt?: string) {
     const start = new Date(startsAt);
     const end = endsAt ? new Date(endsAt) : null;
 
-    const dateFmt = new Intl.DateTimeFormat('en-PH', { month: 'short', day: '2-digit', year: 'numeric' });
-    const timeFmt = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' });
+    const dateFmt = new Intl.DateTimeFormat('en-PH', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+    });
+    const timeFmt = new Intl.DateTimeFormat('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
 
     const date = dateFmt.format(start);
     const startTime = timeFmt.format(start);
@@ -96,21 +111,35 @@ function formatEventWindow(startsAt: string, endsAt?: string) {
     return `${dateFmt.format(start)} ${startTime} → ${dateFmt.format(end)} ${timeFmt.format(end)}`;
 }
 
-function getEventPhase(startsAt: string, endsAt: string | undefined, nowTs: number): EventPhase {
+function getEventPhase(
+    startsAt: string,
+    endsAt: string | undefined,
+    nowTs: number,
+): EventPhase {
     return resolveEventPhaseFromDates(startsAt, endsAt, nowTs);
 }
 
-function normalizeProgrammes(programmes: ProgrammeRow[], nowTs: number): EventItem[] {
+function normalizeProgrammes(
+    programmes: ProgrammeRow[],
+    nowTs: number,
+): EventItem[] {
     return programmes
         .map((programme) => {
-            const startsAt = programme.starts_at ?? programme.ends_at ?? new Date(nowTs).toISOString();
+            const startsAt =
+                programme.starts_at ??
+                programme.ends_at ??
+                new Date(nowTs).toISOString();
             const endsAt = programme.ends_at ?? undefined;
             const isActive = programme.is_active ?? true;
-            const phase = isActive ? getEventPhase(startsAt, endsAt, nowTs) : 'closed';
+            const phase = isActive
+                ? getEventPhase(startsAt, endsAt, nowTs)
+                : 'closed';
             const venueName = programme.venue?.name?.trim() ?? '';
             const venueAddress = programme.venue?.address?.trim() ?? '';
             const venueLabel =
-                venueName && venueAddress ? `${venueName} • ${venueAddress}` : venueName || venueAddress || '';
+                venueName && venueAddress
+                    ? `${venueName} • ${venueAddress}`
+                    : venueName || venueAddress || '';
 
             return {
                 id: programme.id,
@@ -124,7 +153,10 @@ function normalizeProgrammes(programmes: ProgrammeRow[], nowTs: number): EventIt
                 phase,
             };
         })
-        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+        .sort(
+            (a, b) =>
+                new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+        );
 }
 
 function phaseLabel(phase: EventPhase) {
@@ -167,8 +199,12 @@ function Section({
     return (
         <section className="space-y-4">
             <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {title}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {description}
+                </p>
             </div>
 
             {events.length === 0 ? (
@@ -184,7 +220,10 @@ function Section({
                         const isClosed = event.phase === 'closed';
 
                         return (
-                            <Card key={event.id} className="overflow-hidden border-slate-200/70">
+                            <Card
+                                key={event.id}
+                                className="overflow-hidden border-slate-200/70"
+                            >
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
                                     <div className="sm:w-44">
                                         <img
@@ -199,15 +238,25 @@ function Section({
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     {event.tag ? (
-                                                        <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-[10px] tracking-wide uppercase"
+                                                        >
                                                             {event.tag}
                                                         </Badge>
                                                     ) : null}
                                                     <Badge
                                                         variant="outline"
-                                                        className={cn('text-[10px] uppercase tracking-wide', phaseBadgeClass(event.phase))}
+                                                        className={cn(
+                                                            'text-[10px] tracking-wide uppercase',
+                                                            phaseBadgeClass(
+                                                                event.phase,
+                                                            ),
+                                                        )}
                                                     >
-                                                        {phaseLabel(event.phase)}
+                                                        {phaseLabel(
+                                                            event.phase,
+                                                        )}
                                                     </Badge>
                                                 </div>
                                                 <h3 className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -216,14 +265,18 @@ function Section({
                                             </div>
                                         </div>
 
-                                        <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-2">
-                                            {event.description || 'No event description available yet.'}
+                                        <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
+                                            {event.description ||
+                                                'No event description available yet.'}
                                         </p>
 
                                         <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-300">
                                             <span className="inline-flex items-center gap-2">
                                                 <CalendarDays className="h-4 w-4" />
-                                                {formatEventWindow(event.startsAt, event.endsAt)}
+                                                {formatEventWindow(
+                                                    event.startsAt,
+                                                    event.endsAt,
+                                                )}
                                             </span>
                                             {event.location ? (
                                                 <span className="inline-flex items-center gap-2">
@@ -241,10 +294,16 @@ function Section({
                                             </div>
                                             <Button
                                                 type="button"
-                                                disabled={isClosed || isSelected}
+                                                disabled={
+                                                    isClosed || isSelected
+                                                }
                                                 onClick={() => onJoin(event.id)}
                                             >
-                                                {isClosed ? 'Closed' : isSelected ? 'Selected' : 'Join Event'}
+                                                {isClosed
+                                                    ? 'Closed'
+                                                    : isSelected
+                                                      ? 'Selected'
+                                                      : 'Join Event'}
                                             </Button>
                                         </div>
                                     </div>
@@ -258,20 +317,32 @@ function Section({
     );
 }
 
-export default function EventList({ programmes = [], joined_programme_ids = [] }: PageProps) {
+export default function EventList({
+    programmes = [],
+    joined_programme_ids = [],
+}: PageProps) {
     const nowTs = useNowTs();
-    const [selectedIds, setSelectedIds] = React.useState<number[]>(() => joined_programme_ids);
+    const [selectedIds, setSelectedIds] = React.useState<number[]>(
+        () => joined_programme_ids,
+    );
     const [quickJoinId, setQuickJoinId] = React.useState<string>('');
     const [clearDialogOpen, setClearDialogOpen] = React.useState(false);
 
-    const normalized = React.useMemo(() => normalizeProgrammes(programmes, nowTs), [programmes, nowTs]);
+    const normalized = React.useMemo(
+        () => normalizeProgrammes(programmes, nowTs),
+        [programmes, nowTs],
+    );
     const grouped = React.useMemo(() => {
         return normalized.reduce(
             (acc, event) => {
                 acc[event.phase].push(event);
                 return acc;
             },
-            { ongoing: [] as EventItem[], upcoming: [] as EventItem[], closed: [] as EventItem[] },
+            {
+                ongoing: [] as EventItem[],
+                upcoming: [] as EventItem[],
+                closed: [] as EventItem[],
+            },
         );
     }, [normalized]);
 
@@ -289,7 +360,9 @@ export default function EventList({ programmes = [], joined_programme_ids = [] }
                 onSuccess: () => toast.success('Event joined.'),
                 onError: () => {
                     toast.error('Unable to join this event.');
-                    setSelectedIds((prev) => prev.filter((item) => item !== id));
+                    setSelectedIds((prev) =>
+                        prev.filter((item) => item !== id),
+                    );
                 },
             },
         );
@@ -302,7 +375,9 @@ export default function EventList({ programmes = [], joined_programme_ids = [] }
             onSuccess: () => toast.success('Event removed.'),
             onError: () => {
                 toast.error('Unable to remove this event.');
-                setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+                setSelectedIds((prev) =>
+                    prev.includes(id) ? prev : [...prev, id],
+                );
             },
         });
     }, []);
@@ -311,7 +386,11 @@ export default function EventList({ programmes = [], joined_programme_ids = [] }
         () =>
             normalized
                 .filter((event) => selectedIds.includes(event.id))
-                .map((event) => ({ id: event.id, title: event.title, phase: event.phase })),
+                .map((event) => ({
+                    id: event.id,
+                    title: event.title,
+                    phase: event.phase,
+                })),
         [normalized, selectedIds],
     );
 
@@ -351,8 +430,8 @@ export default function EventList({ programmes = [], joined_programme_ids = [] }
                         </h1>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-300">
-                        Review ongoing, upcoming, and closed events. You can only join events that are ongoing or
-                        upcoming.
+                        Review ongoing, upcoming, and closed events. You can
+                        only join events that are ongoing or upcoming.
                     </p>
                 </div>
 
@@ -364,31 +443,47 @@ export default function EventList({ programmes = [], joined_programme_ids = [] }
                                     <Users2 className="h-4 w-4" />
                                 </div>
                                 <div>
-                                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                    <p className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
                                         My joined events
                                     </p>
                                     <p className="text-sm text-slate-600 dark:text-slate-300">
-                                        {selectedSummary.length} event{selectedSummary.length === 1 ? '' : 's'} selected
+                                        {selectedSummary.length} event
+                                        {selectedSummary.length === 1
+                                            ? ''
+                                            : 's'}{' '}
+                                        selected
                                     </p>
                                 </div>
                             </div>
                             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                                 <select
                                     value={quickJoinId}
-                                    onChange={(event) => setQuickJoinId(event.target.value)}
-                                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus:border-slate-400 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 sm:w-64"
+                                    onChange={(event) =>
+                                        setQuickJoinId(event.target.value)
+                                    }
+                                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm focus:border-slate-400 focus:outline-none sm:w-64 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
                                 >
-                                    <option value="">Quick join an event</option>
+                                    <option value="">
+                                        Quick join an event
+                                    </option>
                                     {quickJoinOptions.map((event) => (
                                         <option key={event.id} value={event.id}>
                                             {event.title}
                                         </option>
                                     ))}
                                 </select>
-                                <Button type="button" onClick={handleQuickJoin} disabled={!quickJoinId}>
+                                <Button
+                                    type="button"
+                                    onClick={handleQuickJoin}
+                                    disabled={!quickJoinId}
+                                >
                                     Join
                                 </Button>
-                                <Button type="button" variant="outline" onClick={() => setClearDialogOpen(true)}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setClearDialogOpen(true)}
+                                >
                                     Clear all
                                 </Button>
                             </div>
@@ -401,11 +496,18 @@ export default function EventList({ programmes = [], joined_programme_ids = [] }
                                         key={event.id}
                                         className="flex items-center justify-between gap-2 rounded-lg border border-slate-200/70 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
                                     >
-                                        <span className="truncate font-medium">{event.title}</span>
+                                        <span className="truncate font-medium">
+                                            {event.title}
+                                        </span>
                                         <div className="flex items-center gap-2">
                                             <Badge
                                                 variant="outline"
-                                                className={cn('text-[10px] uppercase tracking-wide', phaseBadgeClass(event.phase))}
+                                                className={cn(
+                                                    'text-[10px] tracking-wide uppercase',
+                                                    phaseBadgeClass(
+                                                        event.phase,
+                                                    ),
+                                                )}
                                             >
                                                 {phaseLabel(event.phase)}
                                             </Badge>
@@ -413,7 +515,9 @@ export default function EventList({ programmes = [], joined_programme_ids = [] }
                                                 type="button"
                                                 variant="ghost"
                                                 className="h-6 px-2 text-[10px]"
-                                                onClick={() => handleLeave(event.id)}
+                                                onClick={() =>
+                                                    handleLeave(event.id)
+                                                }
                                             >
                                                 Remove
                                             </Button>
@@ -429,16 +533,24 @@ export default function EventList({ programmes = [], joined_programme_ids = [] }
                     </div>
                 </Card>
 
-                <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+                <Dialog
+                    open={clearDialogOpen}
+                    onOpenChange={setClearDialogOpen}
+                >
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Clear all joined events?</DialogTitle>
                             <DialogDescription>
-                                This will remove all your joined events. You can rejoin ongoing or upcoming events later.
+                                This will remove all your joined events. You can
+                                rejoin ongoing or upcoming events later.
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setClearDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setClearDialogOpen(false)}
+                            >
                                 Cancel
                             </Button>
                             <Button

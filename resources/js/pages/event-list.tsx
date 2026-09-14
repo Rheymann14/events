@@ -1,13 +1,13 @@
-import * as React from 'react';
-import AppLayout from '@/layouts/app-layout';
-import { Head, router } from '@inertiajs/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AppLayout from '@/layouts/app-layout';
 import { cn, resolveEventPhaseFromDates } from '@/lib/utils';
+import { Head, router } from '@inertiajs/react';
 import { CalendarDays, ImageOff, MapPin, Search } from 'lucide-react';
+import * as React from 'react';
 import { toast } from 'sonner';
 
 type ProgrammeRow = {
@@ -60,7 +60,8 @@ const DEFAULT_EVENT_IMAGE = '/img/ched_co.jpg';
 
 function resolveImageUrl(imageUrl?: string | null) {
     if (!imageUrl) return DEFAULT_EVENT_IMAGE;
-    if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) return imageUrl;
+    if (imageUrl.startsWith('http') || imageUrl.startsWith('/'))
+        return imageUrl;
     return `/event-images/${imageUrl}`;
 }
 
@@ -79,14 +80,19 @@ function useNowTs(intervalMs = 60_000) {
     return nowTs;
 }
 
-
-
 function formatEventWindow(startsAt: string, endsAt?: string) {
     const start = new Date(startsAt);
     const end = endsAt ? new Date(endsAt) : null;
 
-    const dateFmt = new Intl.DateTimeFormat('en-PH', { month: 'short', day: '2-digit', year: 'numeric' });
-    const timeFmt = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' });
+    const dateFmt = new Intl.DateTimeFormat('en-PH', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+    });
+    const timeFmt = new Intl.DateTimeFormat('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
 
     const date = dateFmt.format(start);
     const startTime = timeFmt.format(start);
@@ -104,20 +110,35 @@ function formatEventWindow(startsAt: string, endsAt?: string) {
     return `${dateFmt.format(start)} ${startTime} → ${dateFmt.format(end)} ${timeFmt.format(end)}`;
 }
 
-function getEventPhase(startsAt: string, endsAt: string | undefined, nowTs: number): EventPhase {
+function getEventPhase(
+    startsAt: string,
+    endsAt: string | undefined,
+    nowTs: number,
+): EventPhase {
     return resolveEventPhaseFromDates(startsAt, endsAt, nowTs);
 }
 
-function normalizeProgrammes(programmes: ProgrammeRow[], nowTs: number): EventItem[] {
+function normalizeProgrammes(
+    programmes: ProgrammeRow[],
+    nowTs: number,
+): EventItem[] {
     return programmes
         .map((programme) => {
-            const startsAt = programme.starts_at ?? programme.ends_at ?? new Date(nowTs).toISOString();
+            const startsAt =
+                programme.starts_at ??
+                programme.ends_at ??
+                new Date(nowTs).toISOString();
             const endsAt = programme.ends_at ?? undefined;
             const isActive = programme.is_active ?? true;
-            const phase = isActive ? getEventPhase(startsAt, endsAt, nowTs) : 'closed';
+            const phase = isActive
+                ? getEventPhase(startsAt, endsAt, nowTs)
+                : 'closed';
             const venueName = programme.venue?.name?.trim() ?? '';
             const venueAddress = programme.venue?.address?.trim() ?? '';
-            const venueLabel = venueName && venueAddress ? `${venueName} • ${venueAddress}` : venueName || venueAddress || '';
+            const venueLabel =
+                venueName && venueAddress
+                    ? `${venueName} • ${venueAddress}`
+                    : venueName || venueAddress || '';
 
             return {
                 id: programme.id,
@@ -132,7 +153,10 @@ function normalizeProgrammes(programmes: ProgrammeRow[], nowTs: number): EventIt
                 phase,
             };
         })
-        .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+        .sort(
+            (a, b) =>
+                new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+        );
 }
 
 function phaseLabel(phase: EventPhase) {
@@ -162,7 +186,9 @@ function phaseBadgeClass(phase: EventPhase) {
 function EmptyState({ label }: { label: string }) {
     return (
         <Card className="border-dashed border-slate-200/70 dark:border-slate-800">
-            <div className="px-4 py-4 text-xs text-slate-500 dark:text-slate-400">{label}</div>
+            <div className="px-4 py-4 text-xs text-slate-500 dark:text-slate-400">
+                {label}
+            </div>
         </Card>
     );
 }
@@ -170,8 +196,15 @@ function EmptyState({ label }: { label: string }) {
 function formatCheckInDate(scannedAt?: string | null) {
     if (!scannedAt) return 'Checked in';
     const date = new Date(scannedAt);
-    const dateFmt = new Intl.DateTimeFormat('en-PH', { month: 'short', day: '2-digit', year: 'numeric' });
-    const timeFmt = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' });
+    const dateFmt = new Intl.DateTimeFormat('en-PH', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+    });
+    const timeFmt = new Intl.DateTimeFormat('en-PH', {
+        hour: 'numeric',
+        minute: '2-digit',
+    });
     return `Checked in • ${dateFmt.format(date)} ${timeFmt.format(date)}`;
 }
 
@@ -184,7 +217,8 @@ function EventGrid({
     selectedIds: number[];
     onJoin: (id: number) => void;
 }) {
-    if (!events.length) return <EmptyState label="No events to show here yet." />;
+    if (!events.length)
+        return <EmptyState label="No events to show here yet." />;
 
     return (
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -222,8 +256,13 @@ function EventGrid({
                                     />
                                 ) : (
                                     <div className="flex h-full w-full items-center justify-center text-slate-400 dark:text-slate-500">
-                                        <ImageOff className="h-6 w-6" aria-hidden="true" />
-                                        <span className="sr-only">No image available</span>
+                                        <ImageOff
+                                            className="h-6 w-6"
+                                            aria-hidden="true"
+                                        />
+                                        <span className="sr-only">
+                                            No image available
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -234,7 +273,7 @@ function EventGrid({
                                     {event.tag ? (
                                         <Badge
                                             variant="outline"
-                                            className="h-5 px-1.5 text-[10px] uppercase tracking-wide"
+                                            className="h-5 px-1.5 text-[10px] tracking-wide uppercase"
                                         >
                                             {event.tag}
                                         </Badge>
@@ -242,7 +281,7 @@ function EventGrid({
                                     <Badge
                                         variant="outline"
                                         className={cn(
-                                            'h-5 px-1.5 text-[10px] uppercase tracking-wide',
+                                            'h-5 px-1.5 text-[10px] tracking-wide uppercase',
                                             phaseBadgeClass(event.phase),
                                         )}
                                     >
@@ -251,21 +290,28 @@ function EventGrid({
                                 </div>
 
                                 {/* title */}
-                                <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900 dark:text-slate-100 sm:text-[15px]">
+                                <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900 sm:text-[15px] dark:text-slate-100">
                                     {event.title}
                                 </p>
 
                                 {/* meta */}
-                                <div className="mt-2 flex flex-col gap-1 text-[11px] text-slate-600 dark:text-slate-300 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
+                                <div className="mt-2 flex flex-col gap-1 text-[11px] text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1 dark:text-slate-300">
                                     <span className="inline-flex min-w-0 items-center gap-1.5">
                                         <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-                                        <span className="truncate">{formatEventWindow(event.startsAt, event.endsAt)}</span>
+                                        <span className="truncate">
+                                            {formatEventWindow(
+                                                event.startsAt,
+                                                event.endsAt,
+                                            )}
+                                        </span>
                                     </span>
 
                                     {event.location ? (
                                         <span className="inline-flex min-w-0 items-center gap-1.5">
                                             <MapPin className="h-3.5 w-3.5 shrink-0" />
-                                            <span className="truncate">{event.location}</span>
+                                            <span className="truncate">
+                                                {event.location}
+                                            </span>
                                         </span>
                                     ) : null}
                                 </div>
@@ -291,7 +337,11 @@ function EventGrid({
                                             variant="outline"
                                             className="h-8 w-full px-3 text-xs sm:w-auto"
                                         >
-                                            <a href={event.pdfUrl ?? undefined} target="_blank" rel="noreferrer">
+                                            <a
+                                                href={event.pdfUrl ?? undefined}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
                                                 View program
                                             </a>
                                         </Button>
@@ -305,10 +355,15 @@ function EventGrid({
                                         className={cn(
                                             'h-8 w-full px-3 text-xs shadow-sm sm:w-auto',
                                             'bg-[#00359c] text-white hover:bg-[#00359c]/90',
-                                            (isClosed || isSelected) && 'opacity-70',
+                                            (isClosed || isSelected) &&
+                                                'opacity-70',
                                         )}
                                     >
-                                        {isClosed ? 'Closed' : isSelected ? 'Selected' : 'Join'}
+                                        {isClosed
+                                            ? 'Closed'
+                                            : isSelected
+                                              ? 'Selected'
+                                              : 'Join'}
                                     </Button>
                                 </div>
                             </div>
@@ -327,7 +382,8 @@ function AttendanceGrid({
     events: EventItem[];
     attendanceByProgramme: Map<number, string | null>;
 }) {
-    if (!events.length) return <EmptyState label="No events to show here yet." />;
+    if (!events.length)
+        return <EmptyState label="No events to show here yet." />;
 
     return (
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -360,8 +416,13 @@ function AttendanceGrid({
                                     />
                                 ) : (
                                     <div className="flex h-full w-full items-center justify-center text-slate-400 dark:text-slate-500">
-                                        <ImageOff className="h-6 w-6" aria-hidden="true" />
-                                        <span className="sr-only">No image available</span>
+                                        <ImageOff
+                                            className="h-6 w-6"
+                                            aria-hidden="true"
+                                        />
+                                        <span className="sr-only">
+                                            No image available
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -369,14 +430,20 @@ function AttendanceGrid({
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-1.5">
                                     {event.tag ? (
-                                        <Badge variant="outline" className="h-5 px-1.5 text-[10px] uppercase tracking-wide">
+                                        <Badge
+                                            variant="outline"
+                                            className="h-5 px-1.5 text-[10px] tracking-wide uppercase"
+                                        >
                                             {event.tag}
                                         </Badge>
                                     ) : null}
 
                                     <Badge
                                         variant="outline"
-                                        className={cn('h-5 px-1.5 text-[10px] uppercase tracking-wide', phaseBadgeClass(event.phase))}
+                                        className={cn(
+                                            'h-5 px-1.5 text-[10px] tracking-wide uppercase',
+                                            phaseBadgeClass(event.phase),
+                                        )}
                                     >
                                         {phaseLabel(event.phase)}
                                     </Badge>
@@ -384,30 +451,39 @@ function AttendanceGrid({
                                     <Badge
                                         variant="outline"
                                         className={cn(
-                                            'h-5 px-1.5 text-[10px] uppercase tracking-wide',
+                                            'h-5 px-1.5 text-[10px] tracking-wide uppercase',
                                             hasAttendance
                                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
                                                 : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200',
                                         )}
                                     >
-                                        {hasAttendance ? formatCheckInDate(scannedAt) : 'No attendance'}
+                                        {hasAttendance
+                                            ? formatCheckInDate(scannedAt)
+                                            : 'No attendance'}
                                     </Badge>
                                 </div>
 
-                                <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900 dark:text-slate-100 sm:text-[15px]">
+                                <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-900 sm:text-[15px] dark:text-slate-100">
                                     {event.title}
                                 </p>
 
-                                <div className="mt-2 flex flex-col gap-1 text-[11px] text-slate-600 dark:text-slate-300 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
+                                <div className="mt-2 flex flex-col gap-1 text-[11px] text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1 dark:text-slate-300">
                                     <span className="inline-flex min-w-0 items-center gap-1.5">
                                         <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-                                        <span className="truncate">{formatEventWindow(event.startsAt, event.endsAt)}</span>
+                                        <span className="truncate">
+                                            {formatEventWindow(
+                                                event.startsAt,
+                                                event.endsAt,
+                                            )}
+                                        </span>
                                     </span>
 
                                     {event.location ? (
                                         <span className="inline-flex min-w-0 items-center gap-1.5">
                                             <MapPin className="h-3.5 w-3.5 shrink-0" />
-                                            <span className="truncate">{event.location}</span>
+                                            <span className="truncate">
+                                                {event.location}
+                                            </span>
                                         </span>
                                     ) : null}
                                 </div>
@@ -431,7 +507,11 @@ function AttendanceGrid({
                                             variant="outline"
                                             className="h-8 w-full px-3 text-xs sm:w-auto"
                                         >
-                                            <a href={event.pdfUrl ?? undefined} target="_blank" rel="noreferrer">
+                                            <a
+                                                href={event.pdfUrl ?? undefined}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
                                                 View program
                                             </a>
                                         </Button>
@@ -446,19 +526,23 @@ function AttendanceGrid({
     );
 }
 
-
 export default function EventList({
     programmes = [],
     joined_programme_ids = [],
     checked_in_programmes = [],
 }: PageProps) {
     const nowTs = useNowTs();
-    const [selectedIds, setSelectedIds] = React.useState<number[]>(() => joined_programme_ids);
+    const [selectedIds, setSelectedIds] = React.useState<number[]>(
+        () => joined_programme_ids,
+    );
 
     const [tab, setTab] = React.useState<TabKey>('ongoing');
     const [search, setSearch] = React.useState('');
 
-    const normalized = React.useMemo(() => normalizeProgrammes(programmes, nowTs), [programmes, nowTs]);
+    const normalized = React.useMemo(
+        () => normalizeProgrammes(programmes, nowTs),
+        [programmes, nowTs],
+    );
 
     const grouped = React.useMemo(() => {
         const base = normalized.reduce(
@@ -466,14 +550,20 @@ export default function EventList({
                 acc[event.phase].push(event);
                 return acc;
             },
-            { ongoing: [] as EventItem[], upcoming: [] as EventItem[], closed: [] as EventItem[] },
+            {
+                ongoing: [] as EventItem[],
+                upcoming: [] as EventItem[],
+                closed: [] as EventItem[],
+            },
         );
 
         const q = search.trim().toLowerCase();
         if (!q) return base;
 
         const match = (e: EventItem) =>
-            [e.title, e.description, e.tag, e.location].filter(Boolean).some((v) => v.toLowerCase().includes(q));
+            [e.title, e.description, e.tag, e.location]
+                .filter(Boolean)
+                .some((v) => v.toLowerCase().includes(q));
 
         return {
             ongoing: base.ongoing.filter(match),
@@ -494,19 +584,33 @@ export default function EventList({
     }, [normalized]);
 
     const attendanceByProgramme = React.useMemo(
-        () => new Map(checked_in_programmes.map((entry) => [entry.programme_id, entry.scanned_at ?? null])),
+        () =>
+            new Map(
+                checked_in_programmes.map((entry) => [
+                    entry.programme_id,
+                    entry.scanned_at ?? null,
+                ]),
+            ),
         [checked_in_programmes],
     );
 
     const attendedEvents = React.useMemo(
-        () => normalized.filter((event) => selectedIds.includes(event.id) && Boolean(attendanceByProgramme.get(event.id))),
+        () =>
+            normalized.filter(
+                (event) =>
+                    selectedIds.includes(event.id) &&
+                    Boolean(attendanceByProgramme.get(event.id)),
+            ),
         [normalized, selectedIds, attendanceByProgramme],
     );
 
     const missedEvents = React.useMemo(
         () =>
             normalized.filter(
-                (event) => selectedIds.includes(event.id) && !attendanceByProgramme.get(event.id) && event.phase === 'closed',
+                (event) =>
+                    selectedIds.includes(event.id) &&
+                    !attendanceByProgramme.get(event.id) &&
+                    event.phase === 'closed',
             ),
         [normalized, selectedIds, attendanceByProgramme],
     );
@@ -524,7 +628,11 @@ export default function EventList({
     }, [joined_programme_ids]);
 
     React.useEffect(() => {
-        const defaultTab: EventPhase = counts.ongoing ? 'ongoing' : counts.upcoming ? 'upcoming' : 'closed';
+        const defaultTab: EventPhase = counts.ongoing
+            ? 'ongoing'
+            : counts.upcoming
+              ? 'upcoming'
+              : 'closed';
         setTab(defaultTab);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [counts.ongoing, counts.upcoming, counts.closed]);
@@ -539,7 +647,9 @@ export default function EventList({
                 onSuccess: () => toast.success('Event joined.'),
                 onError: () => {
                     toast.error('Unable to join this event.');
-                    setSelectedIds((prev) => prev.filter((item) => item !== id));
+                    setSelectedIds((prev) =>
+                        prev.filter((item) => item !== id),
+                    );
                 },
             },
         );
@@ -559,19 +669,24 @@ export default function EventList({
                             </h1>
                         </div>
                         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                            Join ongoing or upcoming events. Closed events are read-only.
+                            Join ongoing or upcoming events. Closed events are
+                            read-only.
                         </p>
                     </div>
                 </div>
 
                 <Card className="border-slate-200/70 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                    <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="space-y-3">
+                    <Tabs
+                        value={tab}
+                        onValueChange={(v) => setTab(v as TabKey)}
+                        className="space-y-3"
+                    >
                         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                             {/* ✅ NEW: mobile shows 2 rows (status row + attendance row)
                                md+ shows single row like before */}
                             <div className="w-full">
                                 {/* Desktop (md+) */}
-                                <TabsList className="hidden w-full flex-wrap items-center justify-start gap-2 bg-slate-100/70 p-1.5 dark:bg-slate-900/50 md:flex md:w-auto">
+                                <TabsList className="hidden w-full flex-wrap items-center justify-start gap-2 bg-slate-100/70 p-1.5 md:flex md:w-auto dark:bg-slate-900/50">
                                     <div className="flex flex-wrap items-center gap-2">
                                         <TabsTrigger
                                             value="ongoing"
@@ -613,7 +728,7 @@ export default function EventList({
                                         </TabsTrigger>
                                     </div>
 
-                                    <div className="mx-1 hidden h-6 w-px bg-slate-200 dark:bg-slate-700 md:block" />
+                                    <div className="mx-1 hidden h-6 w-px bg-slate-200 md:block dark:bg-slate-700" />
 
                                     <div className="flex flex-wrap items-center gap-2">
                                         <TabsTrigger
@@ -652,7 +767,9 @@ export default function EventList({
                                             value="ongoing"
                                             className="w-full justify-between gap-2 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-800 dark:data-[state=active]:bg-amber-500/15 dark:data-[state=active]:text-amber-200"
                                         >
-                                            <span className="truncate">Ongoing</span>
+                                            <span className="truncate">
+                                                Ongoing
+                                            </span>
                                             <Badge
                                                 variant="outline"
                                                 className="h-5 border-amber-200 bg-amber-50/60 px-1.5 text-[10px] text-amber-700 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-200"
@@ -665,7 +782,9 @@ export default function EventList({
                                             value="upcoming"
                                             className="w-full justify-between gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800 dark:data-[state=active]:bg-blue-500/15 dark:data-[state=active]:text-blue-200"
                                         >
-                                            <span className="truncate">Upcoming</span>
+                                            <span className="truncate">
+                                                Upcoming
+                                            </span>
                                             <Badge
                                                 variant="outline"
                                                 className="h-5 border-blue-200 bg-blue-50/60 px-1.5 text-[10px] text-blue-700 dark:border-blue-500/25 dark:bg-blue-500/10 dark:text-blue-200"
@@ -681,7 +800,9 @@ export default function EventList({
                                             value="closed"
                                             className="w-full justify-between gap-2 data-[state=active]:bg-red-50 data-[state=active]:text-red-800 dark:data-[state=active]:bg-red-500/15 dark:data-[state=active]:text-red-200"
                                         >
-                                            <span className="truncate">Closed</span>
+                                            <span className="truncate">
+                                                Closed
+                                            </span>
                                             <Badge
                                                 variant="outline"
                                                 className="h-5 border-red-200 bg-red-50/60 px-1.5 text-[10px] text-red-700 dark:border-red-500/25 dark:bg-red-500/10 dark:text-red-200"
@@ -694,7 +815,9 @@ export default function EventList({
                                             value="attended"
                                             className="w-full justify-between gap-2 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-800 dark:data-[state=active]:bg-emerald-500/15 dark:data-[state=active]:text-emerald-200"
                                         >
-                                            <span className="truncate">Attended</span>
+                                            <span className="truncate">
+                                                Attended
+                                            </span>
                                             <Badge
                                                 variant="outline"
                                                 className="h-5 border-emerald-200 bg-emerald-50/60 px-1.5 text-[10px] text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-200"
@@ -710,7 +833,9 @@ export default function EventList({
                                             value="missed"
                                             className="w-full justify-between gap-2 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-800 dark:data-[state=active]:bg-slate-700/40 dark:data-[state=active]:text-slate-100"
                                         >
-                                            <span className="truncate">Missed</span>
+                                            <span className="truncate">
+                                                Missed
+                                            </span>
                                             <Badge
                                                 variant="outline"
                                                 className="h-5 border-slate-200 bg-slate-50/70 px-1.5 text-[10px] text-slate-700 dark:border-slate-600/40 dark:bg-slate-800/40 dark:text-slate-200"
@@ -720,42 +845,80 @@ export default function EventList({
                                         </TabsTrigger>
                                     </TabsList>
                                 </div>
-
                             </div>
 
                             <div className="relative w-full md:w-72">
-                                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search events..." className="h-9 pl-8 text-sm" />
+                                <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Search events..."
+                                    className="h-9 pl-8 text-sm"
+                                />
                             </div>
                         </div>
 
                         <TabsContent value="ongoing" className="mt-0 space-y-2">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Events currently happening. Join now.</p>
-                            <EventGrid events={grouped.ongoing} selectedIds={selectedIds} onJoin={handleJoin} />
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Events currently happening. Join now.
+                            </p>
+                            <EventGrid
+                                events={grouped.ongoing}
+                                selectedIds={selectedIds}
+                                onJoin={handleJoin}
+                            />
                         </TabsContent>
 
-                        <TabsContent value="upcoming" className="mt-0 space-y-2">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Plan ahead and reserve your spot.</p>
-                            <EventGrid events={grouped.upcoming} selectedIds={selectedIds} onJoin={handleJoin} />
+                        <TabsContent
+                            value="upcoming"
+                            className="mt-0 space-y-2"
+                        >
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Plan ahead and reserve your spot.
+                            </p>
+                            <EventGrid
+                                events={grouped.upcoming}
+                                selectedIds={selectedIds}
+                                onJoin={handleJoin}
+                            />
                         </TabsContent>
 
                         <TabsContent value="closed" className="mt-0 space-y-2">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Past events (read-only).</p>
-                            <EventGrid events={grouped.closed} selectedIds={selectedIds} onJoin={handleJoin} />
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Past events (read-only).
+                            </p>
+                            <EventGrid
+                                events={grouped.closed}
+                                selectedIds={selectedIds}
+                                onJoin={handleJoin}
+                            />
                         </TabsContent>
 
-                        <TabsContent value="attended" className="mt-0 space-y-2">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Events you checked into with attendance or QR scan.</p>
-                            <AttendanceGrid events={attendedEvents} attendanceByProgramme={attendanceByProgramme} />
+                        <TabsContent
+                            value="attended"
+                            className="mt-0 space-y-2"
+                        >
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Events you checked into with attendance or QR
+                                scan.
+                            </p>
+                            <AttendanceGrid
+                                events={attendedEvents}
+                                attendanceByProgramme={attendanceByProgramme}
+                            />
                         </TabsContent>
 
                         <TabsContent value="missed" className="mt-0 space-y-2">
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Events you joined but did not check in.</p>
-                            <AttendanceGrid events={missedEvents} attendanceByProgramme={attendanceByProgramme} />
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Events you joined but did not check in.
+                            </p>
+                            <AttendanceGrid
+                                events={missedEvents}
+                                attendanceByProgramme={attendanceByProgramme}
+                            />
                         </TabsContent>
                     </Tabs>
                 </Card>
-
             </div>
         </AppLayout>
     );

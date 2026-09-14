@@ -1,18 +1,32 @@
-import * as React from 'react';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { cn } from '@/lib/utils';
+import * as React from 'react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 import {
     AlertDialog,
@@ -34,20 +48,26 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 import {
-    Plus,
-    Search,
+    BadgeCheck,
+    CheckCircle2,
+    Download,
+    ExternalLink,
+    FileText,
     MoreHorizontal,
     Pencil,
-    Trash2,
-    BadgeCheck,
-    FileText,
-    ExternalLink,
-    Download,
+    Plus,
     ScrollText,
-    CheckCircle2,
+    Search,
+    Trash2,
     XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -86,7 +106,11 @@ function formatDate(dateStr?: string | null) {
     if (!dateStr) return '—';
     const d = new Date(`${dateStr}T00:00:00`);
     if (Number.isNaN(d.getTime())) return '—';
-    return new Intl.DateTimeFormat('en-PH', { year: 'numeric', month: 'short', day: '2-digit' }).format(d);
+    return new Intl.DateTimeFormat('en-PH', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+    }).format(d);
 }
 
 function formatDateTimeSafe(value?: string | null) {
@@ -119,7 +143,11 @@ function StatusBadge({ active }: { active: boolean }) {
                     : 'bg-slate-200 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
             )}
         >
-            {active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+            {active ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : (
+                <XCircle className="h-3.5 w-3.5" />
+            )}
             {active ? 'Active' : 'Inactive'}
         </Badge>
     );
@@ -162,7 +190,10 @@ function PdfThumb({ href, title }: { href: string; title: string }) {
                 <iframe
                     title={`${title} preview`}
                     src={`${href}#page=1&view=Fit&toolbar=0&navpanes=0&scrollbar=0`}
-                    className={cn('pointer-events-none absolute inset-0 bg-white', 'h-[140%] w-[140%] origin-top-left scale-[0.72]')}
+                    className={cn(
+                        'pointer-events-none absolute inset-0 bg-white',
+                        'h-[140%] w-[140%] origin-top-left scale-[0.72]',
+                    )}
                     loading="lazy"
                 />
             ) : (
@@ -171,7 +202,7 @@ function PdfThumb({ href, title }: { href: string; title: string }) {
                 </div>
             )}
 
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-3 bg-gradient-to-l from-slate-50 to-transparent dark:from-slate-900" />
+            <div className="pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-3 bg-gradient-to-l from-slate-50 to-transparent dark:from-slate-900" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent dark:from-slate-950" />
         </div>
     );
@@ -182,18 +213,25 @@ export default function IssuancesManagement(props: PageProps) {
 
     const [view, setView] = React.useState<'grid' | 'table'>('grid');
     const [q, setQ] = React.useState('');
-    const [status, setStatus] = React.useState<'all' | 'active' | 'inactive'>('all');
+    const [status, setStatus] = React.useState<'all' | 'active' | 'inactive'>(
+        'all',
+    );
 
     const [dialogOpen, setDialogOpen] = React.useState(false);
     const [editing, setEditing] = React.useState<Issuance | null>(null);
 
     const [deleteOpen, setDeleteOpen] = React.useState(false);
-    const [deleteTarget, setDeleteTarget] = React.useState<Issuance | null>(null);
+    const [deleteTarget, setDeleteTarget] = React.useState<Issuance | null>(
+        null,
+    );
 
-    const [pdfPreviewUrl, setPdfPreviewUrl] = React.useState<string | null>(null);
+    const [pdfPreviewUrl, setPdfPreviewUrl] = React.useState<string | null>(
+        null,
+    );
     React.useEffect(() => {
         return () => {
-            if (pdfPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pdfPreviewUrl);
+            if (pdfPreviewUrl?.startsWith('blob:'))
+                URL.revokeObjectURL(pdfPreviewUrl);
         };
     }, [pdfPreviewUrl]);
 
@@ -211,8 +249,12 @@ export default function IssuancesManagement(props: PageProps) {
         const query = q.trim().toLowerCase();
         return issuances
             .filter((x) => {
-                const matchesQuery = !query || `${x.title} ${x.issued_at}`.toLowerCase().includes(query);
-                const matchesStatus = status === 'all' || (status === 'active' ? x.is_active : !x.is_active);
+                const matchesQuery =
+                    !query ||
+                    `${x.title} ${x.issued_at}`.toLowerCase().includes(query);
+                const matchesStatus =
+                    status === 'all' ||
+                    (status === 'active' ? x.is_active : !x.is_active);
                 return matchesQuery && matchesStatus;
             })
             .sort((a, b) => (a.issued_at < b.issued_at ? 1 : -1));
@@ -222,7 +264,8 @@ export default function IssuancesManagement(props: PageProps) {
         setEditing(null);
         form.reset();
         form.clearErrors();
-        if (pdfPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pdfPreviewUrl);
+        if (pdfPreviewUrl?.startsWith('blob:'))
+            URL.revokeObjectURL(pdfPreviewUrl);
         setPdfPreviewUrl(null);
         setDialogOpen(true);
     }
@@ -235,7 +278,8 @@ export default function IssuancesManagement(props: PageProps) {
             pdf: null,
         });
         form.clearErrors();
-        if (pdfPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pdfPreviewUrl);
+        if (pdfPreviewUrl?.startsWith('blob:'))
+            URL.revokeObjectURL(pdfPreviewUrl);
         setPdfPreviewUrl(item.pdf_url ?? null);
         setDialogOpen(true);
     }
@@ -244,7 +288,8 @@ export default function IssuancesManagement(props: PageProps) {
         const file = e.target.files?.[0] ?? null;
         form.setData('pdf', file);
 
-        if (pdfPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pdfPreviewUrl);
+        if (pdfPreviewUrl?.startsWith('blob:'))
+            URL.revokeObjectURL(pdfPreviewUrl);
 
         if (!file) {
             setPdfPreviewUrl(editing?.pdf_url ?? null);
@@ -286,7 +331,10 @@ export default function IssuancesManagement(props: PageProps) {
             { is_active: !item.is_active },
             {
                 preserveScroll: true,
-                onSuccess: () => toast.success(`Issuance ${item.is_active ? 'deactivated' : 'activated'}.`),
+                onSuccess: () =>
+                    toast.success(
+                        `Issuance ${item.is_active ? 'deactivated' : 'activated'}.`,
+                    ),
                 onError: () => toast.error('Unable to update issuance status.'),
             },
         );
@@ -325,17 +373,22 @@ export default function IssuancesManagement(props: PageProps) {
                         </h1>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Upload PDF issuances, edit details, and set Active/Inactive.
+                        Upload PDF issuances, edit details, and set
+                        Active/Inactive.
                     </p>
                 </div>
 
                 {/* ✅ Tabs WRAPPER (fixes your error) */}
-                <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-full">
+                <Tabs
+                    value={view}
+                    onValueChange={(v) => setView(v as any)}
+                    className="w-full"
+                >
                     <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
                                 <div className="relative w-full sm:w-[360px]">
-                                    <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                                    <Search className="pointer-events-none absolute top-2.5 left-3 h-4 w-4 text-slate-500" />
                                     <Input
                                         value={q}
                                         onChange={(e) => setQ(e.target.value)}
@@ -344,14 +397,21 @@ export default function IssuancesManagement(props: PageProps) {
                                     />
                                 </div>
 
-                                <Select value={status} onValueChange={(v) => setStatus(v as any)}>
+                                <Select
+                                    value={status}
+                                    onValueChange={(v) => setStatus(v as any)}
+                                >
                                     <SelectTrigger className="w-full sm:w-[170px]">
                                         <SelectValue placeholder="Status" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">All</SelectItem>
-                                        <SelectItem value="active">Active</SelectItem>
-                                        <SelectItem value="inactive">Inactive</SelectItem>
+                                        <SelectItem value="active">
+                                            Active
+                                        </SelectItem>
+                                        <SelectItem value="inactive">
+                                            Inactive
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -359,10 +419,18 @@ export default function IssuancesManagement(props: PageProps) {
                             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end lg:w-auto">
                                 <TabsList className="w-full sm:w-auto">
                                     <TabsTrigger value="grid">Grid</TabsTrigger>
-                                    <TabsTrigger value="table">Table</TabsTrigger>
+                                    <TabsTrigger value="table">
+                                        Table
+                                    </TabsTrigger>
                                 </TabsList>
 
-                                <Button onClick={openAdd} className={cn('w-full sm:w-auto', PRIMARY_BTN)}>
+                                <Button
+                                    onClick={openAdd}
+                                    className={cn(
+                                        'w-full sm:w-auto',
+                                        PRIMARY_BTN,
+                                    )}
+                                >
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add Issuance
                                 </Button>
@@ -372,7 +440,10 @@ export default function IssuancesManagement(props: PageProps) {
                         <Separator />
 
                         <div className="text-sm text-slate-600 dark:text-slate-400">
-                            Showing <span className="font-semibold text-slate-900 dark:text-slate-100">{filtered.length}</span>{' '}
+                            Showing{' '}
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">
+                                {filtered.length}
+                            </span>{' '}
                             item{filtered.length === 1 ? '' : 's'}
                         </div>
 
@@ -381,8 +452,12 @@ export default function IssuancesManagement(props: PageProps) {
                             {filtered.length === 0 ? (
                                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center dark:border-slate-800 dark:bg-slate-900/30">
                                     <FileText className="mx-auto h-7 w-7 text-slate-400" />
-                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No issuances found.</p>
-                                    <p className="mt-1 text-sm text-slate-500">Try another keyword.</p>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                        No issuances found.
+                                    </p>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Try another keyword.
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -393,22 +468,32 @@ export default function IssuancesManagement(props: PageProps) {
                                                     href={item.pdf_url}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00359c]/30"
+                                                    className="block rounded-2xl focus-visible:ring-2 focus-visible:ring-[#00359c]/30 focus-visible:outline-none"
                                                 >
-                                                    <PdfThumb href={item.pdf_url} title={item.title} />
+                                                    <PdfThumb
+                                                        href={item.pdf_url}
+                                                        title={item.title}
+                                                    />
                                                 </a>
 
-                                                <div className="absolute inset-0 rounded-2xl opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+                                                <div className="absolute inset-0 rounded-2xl opacity-0 transition group-focus-within:opacity-100 group-hover:opacity-100">
                                                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-slate-950/50 via-slate-950/10 to-transparent" />
-                                                    <div className="absolute left-3 top-3">
-                                                        <StatusBadge active={item.is_active} />
+                                                    <div className="absolute top-3 left-3">
+                                                        <StatusBadge
+                                                            active={
+                                                                item.is_active
+                                                            }
+                                                        />
                                                     </div>
 
-                                                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+                                                    <div className="absolute right-3 bottom-3 left-3 flex items-center justify-between gap-2">
                                                         <Button
                                                             type="button"
                                                             size="icon"
-                                                            className={cn('h-8 w-8 rounded-full', PRIMARY_BTN)}
+                                                            className={cn(
+                                                                'h-8 w-8 rounded-full',
+                                                                PRIMARY_BTN,
+                                                            )}
                                                             onClick={(e) => {
                                                                 e.preventDefault();
                                                                 openEdit(item);
@@ -420,26 +505,54 @@ export default function IssuancesManagement(props: PageProps) {
                                                         </Button>
 
                                                         <div className="flex items-center gap-2">
-                                                            <Button asChild size="icon" variant="secondary" className="h-8 w-8 rounded-full" title="Download">
-                                                                <a href={item.pdf_url} download aria-label="Download">
+                                                            <Button
+                                                                asChild
+                                                                size="icon"
+                                                                variant="secondary"
+                                                                className="h-8 w-8 rounded-full"
+                                                                title="Download"
+                                                            >
+                                                                <a
+                                                                    href={
+                                                                        item.pdf_url
+                                                                    }
+                                                                    download
+                                                                    aria-label="Download"
+                                                                >
                                                                     <Download className="h-4 w-4" />
                                                                 </a>
                                                             </Button>
 
-                                                            <Button asChild size="icon" variant="secondary" className="h-8 w-8 rounded-full" title="Open">
-                                                                <a href={item.pdf_url} target="_blank" rel="noreferrer" aria-label="Open">
+                                                            <Button
+                                                                asChild
+                                                                size="icon"
+                                                                variant="secondary"
+                                                                className="h-8 w-8 rounded-full"
+                                                                title="Open"
+                                                            >
+                                                                <a
+                                                                    href={
+                                                                        item.pdf_url
+                                                                    }
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    aria-label="Open"
+                                                                >
                                                                     <ExternalLink className="h-4 w-4" />
                                                                 </a>
                                                             </Button>
                                                         </div>
                                                     </div>
-
                                                 </div>
                                             </div>
 
                                             <div className="mt-3 space-y-1">
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <span className="text-xs font-medium text-slate-500">{formatDate(item.issued_at)}</span>
+                                                    <span className="text-xs font-medium text-slate-500">
+                                                        {formatDate(
+                                                            item.issued_at,
+                                                        )}
+                                                    </span>
                                                 </div>
 
                                                 <p className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -457,8 +570,12 @@ export default function IssuancesManagement(props: PageProps) {
                             {filtered.length === 0 ? (
                                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center dark:border-slate-800 dark:bg-slate-900/30">
                                     <FileText className="mx-auto h-7 w-7 text-slate-400" />
-                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No issuances found.</p>
-                                    <p className="mt-1 text-sm text-slate-500">Try another keyword.</p>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                        No issuances found.
+                                    </p>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Try another keyword.
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
@@ -466,10 +583,18 @@ export default function IssuancesManagement(props: PageProps) {
                                         <TableHeader>
                                             <TableRow className="bg-slate-50 dark:bg-slate-900/40">
                                                 <TableHead>Title</TableHead>
-                                                <TableHead className="w-[150px]">Issued</TableHead>
-                                                <TableHead className="w-[140px]">Status</TableHead>
-                                                <TableHead className="w-[170px]">Updated</TableHead>
-                                                <TableHead className="w-[120px] text-right">Actions</TableHead>
+                                                <TableHead className="w-[150px]">
+                                                    Issued
+                                                </TableHead>
+                                                <TableHead className="w-[140px]">
+                                                    Status
+                                                </TableHead>
+                                                <TableHead className="w-[170px]">
+                                                    Updated
+                                                </TableHead>
+                                                <TableHead className="w-[120px] text-right">
+                                                    Actions
+                                                </TableHead>
                                             </TableRow>
                                         </TableHeader>
 
@@ -487,7 +612,9 @@ export default function IssuancesManagement(props: PageProps) {
                                                                 </div>
                                                                 <div className="mt-1 flex flex-wrap items-center gap-2">
                                                                     <a
-                                                                        href={item.pdf_url}
+                                                                        href={
+                                                                            item.pdf_url
+                                                                        }
                                                                         target="_blank"
                                                                         rel="noreferrer"
                                                                         className="inline-flex items-center gap-1 text-xs font-medium text-[#00359c] hover:underline"
@@ -495,9 +622,13 @@ export default function IssuancesManagement(props: PageProps) {
                                                                         <ExternalLink className="h-3.5 w-3.5" />
                                                                         Open PDF
                                                                     </a>
-                                                                    <span className="text-xs text-slate-400">•</span>
+                                                                    <span className="text-xs text-slate-400">
+                                                                        •
+                                                                    </span>
                                                                     <a
-                                                                        href={item.pdf_url}
+                                                                        href={
+                                                                            item.pdf_url
+                                                                        }
                                                                         download
                                                                         className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:underline dark:text-slate-300"
                                                                     >
@@ -509,36 +640,79 @@ export default function IssuancesManagement(props: PageProps) {
                                                         </div>
                                                     </TableCell>
 
-                                                    <TableCell className="text-slate-700 dark:text-slate-300">{formatDate(item.issued_at)}</TableCell>
+                                                    <TableCell className="text-slate-700 dark:text-slate-300">
+                                                        {formatDate(
+                                                            item.issued_at,
+                                                        )}
+                                                    </TableCell>
 
                                                     <TableCell>
-                                                        <StatusBadge active={item.is_active} />
+                                                        <StatusBadge
+                                                            active={
+                                                                item.is_active
+                                                            }
+                                                        />
                                                     </TableCell>
 
                                                     <TableCell className="text-slate-700 dark:text-slate-300">
-                                                        {formatDateTimeSafe(item.updated_at ?? item.created_at)}
+                                                        {formatDateTimeSafe(
+                                                            item.updated_at ??
+                                                                item.created_at,
+                                                        )}
                                                     </TableCell>
 
                                                     <TableCell className="text-right">
                                                         <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="rounded-full">
+                                                            <DropdownMenuTrigger
+                                                                asChild
+                                                            >
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="rounded-full"
+                                                                >
                                                                     <MoreHorizontal className="h-4 w-4" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
 
-                                                            <DropdownMenuContent align="end" className="w-48">
-                                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => openEdit(item)}>
+                                                            <DropdownMenuContent
+                                                                align="end"
+                                                                className="w-48"
+                                                            >
+                                                                <DropdownMenuLabel>
+                                                                    Actions
+                                                                </DropdownMenuLabel>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        openEdit(
+                                                                            item,
+                                                                        )
+                                                                    }
+                                                                >
                                                                     <Pencil className="mr-2 h-4 w-4" />
                                                                     Edit
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => toggleActive(item)}>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        toggleActive(
+                                                                            item,
+                                                                        )
+                                                                    }
+                                                                >
                                                                     <BadgeCheck className="mr-2 h-4 w-4" />
-                                                                    {item.is_active ? 'Set Inactive' : 'Set Active'}
+                                                                    {item.is_active
+                                                                        ? 'Set Inactive'
+                                                                        : 'Set Active'}
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => requestDelete(item)}>
+                                                                <DropdownMenuItem
+                                                                    className="text-red-600 focus:text-red-600"
+                                                                    onClick={() =>
+                                                                        requestDelete(
+                                                                            item,
+                                                                        )
+                                                                    }
+                                                                >
                                                                     <Trash2 className="mr-2 h-4 w-4" />
                                                                     Delete
                                                                 </DropdownMenuItem>
@@ -560,47 +734,111 @@ export default function IssuancesManagement(props: PageProps) {
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="sm:max-w-[720px]">
                     <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit Issuance' : 'Add Issuance'}</DialogTitle>
-                        <DialogDescription>Upload a PDF and set issuance details. You can replace the PDF anytime.</DialogDescription>
+                        <DialogTitle>
+                            {editing ? 'Edit Issuance' : 'Add Issuance'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Upload a PDF and set issuance details. You can
+                            replace the PDF anytime.
+                        </DialogDescription>
                     </DialogHeader>
 
                     <form onSubmit={submit} className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="space-y-1.5 sm:col-span-2">
                                 <div className="text-sm font-medium">Title</div>
-                                <Input value={form.data.title} onChange={(e) => form.setData('title', e.target.value)} placeholder="e.g. CHED Memo No. 01" />
-                                {form.errors.title ? <div className="text-xs text-red-600">{form.errors.title}</div> : null}
+                                <Input
+                                    value={form.data.title}
+                                    onChange={(e) =>
+                                        form.setData('title', e.target.value)
+                                    }
+                                    placeholder="e.g. CHED Memo No. 01"
+                                />
+                                {form.errors.title ? (
+                                    <div className="text-xs text-red-600">
+                                        {form.errors.title}
+                                    </div>
+                                ) : null}
                             </div>
 
                             <div className="space-y-1.5">
-                                <div className="text-sm font-medium">Issued date</div>
-                                <Input type="date" value={form.data.issued_at} onChange={(e) => form.setData('issued_at', e.target.value)} />
-                                {form.errors.issued_at ? <div className="text-xs text-red-600">{form.errors.issued_at}</div> : null}
+                                <div className="text-sm font-medium">
+                                    Issued date
+                                </div>
+                                <Input
+                                    type="date"
+                                    value={form.data.issued_at}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'issued_at',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                {form.errors.issued_at ? (
+                                    <div className="text-xs text-red-600">
+                                        {form.errors.issued_at}
+                                    </div>
+                                ) : null}
                             </div>
 
                             <div className="space-y-1.5 sm:col-span-2">
                                 <div className="flex items-center justify-between">
-                                    <div className="text-sm font-medium">PDF File</div>
-                                    <div className="text-xs text-slate-600 dark:text-slate-400">PDF only • required on create</div>
+                                    <div className="text-sm font-medium">
+                                        PDF File
+                                    </div>
+                                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                                        PDF only • required on create
+                                    </div>
                                 </div>
 
-                                <Input type="file" accept="application/pdf" onChange={onPickPdf} />
-                                {(form.errors as any).pdf ? <div className="text-xs text-red-600">{(form.errors as any).pdf}</div> : null}
+                                <Input
+                                    type="file"
+                                    accept="application/pdf"
+                                    onChange={onPickPdf}
+                                />
+                                {(form.errors as any).pdf ? (
+                                    <div className="text-xs text-red-600">
+                                        {(form.errors as any).pdf}
+                                    </div>
+                                ) : null}
 
                                 <div className="mt-3 grid gap-3 sm:grid-cols-[220px_1fr]">
                                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-950">
                                         {pdfPreviewUrl ? (
                                             <div className="space-y-2">
-                                                <PdfThumb href={pdfPreviewUrl} title={form.data.title || 'PDF'} />
+                                                <PdfThumb
+                                                    href={pdfPreviewUrl}
+                                                    title={
+                                                        form.data.title || 'PDF'
+                                                    }
+                                                />
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <Button asChild size="sm" variant="secondary" className="h-9 rounded-full">
-                                                        <a href={pdfPreviewUrl} target="_blank" rel="noreferrer">
+                                                    <Button
+                                                        asChild
+                                                        size="sm"
+                                                        variant="secondary"
+                                                        className="h-9 rounded-full"
+                                                    >
+                                                        <a
+                                                            href={pdfPreviewUrl}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                        >
                                                             <ExternalLink className="mr-2 h-4 w-4" />
                                                             Open
                                                         </a>
                                                     </Button>
-                                                    <Button asChild size="sm" variant="secondary" className="h-9 rounded-full">
-                                                        <a href={pdfPreviewUrl} download>
+                                                    <Button
+                                                        asChild
+                                                        size="sm"
+                                                        variant="secondary"
+                                                        className="h-9 rounded-full"
+                                                    >
+                                                        <a
+                                                            href={pdfPreviewUrl}
+                                                            download
+                                                        >
                                                             <Download className="mr-2 h-4 w-4" />
                                                             Download
                                                         </a>
@@ -611,23 +849,38 @@ export default function IssuancesManagement(props: PageProps) {
                                             <div className="grid aspect-[3/4] w-full place-items-center rounded-2xl bg-slate-50 text-slate-500 dark:bg-slate-900/30 dark:text-slate-300">
                                                 <div className="grid place-items-center gap-2">
                                                     <FileText className="h-7 w-7" />
-                                                    <div className="text-xs font-medium">No PDF selected</div>
+                                                    <div className="text-xs font-medium">
+                                                        No PDF selected
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-200">
-                                        <div className="font-semibold">Tips</div>
+                                        <div className="font-semibold">
+                                            Tips
+                                        </div>
                                         <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-slate-600 dark:text-slate-300">
-                                            <li>Use clear titles for easier searching.</li>
-                                            <li>Set inactive if it should not appear publicly.</li>
-                                            <li>Upload a new PDF to replace the existing file.</li>
+                                            <li>
+                                                Use clear titles for easier
+                                                searching.
+                                            </li>
+                                            <li>
+                                                Set inactive if it should not
+                                                appear publicly.
+                                            </li>
+                                            <li>
+                                                Upload a new PDF to replace the
+                                                existing file.
+                                            </li>
                                         </ul>
 
                                         {editing?.pdf_url ? (
                                             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
-                                                <div className="text-xs font-semibold text-slate-500">Current file</div>
+                                                <div className="text-xs font-semibold text-slate-500">
+                                                    Current file
+                                                </div>
                                                 <a
                                                     href={editing.pdf_url}
                                                     target="_blank"
@@ -645,10 +898,19 @@ export default function IssuancesManagement(props: PageProps) {
                         </div>
 
                         <DialogFooter className="gap-2 sm:gap-0">
-                            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={form.processing}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setDialogOpen(false)}
+                                disabled={form.processing}
+                            >
                                 Cancel
                             </Button>
-                            <Button type="submit" className={PRIMARY_BTN} disabled={form.processing}>
+                            <Button
+                                type="submit"
+                                className={PRIMARY_BTN}
+                                disabled={form.processing}
+                            >
                                 {editing ? 'Save changes' : 'Create'}
                             </Button>
                         </DialogFooter>
@@ -660,16 +922,25 @@ export default function IssuancesManagement(props: PageProps) {
             <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Delete this issuance?</AlertDialogTitle>
+                        <AlertDialogTitle>
+                            Delete this issuance?
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
                             This will permanently delete{' '}
-                            <span className="font-semibold text-slate-900 dark:text-slate-100">{deleteTarget?.title ?? 'this item'}</span>.
-                            This action cannot be undone.
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">
+                                {deleteTarget?.title ?? 'this item'}
+                            </span>
+                            . This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeleteOpen(false)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={confirmDelete}>
+                        <AlertDialogCancel onClick={() => setDeleteOpen(false)}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={confirmDelete}
+                        >
                             Delete
                         </AlertDialogAction>
                     </AlertDialogFooter>

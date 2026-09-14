@@ -1,15 +1,12 @@
-import * as React from 'react';
-import AppLayout from '@/layouts/app-layout';
-import { Head, router, useForm } from '@inertiajs/react';
-import { type BreadcrumbItem } from '@/types';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Command,
     CommandEmpty,
@@ -18,10 +15,32 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Bus, Check, CheckCircle2, ChevronsUpDown } from 'lucide-react';
+import * as React from 'react';
 import { toast } from 'sonner';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Vehicle Management', href: '/vehicle-management' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Vehicle Management', href: '/vehicle-management' },
+];
 
 type EventRow = {
     id: number;
@@ -89,8 +108,18 @@ function SearchableDropdown({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full max-w-full min-w-0 shrink justify-between overflow-hidden" type="button">
-                    <span className={cn('min-w-0 flex-1 truncate text-left', !selected && 'text-slate-500')}>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full max-w-full min-w-0 shrink justify-between overflow-hidden"
+                    type="button"
+                >
+                    <span
+                        className={cn(
+                            'min-w-0 flex-1 truncate text-left',
+                            !selected && 'text-slate-500',
+                        )}
+                    >
                         {selected ? selected.label : placeholder}
                     </span>
                     <ChevronsUpDown className="h-4 w-4 opacity-60" />
@@ -115,11 +144,22 @@ function SearchableDropdown({
                                     }}
                                     className="min-w-0 gap-2 overflow-hidden"
                                 >
-                                    <Check className={cn('h-4 w-4 shrink-0', value === item.value ? 'opacity-100' : 'opacity-0')} />
+                                    <Check
+                                        className={cn(
+                                            'h-4 w-4 shrink-0',
+                                            value === item.value
+                                                ? 'opacity-100'
+                                                : 'opacity-0',
+                                        )}
+                                    />
                                     <div className="min-w-0 flex-1 overflow-hidden">
-                                        <div className="truncate">{item.label}</div>
+                                        <div className="truncate">
+                                            {item.label}
+                                        </div>
                                         {item.description ? (
-                                            <div className="truncate text-xs text-slate-500">{item.description}</div>
+                                            <div className="truncate text-xs text-slate-500">
+                                                {item.description}
+                                            </div>
                                         ) : null}
                                     </div>
                                 </CommandItem>
@@ -134,11 +174,24 @@ function SearchableDropdown({
 
 function showToastError(errors: Record<string, string | string[]>) {
     const first = Object.values(errors ?? {})[0];
-    toast.error(Array.isArray(first) ? first[0] : first || 'Please review the form and try again.');
+    toast.error(
+        Array.isArray(first)
+            ? first[0]
+            : first || 'Please review the form and try again.',
+    );
 }
 
-export default function VehicleManagementPage({ events, selected_event_id, ched_lo_users, vehicles }: PageProps) {
-    const selectedEventId = selected_event_id ? String(selected_event_id) : events[0] ? String(events[0].id) : '';
+export default function VehicleManagementPage({
+    events,
+    selected_event_id,
+    ched_lo_users,
+    vehicles,
+}: PageProps) {
+    const selectedEventId = selected_event_id
+        ? String(selected_event_id)
+        : events[0]
+          ? String(events[0].id)
+          : '';
     const [vehicleFilter, setVehicleFilter] = React.useState('all');
 
     const form = useForm({
@@ -152,7 +205,11 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
 
     const onChangeEvent = (value: string) => {
         form.setData('programme_id', value);
-        router.get('/vehicle-management', { event_id: value || undefined }, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(
+            '/vehicle-management',
+            { event_id: value || undefined },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
     };
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -162,9 +219,15 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
             preserveScroll: true,
             onSuccess: () => {
                 toast.success('Vehicle added successfully.');
-                form.reset('label', 'driver_name', 'plate_number', 'driver_contact_number');
+                form.reset(
+                    'label',
+                    'driver_name',
+                    'plate_number',
+                    'driver_contact_number',
+                );
             },
-            onError: (errors) => showToastError(errors as Record<string, string | string[]>),
+            onError: (errors) =>
+                showToastError(errors as Record<string, string | string[]>),
         });
     };
 
@@ -185,30 +248,49 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
                         <Bus className="h-5 w-5 text-[#00359c]" />
-                        <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Vehicle Management</h1>
+                        <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                            Vehicle Management
+                        </h1>
                     </div>
                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Add vehicles per event, set driver details, and assign CHED LO in charge.
+                        Add vehicles per event, set driver details, and assign
+                        CHED LO in charge.
                     </p>
                 </div>
 
                 <Card className="min-w-0">
                     <CardHeader>
-                        <CardTitle className="text-base">Event filter</CardTitle>
-                        <CardDescription>Show and add vehicles by event.</CardDescription>
+                        <CardTitle className="text-base">
+                            Event filter
+                        </CardTitle>
+                        <CardDescription>
+                            Show and add vehicles by event.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
                         <div className="min-w-0 space-y-1">
-                            <Label>Event <span className="text-[11px] font-semibold text-red-600">*</span></Label>
+                            <Label>
+                                Event{' '}
+                                <span className="text-[11px] font-semibold text-red-600">
+                                    *
+                                </span>
+                            </Label>
                             <SearchableDropdown
                                 value={form.data.programme_id}
                                 onValueChange={onChangeEvent}
                                 placeholder="Select event"
                                 searchPlaceholder="Search events..."
                                 emptyText="No events found."
-                                items={events.map((event) => ({ value: String(event.id), label: event.title }))}
+                                items={events.map((event) => ({
+                                    value: String(event.id),
+                                    label: event.title,
+                                }))}
                             />
-                            {form.errors.programme_id ? <p className="text-xs text-rose-500">{form.errors.programme_id}</p> : null}
+                            {form.errors.programme_id ? (
+                                <p className="text-xs text-rose-500">
+                                    {form.errors.programme_id}
+                                </p>
+                            ) : null}
                         </div>
                     </CardContent>
                 </Card>
@@ -216,56 +298,119 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Add Vehicle</CardTitle>
-                        <CardDescription>Model/Color/Type Example: Innova Black SUV</CardDescription>
+                        <CardDescription>
+                            Model/Color/Type Example: Innova Black SUV
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={submit} className="space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-1">
-                                    <Label htmlFor="label">Vehicle name <span className="text-[11px] font-semibold text-red-600">*</span></Label>
+                                    <Label htmlFor="label">
+                                        Vehicle name{' '}
+                                        <span className="text-[11px] font-semibold text-red-600">
+                                            *
+                                        </span>
+                                    </Label>
                                     <Input
                                         id="label"
                                         placeholder="Innova Black SUV"
                                         value={form.data.label}
-                                        onChange={(e) => form.setData('label', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'label',
+                                                e.target.value,
+                                            )
+                                        }
                                     />
-                                    {form.errors.label ? <p className="text-xs text-rose-500">{form.errors.label}</p> : null}
+                                    {form.errors.label ? (
+                                        <p className="text-xs text-rose-500">
+                                            {form.errors.label}
+                                        </p>
+                                    ) : null}
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="driver_name">Driver name <span className="text-[11px] font-semibold text-red-600">*</span></Label>
+                                    <Label htmlFor="driver_name">
+                                        Driver name{' '}
+                                        <span className="text-[11px] font-semibold text-red-600">
+                                            *
+                                        </span>
+                                    </Label>
                                     <Input
                                         id="driver_name"
                                         value={form.data.driver_name}
-                                        onChange={(e) => form.setData('driver_name', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'driver_name',
+                                                e.target.value,
+                                            )
+                                        }
                                     />
-                                    {form.errors.driver_name ? <p className="text-xs text-rose-500">{form.errors.driver_name}</p> : null}
+                                    {form.errors.driver_name ? (
+                                        <p className="text-xs text-rose-500">
+                                            {form.errors.driver_name}
+                                        </p>
+                                    ) : null}
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="plate_number">Plate number</Label>
+                                    <Label htmlFor="plate_number">
+                                        Plate number
+                                    </Label>
                                     <Input
                                         id="plate_number"
                                         placeholder="ABC-1234"
                                         value={form.data.plate_number}
-                                        onChange={(e) => form.setData('plate_number', e.target.value)}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'plate_number',
+                                                e.target.value,
+                                            )
+                                        }
                                     />
-                                    {form.errors.plate_number ? <p className="text-xs text-rose-500">{form.errors.plate_number}</p> : null}
-                                </div>
-                                <div className="space-y-1">
-                                    <Label htmlFor="driver_contact_number">Driver contact number <span className="text-[11px] font-semibold text-red-600">*</span></Label>
-                                    <Input
-                                        id="driver_contact_number"
-                                        value={form.data.driver_contact_number}
-                                        onChange={(e) => form.setData('driver_contact_number', e.target.value)}
-                                    />
-                                    {form.errors.driver_contact_number ? (
-                                        <p className="text-xs text-rose-500">{form.errors.driver_contact_number}</p>
+                                    {form.errors.plate_number ? (
+                                        <p className="text-xs text-rose-500">
+                                            {form.errors.plate_number}
+                                        </p>
                                     ) : null}
                                 </div>
                                 <div className="space-y-1">
-                                    <Label>CHED LO in charge <span className="text-[11px] font-semibold text-red-600">*</span></Label>
+                                    <Label htmlFor="driver_contact_number">
+                                        Driver contact number{' '}
+                                        <span className="text-[11px] font-semibold text-red-600">
+                                            *
+                                        </span>
+                                    </Label>
+                                    <Input
+                                        id="driver_contact_number"
+                                        value={form.data.driver_contact_number}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'driver_contact_number',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    {form.errors.driver_contact_number ? (
+                                        <p className="text-xs text-rose-500">
+                                            {form.errors.driver_contact_number}
+                                        </p>
+                                    ) : null}
+                                </div>
+                                <div className="space-y-1">
+                                    <Label>
+                                        CHED LO in charge{' '}
+                                        <span className="text-[11px] font-semibold text-red-600">
+                                            *
+                                        </span>
+                                    </Label>
                                     <SearchableDropdown
                                         value={form.data.incharge_user_id}
-                                        onValueChange={(value) => form.setData('incharge_user_id', value)}
+                                        onValueChange={(value) =>
+                                            form.setData(
+                                                'incharge_user_id',
+                                                value,
+                                            )
+                                        }
                                         placeholder="Select CHED LO"
                                         searchPlaceholder="Search CHED LO..."
                                         emptyText="No CHED LO found."
@@ -275,10 +420,18 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
                                             description: user.email ?? '',
                                         }))}
                                     />
-                                    {form.errors.incharge_user_id ? <p className="text-xs text-rose-500">{form.errors.incharge_user_id}</p> : null}
+                                    {form.errors.incharge_user_id ? (
+                                        <p className="text-xs text-rose-500">
+                                            {form.errors.incharge_user_id}
+                                        </p>
+                                    ) : null}
                                 </div>
                             </div>
-                            <Button type="submit" className="bg-[#00359c] text-white hover:bg-[#00359c]/90" disabled={form.processing}>
+                            <Button
+                                type="submit"
+                                className="bg-[#00359c] text-white hover:bg-[#00359c]/90"
+                                disabled={form.processing}
+                            >
                                 {form.processing ? 'Adding...' : 'Add Vehicle'}
                             </Button>
                         </form>
@@ -287,22 +440,33 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Vehicle List</CardTitle>
+                        <CardTitle className="text-base">
+                            Vehicle List
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="space-y-1">
-                                    <Label htmlFor="vehicle-filter">Filter vehicles</Label>
+                                    <Label htmlFor="vehicle-filter">
+                                        Filter vehicles
+                                    </Label>
                                     <select
                                         id="vehicle-filter"
-                                        className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-slate-950 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-slate-300"
+                                        className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-slate-300"
                                         value={vehicleFilter}
-                                        onChange={(e) => setVehicleFilter(e.target.value)}
+                                        onChange={(e) =>
+                                            setVehicleFilter(e.target.value)
+                                        }
                                     >
-                                        <option value="all">All vehicles</option>
+                                        <option value="all">
+                                            All vehicles
+                                        </option>
                                         {vehicles.map((vehicle) => (
-                                            <option key={vehicle.id} value={String(vehicle.id)}>
+                                            <option
+                                                key={vehicle.id}
+                                                value={String(vehicle.id)}
+                                            >
                                                 {vehicle.label}
                                             </option>
                                         ))}
@@ -312,128 +476,222 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
 
                             <div className="hidden overflow-hidden rounded-xl border md:block">
                                 <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Vehicle</TableHead>
-                                        <TableHead>Driver</TableHead>
-                                        <TableHead>Plate #</TableHead>
-                                        <TableHead>Contact</TableHead>
-                                        <TableHead>CHED LO In Charge</TableHead>
-                                        <TableHead>Passengers</TableHead>
-                                        <TableHead>Picked Up At</TableHead>
-                                        <TableHead className="text-right">Action</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredVehicles.length > 0 ? (
-                                        filteredVehicles.map((vehicle) => (
-                                            <TableRow key={vehicle.id}>
-                                                <TableCell className="font-medium">{vehicle.label}</TableCell>
-                                                <TableCell>{vehicle.driver_name || '—'}</TableCell>
-                                                <TableCell>{vehicle.plate_number || '—'}</TableCell>
-                                                <TableCell>{vehicle.driver_contact_number || '—'}</TableCell>
-                                                <TableCell>{vehicle.incharge?.full_name || '—'}</TableCell>
-                                                <TableCell className="text-sm text-slate-600 dark:text-slate-200">
-                                                    {vehicle.participants.length ? (
-                                                        <div className="space-y-1">
-                                                            {vehicle.participants.map((participant) => (
-                                                                <div key={participant.id} className="flex items-center gap-2">
-                                                                    {participant.is_checked ? (
-                                                                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                                                    ) : (
-                                                                        <span className="h-4 w-4" />
-                                                                    )}
-                                                                    <span>{participant.full_name || participant.email || 'Participant'}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        '—'
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {vehicle.pickup_sent_at ? (
-                                                        <Badge className="border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/40 dark:text-emerald-200">
-                                                            {new Date(vehicle.pickup_sent_at).toLocaleString()}
-                                                        </Badge>
-                                                    ) : (
-                                                        '—'
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled={vehicle.assignments_count > 0}
-                                                        onClick={() => {
-                                                            router.delete(`/transport-vehicles/${vehicle.id}`, {
-                                                                preserveScroll: true,
-                                                                onSuccess: () => toast.success('Vehicle removed.'),
-                                                                onError: (errors) => showToastError(errors as Record<string, string | string[]>),
-                                                            });
-                                                        }}
-                                                    >
-                                                        Remove
-                                                    </Button>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Vehicle</TableHead>
+                                            <TableHead>Driver</TableHead>
+                                            <TableHead>Plate #</TableHead>
+                                            <TableHead>Contact</TableHead>
+                                            <TableHead>
+                                                CHED LO In Charge
+                                            </TableHead>
+                                            <TableHead>Passengers</TableHead>
+                                            <TableHead>Picked Up At</TableHead>
+                                            <TableHead className="text-right">
+                                                Action
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredVehicles.length > 0 ? (
+                                            filteredVehicles.map((vehicle) => (
+                                                <TableRow key={vehicle.id}>
+                                                    <TableCell className="font-medium">
+                                                        {vehicle.label}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {vehicle.driver_name ||
+                                                            '—'}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {vehicle.plate_number ||
+                                                            '—'}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {vehicle.driver_contact_number ||
+                                                            '—'}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {vehicle.incharge
+                                                            ?.full_name || '—'}
+                                                    </TableCell>
+                                                    <TableCell className="text-sm text-slate-600 dark:text-slate-200">
+                                                        {vehicle.participants
+                                                            .length ? (
+                                                            <div className="space-y-1">
+                                                                {vehicle.participants.map(
+                                                                    (
+                                                                        participant,
+                                                                    ) => (
+                                                                        <div
+                                                                            key={
+                                                                                participant.id
+                                                                            }
+                                                                            className="flex items-center gap-2"
+                                                                        >
+                                                                            {participant.is_checked ? (
+                                                                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                                                            ) : (
+                                                                                <span className="h-4 w-4" />
+                                                                            )}
+                                                                            <span>
+                                                                                {participant.full_name ||
+                                                                                    participant.email ||
+                                                                                    'Participant'}
+                                                                            </span>
+                                                                        </div>
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            '—'
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {vehicle.pickup_sent_at ? (
+                                                            <Badge className="border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/40 dark:text-emerald-200">
+                                                                {new Date(
+                                                                    vehicle.pickup_sent_at,
+                                                                ).toLocaleString()}
+                                                            </Badge>
+                                                        ) : (
+                                                            '—'
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            disabled={
+                                                                vehicle.assignments_count >
+                                                                0
+                                                            }
+                                                            onClick={() => {
+                                                                router.delete(
+                                                                    `/transport-vehicles/${vehicle.id}`,
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                        onSuccess:
+                                                                            () =>
+                                                                                toast.success(
+                                                                                    'Vehicle removed.',
+                                                                                ),
+                                                                        onError:
+                                                                            (
+                                                                                errors,
+                                                                            ) =>
+                                                                                showToastError(
+                                                                                    errors as Record<
+                                                                                        string,
+                                                                                        | string
+                                                                                        | string[]
+                                                                                    >,
+                                                                                ),
+                                                                    },
+                                                                );
+                                                            }}
+                                                        >
+                                                            Remove
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={8}
+                                                    className="py-6 text-center text-slate-500"
+                                                >
+                                                    No vehicles yet for this
+                                                    event.
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={8} className="py-6 text-center text-slate-500">
-                                                No vehicles yet for this event.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
+                                        )}
+                                    </TableBody>
                                 </Table>
                             </div>
 
                             <div className="grid gap-4 md:hidden">
                                 {filteredVehicles.length > 0 ? (
                                     filteredVehicles.map((vehicle) => (
-                                        <Card key={vehicle.id} className="border-slate-200/80 p-4 shadow-sm dark:border-slate-800">
+                                        <Card
+                                            key={vehicle.id}
+                                            className="border-slate-200/80 p-4 shadow-sm dark:border-slate-800"
+                                        >
                                             <div className="space-y-3">
                                                 <div>
-                                                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Vehicle</p>
-                                                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100">{vehicle.label}</p>
+                                                    <p className="text-xs tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                        Vehicle
+                                                    </p>
+                                                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                                                        {vehicle.label}
+                                                    </p>
                                                     <p className="text-sm text-slate-600 dark:text-slate-400">
-                                                        {vehicle.plate_number || '—'}
+                                                        {vehicle.plate_number ||
+                                                            '—'}
                                                     </p>
                                                 </div>
                                                 <div className="grid gap-2">
                                                     <div>
-                                                        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Driver</p>
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">{vehicle.driver_name || '—'}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Contact</p>
+                                                        <p className="text-xs tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                            Driver
+                                                        </p>
                                                         <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            {vehicle.driver_contact_number || '—'}
+                                                            {vehicle.driver_name ||
+                                                                '—'}
                                                         </p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">CHED LO</p>
+                                                        <p className="text-xs tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                            Contact
+                                                        </p>
                                                         <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            {vehicle.incharge?.full_name || '—'}
+                                                            {vehicle.driver_contact_number ||
+                                                                '—'}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                            CHED LO
+                                                        </p>
+                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
+                                                            {vehicle.incharge
+                                                                ?.full_name ||
+                                                                '—'}
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Participants</p>
+                                                    <p className="text-xs tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                        Participants
+                                                    </p>
                                                     <div className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-200">
-                                                        {vehicle.participants.length ? (
-                                                            vehicle.participants.map((participant) => (
-                                                                <div key={participant.id} className="flex items-center gap-2">
-                                                                    {participant.is_checked ? (
-                                                                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                                                    ) : (
-                                                                        <span className="h-4 w-4" />
-                                                                    )}
-                                                                    <span>{participant.full_name || participant.email || 'Participant'}</span>
-                                                                </div>
-                                                            ))
+                                                        {vehicle.participants
+                                                            .length ? (
+                                                            vehicle.participants.map(
+                                                                (
+                                                                    participant,
+                                                                ) => (
+                                                                    <div
+                                                                        key={
+                                                                            participant.id
+                                                                        }
+                                                                        className="flex items-center gap-2"
+                                                                    >
+                                                                        {participant.is_checked ? (
+                                                                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                                                        ) : (
+                                                                            <span className="h-4 w-4" />
+                                                                        )}
+                                                                        <span>
+                                                                            {participant.full_name ||
+                                                                                participant.email ||
+                                                                                'Participant'}
+                                                                        </span>
+                                                                    </div>
+                                                                ),
+                                                            )
                                                         ) : (
                                                             <p>—</p>
                                                         )}
@@ -443,7 +701,9 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
                                                     <p>Picked up at:</p>
                                                     {vehicle.pickup_sent_at ? (
                                                         <Badge className="w-fit border-emerald-200 bg-emerald-100 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-900/40 dark:text-emerald-200">
-                                                            {new Date(vehicle.pickup_sent_at).toLocaleString()}
+                                                            {new Date(
+                                                                vehicle.pickup_sent_at,
+                                                            ).toLocaleString()}
                                                         </Badge>
                                                     ) : (
                                                         <p>—</p>
@@ -454,13 +714,31 @@ export default function VehicleManagementPage({ events, selected_event_id, ched_
                                                     variant="outline"
                                                     size="sm"
                                                     className="w-full"
-                                                    disabled={vehicle.assignments_count > 0}
+                                                    disabled={
+                                                        vehicle.assignments_count >
+                                                        0
+                                                    }
                                                     onClick={() => {
-                                                        router.delete(`/transport-vehicles/${vehicle.id}`, {
-                                                            preserveScroll: true,
-                                                            onSuccess: () => toast.success('Vehicle removed.'),
-                                                            onError: (errors) => showToastError(errors as Record<string, string | string[]>),
-                                                        });
+                                                        router.delete(
+                                                            `/transport-vehicles/${vehicle.id}`,
+                                                            {
+                                                                preserveScroll: true,
+                                                                onSuccess: () =>
+                                                                    toast.success(
+                                                                        'Vehicle removed.',
+                                                                    ),
+                                                                onError: (
+                                                                    errors,
+                                                                ) =>
+                                                                    showToastError(
+                                                                        errors as Record<
+                                                                            string,
+                                                                            | string
+                                                                            | string[]
+                                                                        >,
+                                                                    ),
+                                                            },
+                                                        );
                                                     }}
                                                 >
                                                     Remove

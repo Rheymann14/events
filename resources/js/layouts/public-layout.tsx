@@ -1,10 +1,22 @@
-import * as React from 'react';
+import { Button } from '@/components/ui/button';
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetTrigger,
+} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, ArrowRight, LogIn, LayoutDashboard, Globe, Facebook } from 'lucide-react';
+import {
+    ArrowRight,
+    Facebook,
+    Globe,
+    LayoutDashboard,
+    LogIn,
+    Menu,
+} from 'lucide-react';
+import * as React from 'react';
 
 type NavItem = { label: string; href: string };
 
@@ -20,12 +32,12 @@ export const PUBLIC_NAV_ITEMS: NavItem[] = [
 const navItemClass = (active: boolean) =>
     cn(
         'relative inline-flex items-center rounded-full px-3 py-2 text-[13px] font-semibold tracking-wide transition-all',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3c73]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white/80',
+        'focus-visible:ring-2 focus-visible:ring-[#1e3c73]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white/80 focus-visible:outline-none',
         // subtle indicator bar
         'after:absolute after:inset-x-3 after:-bottom-1 after:h-[3px] after:rounded-full after:transition-opacity',
         active
             ? 'bg-[#1e3c73] text-white shadow-[0_12px_30px_-22px_rgba(30,60,115,0.9)] after:bg-white/85 after:opacity-100'
-            : 'text-slate-700 hover:text-slate-900 hover:bg-slate-900/5 after:bg-[#1e3c73] after:opacity-0 hover:after:opacity-100',
+            : 'text-slate-700 after:bg-[#1e3c73] after:opacity-0 hover:bg-slate-900/5 hover:text-slate-900 hover:after:opacity-100',
     );
 
 function NavAnchor({
@@ -40,7 +52,12 @@ function NavAnchor({
     onClick?: () => void;
 }) {
     return (
-        <a href={href} onClick={onClick} className={navItemClass(active)} aria-current={active ? 'page' : undefined}>
+        <a
+            href={href}
+            onClick={onClick}
+            className={navItemClass(active)}
+            aria-current={active ? 'page' : undefined}
+        >
             {children}
         </a>
     );
@@ -67,7 +84,11 @@ export default function PublicLayout({
     const roleSlug = (userType?.slug ?? '').toUpperCase();
     const isAdmin = roleName === 'ADMIN' || roleSlug === 'ADMIN';
     const isChedLo = roleName === 'CHED LO' || roleSlug === 'CHED-LO';
-    const dashboardHref = isAdmin ? '/dashboard' : isChedLo ? '/vehicle-assignment' : '/participant-dashboard';
+    const dashboardHref = isAdmin
+        ? '/dashboard'
+        : isChedLo
+          ? '/vehicle-assignment'
+          : '/participant-dashboard';
 
     const toHref = (href: string) => {
         if (href.startsWith('#') && !isHome) return `/${href}`;
@@ -98,7 +119,7 @@ export default function PublicLayout({
     return (
         <div
             id="home"
-            className="relative isolate min-h-screen w-full text-slate-900 bg-gradient-to-b from-white via-slate-50 to-slate-100"
+            className="relative isolate min-h-screen w-full bg-gradient-to-b from-white via-slate-50 to-slate-100 text-slate-900"
         >
             {/* ✅ Background comes only from pages that pass it (Welcome) */}
             {background}
@@ -138,7 +159,9 @@ export default function PublicLayout({
                                             key={item.href}
                                             href={item.href}
                                             active={isActive(item.href)}
-                                            onClick={() => onNavActiveChange?.(item.href)}
+                                            onClick={() =>
+                                                onNavActiveChange?.(item.href)
+                                            }
                                         >
                                             {item.label.toUpperCase()}
                                         </NavAnchor>
@@ -150,9 +173,17 @@ export default function PublicLayout({
                                     <Link
                                         key={item.href}
                                         href={href}
-                                        className={navItemClass(isActive(item.href))}
-                                        onClick={() => onNavActiveChange?.(item.href)}
-                                        aria-current={isActive(item.href) ? 'page' : undefined}
+                                        className={navItemClass(
+                                            isActive(item.href),
+                                        )}
+                                        onClick={() =>
+                                            onNavActiveChange?.(item.href)
+                                        }
+                                        aria-current={
+                                            isActive(item.href)
+                                                ? 'page'
+                                                : undefined
+                                        }
                                     >
                                         {item.label.toUpperCase()}
                                     </Link>
@@ -160,7 +191,10 @@ export default function PublicLayout({
                             })}
 
                             {auth.user ? (
-                                <Button asChild className="rounded-xl px-5 py-6 text-base">
+                                <Button
+                                    asChild
+                                    className="rounded-xl px-5 py-6 text-base"
+                                >
                                     <Link href={dashboardHref}>
                                         <LayoutDashboard className="mr-2 h-5 w-5" />
                                         Dashboard
@@ -168,7 +202,11 @@ export default function PublicLayout({
                                 </Button>
                             ) : (
                                 <div className="flex items-center gap-3">
-                                    <Button variant="ghost" asChild className="rounded-xl px-5 py-6 text-base">
+                                    <Button
+                                        variant="ghost"
+                                        asChild
+                                        className="rounded-xl px-5 py-6 text-base"
+                                    >
                                         <Link href="/login">
                                             <LogIn className="mr-2 h-5 w-5" />
                                             Log in
@@ -198,14 +236,19 @@ export default function PublicLayout({
                                         variant="outline"
                                         className={cn(
                                             'rounded-xl px-4 py-6 transition-colors',
-                                            isScrolled ? 'bg-white/20' : 'bg-white/70',
+                                            isScrolled
+                                                ? 'bg-white/20'
+                                                : 'bg-white/70',
                                         )}
                                     >
                                         <Menu className="h-6 w-6" />
                                     </Button>
                                 </SheetTrigger>
 
-                                <SheetContent side="right" className="w-[320px] p-0">
+                                <SheetContent
+                                    side="right"
+                                    className="w-[320px] p-0"
+                                >
                                     <div className="border-b px-5 py-4">
                                         <div className="flex items-center gap-3">
                                             <img
@@ -221,35 +264,59 @@ export default function PublicLayout({
                                         <div className="grid gap-3">
                                             {PUBLIC_NAV_ITEMS.map((item) => {
                                                 const href = toHref(item.href);
-                                                const active = isActive(item.href);
+                                                const active = isActive(
+                                                    item.href,
+                                                );
 
                                                 return (
-                                                    <SheetClose asChild key={item.href}>
-                                                        {isHome && item.href.startsWith('#') ? (
+                                                    <SheetClose
+                                                        asChild
+                                                        key={item.href}
+                                                    >
+                                                        {isHome &&
+                                                        item.href.startsWith(
+                                                            '#',
+                                                        ) ? (
                                                             <a
                                                                 href={item.href}
-                                                                onClick={() => onNavActiveChange?.(item.href)}
+                                                                onClick={() =>
+                                                                    onNavActiveChange?.(
+                                                                        item.href,
+                                                                    )
+                                                                }
                                                                 className={cn(
                                                                     'rounded-xl border px-4 py-3 text-sm font-semibold transition-all',
                                                                     active
                                                                         ? 'border-[#1e3c73]/40 bg-[#1e3c73] text-white shadow-sm'
                                                                         : 'bg-background hover:bg-muted',
                                                                 )}
-                                                                aria-current={active ? 'page' : undefined}
+                                                                aria-current={
+                                                                    active
+                                                                        ? 'page'
+                                                                        : undefined
+                                                                }
                                                             >
                                                                 {item.label}
                                                             </a>
                                                         ) : (
                                                             <Link
                                                                 href={href}
-                                                                onClick={() => onNavActiveChange?.(item.href)}
+                                                                onClick={() =>
+                                                                    onNavActiveChange?.(
+                                                                        item.href,
+                                                                    )
+                                                                }
                                                                 className={cn(
                                                                     'rounded-xl border px-4 py-3 text-sm font-semibold transition-all',
                                                                     active
                                                                         ? 'border-[#1e3c73]/40 bg-[#1e3c73] text-white shadow-sm'
                                                                         : 'bg-background hover:bg-muted',
                                                                 )}
-                                                                aria-current={active ? 'page' : undefined}
+                                                                aria-current={
+                                                                    active
+                                                                        ? 'page'
+                                                                        : undefined
+                                                                }
                                                             >
                                                                 {item.label}
                                                             </Link>
@@ -260,13 +327,26 @@ export default function PublicLayout({
 
                                             <div className="mt-2 grid gap-2">
                                                 {auth.user ? (
-                                                    <Button asChild className="rounded-xl">
-                                                        <Link href={dashboardHref}>Dashboard</Link>
+                                                    <Button
+                                                        asChild
+                                                        className="rounded-xl"
+                                                    >
+                                                        <Link
+                                                            href={dashboardHref}
+                                                        >
+                                                            Dashboard
+                                                        </Link>
                                                     </Button>
                                                 ) : (
                                                     <>
-                                                        <Button variant="outline" asChild className="rounded-xl">
-                                                            <Link href="/login">Log in</Link>
+                                                        <Button
+                                                            variant="outline"
+                                                            asChild
+                                                            className="rounded-xl"
+                                                        >
+                                                            <Link href="/login">
+                                                                Log in
+                                                            </Link>
                                                         </Button>
 
                                                         {canRegister && (
@@ -274,7 +354,9 @@ export default function PublicLayout({
                                                                 asChild
                                                                 className="rounded-xl bg-gradient-to-r from-[#1e3c73] via-[#25468a] to-[#1e3c73] font-semibold hover:brightness-110"
                                                             >
-                                                                <Link href="/register">Register Now</Link>
+                                                                <Link href="/register">
+                                                                    Register Now
+                                                                </Link>
                                                             </Button>
                                                         )}
                                                     </>
@@ -320,8 +402,14 @@ export default function PublicLayout({
 
             {/* Footer */}
             <footer className="relative z-10 bg-[#0b1426] text-slate-200">
-                <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-white/10" />
-                <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/20" />
+                <div
+                    aria-hidden
+                    className="absolute inset-x-0 top-0 h-px bg-white/10"
+                />
+                <div
+                    aria-hidden
+                    className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/20"
+                />
 
                 <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="relative py-14">
@@ -341,27 +429,44 @@ export default function PublicLayout({
                                     </div>
 
                                     <div>
-                                        <p className="text-base font-semibold tracking-wide text-white">CHED Events</p>
-                                        <p className="text-xs text-slate-400">Participant Registration</p>
+                                        <p className="text-base font-semibold tracking-wide text-white">
+                                            CHED Events
+                                        </p>
+                                        <p className="text-xs text-slate-400">
+                                            Participant Registration
+                                        </p>
                                     </div>
                                 </div>
 
                                 <p className="max-w-sm text-sm leading-relaxed text-slate-300">
-                                    Official event registration portal. Please review the memo and FAQs before submitting your details.
+                                    Official event registration portal. Please
+                                    review the memo and FAQs before submitting
+                                    your details.
                                 </p>
                             </div>
 
                             <div>
-                                <p className="text-sm font-semibold tracking-wide text-white">SITEMAP</p>
+                                <p className="text-sm font-semibold tracking-wide text-white">
+                                    SITEMAP
+                                </p>
                                 <ul className="mt-5 space-y-3 text-sm">
                                     {[
                                         { label: 'Venue', href: '/venue' },
                                         { label: 'Event', href: '/event' },
-                                        { label: 'Resources', href: '/issuances' },
-                                        { label: 'Contact Us', href: '/contact-us' },
+                                        {
+                                            label: 'Resources',
+                                            href: '/issuances',
+                                        },
+                                        {
+                                            label: 'Contact Us',
+                                            href: '/contact-us',
+                                        },
                                     ].map((item) => (
                                         <li key={item.href}>
-                                            <a href={item.href} className="text-slate-300 transition-colors hover:text-white">
+                                            <a
+                                                href={item.href}
+                                                className="text-slate-300 transition-colors hover:text-white"
+                                            >
                                                 {item.label}
                                             </a>
                                         </li>
@@ -370,7 +475,9 @@ export default function PublicLayout({
                             </div>
 
                             <div className="lg:justify-self-end">
-                                <p className="text-sm font-semibold tracking-wide text-white">DEVELOPED BY</p>
+                                <p className="text-sm font-semibold tracking-wide text-white">
+                                    DEVELOPED BY
+                                </p>
 
                                 <div className="mt-4 flex items-center justify-start gap-4">
                                     <div className="grid size-20 place-items-center sm:size-24">

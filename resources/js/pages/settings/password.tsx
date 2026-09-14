@@ -45,7 +45,11 @@ export default function Password() {
                         options={{
                             preserveScroll: true,
                         }}
-                        resetOnError={['password', 'password_confirmation', 'current_password']}
+                        resetOnError={[
+                            'password',
+                            'password_confirmation',
+                            'current_password',
+                        ]}
                         resetOnSuccess
                         onError={(errors) => {
                             if (errors.password) {
@@ -62,14 +66,20 @@ export default function Password() {
                             <>
                                 {/* CURRENT PASSWORD */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="current_password">Current password</Label>
+                                    <Label htmlFor="current_password">
+                                        Current password
+                                    </Label>
 
                                     <div className="relative">
                                         <Input
                                             id="current_password"
                                             ref={currentPasswordInput}
                                             name="current_password"
-                                            type={showCurrent ? 'text' : 'password'}
+                                            type={
+                                                showCurrent
+                                                    ? 'text'
+                                                    : 'password'
+                                            }
                                             className="mt-1 block w-full pr-10"
                                             autoComplete="current-password"
                                             placeholder="Current password"
@@ -79,9 +89,15 @@ export default function Password() {
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => setShowCurrent((v) => !v)}
-                                            className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                            aria-label={showCurrent ? 'Hide current password' : 'Show current password'}
+                                            onClick={() =>
+                                                setShowCurrent((v) => !v)
+                                            }
+                                            className="absolute top-1/2 right-1 h-9 w-9 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            aria-label={
+                                                showCurrent
+                                                    ? 'Hide current password'
+                                                    : 'Show current password'
+                                            }
                                         >
                                             {showCurrent ? (
                                                 <Eye className="h-4 w-4" />
@@ -91,12 +107,16 @@ export default function Password() {
                                         </Button>
                                     </div>
 
-                                    <InputError message={errors.current_password} />
+                                    <InputError
+                                        message={errors.current_password}
+                                    />
                                 </div>
 
                                 {/* NEW PASSWORD */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="password">New password</Label>
+                                    <Label htmlFor="password">
+                                        New password
+                                    </Label>
 
                                     <div className="relative">
                                         <Input
@@ -113,9 +133,15 @@ export default function Password() {
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => setShowNew((v) => !v)}
-                                            className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                            aria-label={showNew ? 'Hide new password' : 'Show new password'}
+                                            onClick={() =>
+                                                setShowNew((v) => !v)
+                                            }
+                                            className="absolute top-1/2 right-1 h-9 w-9 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            aria-label={
+                                                showNew
+                                                    ? 'Hide new password'
+                                                    : 'Show new password'
+                                            }
                                         >
                                             {showNew ? (
                                                 <Eye className="h-4 w-4" />
@@ -130,13 +156,19 @@ export default function Password() {
 
                                 {/* CONFIRM PASSWORD */}
                                 <div className="grid gap-2">
-                                    <Label htmlFor="password_confirmation">Confirm password</Label>
+                                    <Label htmlFor="password_confirmation">
+                                        Confirm password
+                                    </Label>
 
                                     <div className="relative">
                                         <Input
                                             id="password_confirmation"
                                             name="password_confirmation"
-                                            type={showConfirm ? 'text' : 'password'}
+                                            type={
+                                                showConfirm
+                                                    ? 'text'
+                                                    : 'password'
+                                            }
                                             className="mt-1 block w-full pr-10"
                                             autoComplete="new-password"
                                             placeholder="Confirm password"
@@ -146,9 +178,15 @@ export default function Password() {
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => setShowConfirm((v) => !v)}
-                                            className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                            aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+                                            onClick={() =>
+                                                setShowConfirm((v) => !v)
+                                            }
+                                            className="absolute top-1/2 right-1 h-9 w-9 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            aria-label={
+                                                showConfirm
+                                                    ? 'Hide confirm password'
+                                                    : 'Show confirm password'
+                                            }
                                         >
                                             {showConfirm ? (
                                                 <Eye className="h-4 w-4" />
@@ -158,11 +196,16 @@ export default function Password() {
                                         </Button>
                                     </div>
 
-                                    <InputError message={errors.password_confirmation} />
+                                    <InputError
+                                        message={errors.password_confirmation}
+                                    />
                                 </div>
 
                                 <div className="flex items-center gap-4">
-                                    <Button disabled={processing} data-test="update-password-button">
+                                    <Button
+                                        disabled={processing}
+                                        data-test="update-password-button"
+                                    >
                                         Save password
                                     </Button>
 
@@ -173,7 +216,9 @@ export default function Password() {
                                         leave="transition ease-in-out"
                                         leaveTo="opacity-0"
                                     >
-                                        <p className="text-sm text-neutral-600">Saved</p>
+                                        <p className="text-sm text-neutral-600">
+                                            Saved
+                                        </p>
                                     </Transition>
                                 </div>
                             </>

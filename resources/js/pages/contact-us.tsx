@@ -1,8 +1,8 @@
-import * as React from 'react';
+import { Card } from '@/components/ui/card';
 import PublicLayout from '@/layouts/public-layout';
 import { Head } from '@inertiajs/react';
-import { Card } from '@/components/ui/card';
-import { Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
+import * as React from 'react';
 
 type ContactCardKey = 'email' | 'phone' | 'office';
 
@@ -25,7 +25,10 @@ function iconFor(key: ContactCardKey) {
 
 export default function ContactUs(props: PageProps) {
     const items = props.items ?? [];
-    const activeItems = React.useMemo(() => items.filter((item) => item.is_active !== false), [items]);
+    const activeItems = React.useMemo(
+        () => items.filter((item) => item.is_active !== false),
+        [items],
+    );
 
     return (
         <>
@@ -41,16 +44,19 @@ export default function ContactUs(props: PageProps) {
                     <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                         <div className="mx-auto max-w-5xl text-center">
                             {/* ✅ Title stays as-is */}
-                            <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-5xl">
+                            <h2 className="text-3xl leading-tight font-semibold tracking-tight text-balance text-slate-900 sm:text-5xl">
                                 <span className="relative inline-block">
-                                    <span className="relative z-10 text-[#0033A0]">Contact</span>
+                                    <span className="relative z-10 text-[#0033A0]">
+                                        Contact
+                                    </span>
                                     <span className="pointer-events-none absolute inset-x-0 bottom-1 -z-0 h-2 rounded-full bg-[#0033A0]/15 blur-[1px]" />
                                 </span>{' '}
                                 Us
                             </h2>
 
                             <p className="mt-4 text-slate-600">
-                                For inquiries and assistance regarding the Events Registration.
+                                For inquiries and assistance regarding the
+                                Events Registration.
                             </p>
 
                             <div className="mx-auto mt-6 flex items-center justify-center gap-3">
@@ -82,11 +88,10 @@ export default function ContactUs(props: PageProps) {
                                 />
 
                                 {/* caption */}
-                                <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-2">
+                                <div className="absolute right-4 bottom-4 left-4 flex flex-wrap items-center justify-between gap-2">
                                     <div className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold tracking-wide text-white backdrop-blur">
                                         CHED Central Office
                                     </div>
-
                                 </div>
                             </div>
                         </div>
@@ -98,7 +103,10 @@ export default function ContactUs(props: PageProps) {
                                     key={item.key}
                                     className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/70 p-6 shadow-sm backdrop-blur-md transition hover:-translate-y-0.5 hover:border-[#1e3c73]/20 hover:bg-white/80 hover:shadow-md"
                                 >
-                                    <div aria-hidden className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100">
+                                    <div
+                                        aria-hidden
+                                        className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100"
+                                    >
                                         <div className="absolute -top-24 -right-24 h-56 w-56 rounded-full bg-[#0033A0]/10 blur-2xl" />
                                     </div>
 
@@ -108,8 +116,10 @@ export default function ContactUs(props: PageProps) {
                                         </div>
 
                                         <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                                            <p className="mt-1 whitespace-pre-line text-sm font-medium text-slate-700 group-hover:text-slate-900">
+                                            <p className="text-sm font-semibold text-slate-900">
+                                                {item.title}
+                                            </p>
+                                            <p className="mt-1 text-sm font-medium whitespace-pre-line text-slate-700 group-hover:text-slate-900">
                                                 {item.value}
                                             </p>
                                         </div>
@@ -117,8 +127,6 @@ export default function ContactUs(props: PageProps) {
                                 </Card>
                             ))}
                         </div>
-                        
-                      
                     </div>
                 </section>
             </PublicLayout>

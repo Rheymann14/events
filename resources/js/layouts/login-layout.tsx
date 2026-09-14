@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { cn } from '@/lib/utils';
 
 type LoginLayoutProps = {
     children: React.ReactNode;
@@ -20,7 +19,9 @@ export default function LoginLayout({ children }: LoginLayoutProps) {
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,51,160,0.12),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(252,209,22,0.12),transparent_55%)]" />
             </div>
 
-            <main className="relative z-10 min-h-[100svh] w-full overflow-x-hidden">{children}</main>
+            <main className="relative z-10 min-h-[100svh] w-full overflow-x-hidden">
+                {children}
+            </main>
         </div>
     );
 }

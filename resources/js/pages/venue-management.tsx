@@ -1,18 +1,32 @@
-import * as React from 'react';
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, useForm } from '@inertiajs/react';
-import { type BreadcrumbItem } from '@/types';
 import { cn } from '@/lib/utils';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router, useForm } from '@inertiajs/react';
+import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 import {
     AlertDialog,
@@ -34,9 +48,14 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Command,
     CommandEmpty,
@@ -45,21 +64,26 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 
 import {
-    Plus,
-    Search,
+    BadgeCheck,
+    Building2,
+    Check,
+    CheckCircle2,
+    ChevronsUpDown,
+    ExternalLink,
+    MapPin,
     MoreHorizontal,
     Pencil,
+    Plus,
+    Search,
     Trash2,
-    BadgeCheck,
-    MapPin,
-    ExternalLink,
-    Building2,
-    CheckCircle2,
     XCircle,
-    ChevronsUpDown,
-    Check,
 } from 'lucide-react';
 
 type ProgrammeRow = {
@@ -90,7 +114,9 @@ type PageProps = {
     default_event_id?: number | null;
 };
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Venue Management', href: '/venue-management' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Venue Management', href: '/venue-management' },
+];
 
 const ENDPOINTS = {
     venues: {
@@ -126,7 +152,11 @@ function StatusBadge({ active }: { active: boolean }) {
                     : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
             )}
         >
-            {active ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+            {active ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : (
+                <XCircle className="h-3.5 w-3.5" />
+            )}
             {active ? 'Active' : 'Inactive'}
         </span>
     );
@@ -149,8 +179,12 @@ function EmptyState({
                 <div className="grid size-12 place-items-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
                     {icon}
                 </div>
-                <div className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">{title}</div>
-                <div className="max-w-md text-sm text-slate-600 dark:text-slate-400">{subtitle}</div>
+                <div className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-100">
+                    {title}
+                </div>
+                <div className="max-w-md text-sm text-slate-600 dark:text-slate-400">
+                    {subtitle}
+                </div>
                 {action ? <div className="mt-4">{action}</div> : null}
             </div>
         </div>
@@ -169,14 +203,25 @@ function MapPreview({
             <div className="grid h-[320px] place-items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center dark:border-slate-800 dark:bg-slate-900/30">
                 <div className="grid place-items-center gap-2 px-6">
                     <MapPin className="h-7 w-7 text-slate-500" />
-                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">No map embed yet</div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        No map embed yet
+                    </div>
                     <div className="text-sm text-slate-600 dark:text-slate-400">
-                        Paste an <span className="font-medium">Embed URL</span> to preview the map here.
+                        Paste an <span className="font-medium">Embed URL</span>{' '}
+                        to preview the map here.
                     </div>
 
                     {googleMapsUrl ? (
-                        <Button asChild variant="secondary" className="mt-2 rounded-full">
-                            <a href={googleMapsUrl} target="_blank" rel="noreferrer">
+                        <Button
+                            asChild
+                            variant="secondary"
+                            className="mt-2 rounded-full"
+                        >
+                            <a
+                                href={googleMapsUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                            >
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 Open in Google Maps
                             </a>
@@ -192,17 +237,17 @@ function MapPreview({
             <iframe
                 title="Venue map preview"
                 src={embedUrl}
-                className="h-[320px] w-full pointer-events-none"
+                className="pointer-events-none h-[320px] w-full"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
             />
             <div
                 aria-hidden
-                className="pointer-events-none absolute left-3 top-3 h-16 w-52 rounded-lg bg-white/90 shadow-sm dark:bg-slate-900/90"
+                className="pointer-events-none absolute top-3 left-3 h-16 w-52 rounded-lg bg-white/90 shadow-sm dark:bg-slate-900/90"
             />
             <div
                 aria-hidden
-                className="pointer-events-none absolute right-3 top-3 h-12 w-12 rounded-lg bg-white/90 shadow-sm dark:bg-slate-900/90"
+                className="pointer-events-none absolute top-3 right-3 h-12 w-12 rounded-lg bg-white/90 shadow-sm dark:bg-slate-900/90"
             />
         </div>
     );
@@ -254,7 +299,12 @@ function EventCombobox({
                     aria-expanded={open}
                     className="w-full min-w-0 justify-between"
                 >
-                    <span className={cn('truncate', !selected && 'text-muted-foreground')}>
+                    <span
+                        className={cn(
+                            'truncate',
+                            !selected && 'text-muted-foreground',
+                        )}
+                    >
                         {selected ? selected.title : 'Select event'}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -277,7 +327,10 @@ function EventCombobox({
                                 const hasVenue = programmesWithVenue.has(p.id);
 
                                 // ✅ disable if already has venue (but allow current event when editing)
-                                const disabled = hasVenue && (editingProgrammeId == null || editingProgrammeId !== p.id);
+                                const disabled =
+                                    hasVenue &&
+                                    (editingProgrammeId == null ||
+                                        editingProgrammeId !== p.id);
 
                                 const isSelected = value === String(p.id);
 
@@ -294,8 +347,17 @@ function EventCombobox({
                                         className={cn(disabled && 'opacity-50')}
                                     >
                                         <div className="flex w-full items-center gap-3">
-                                            <Check className={cn('h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')} />
-                                            <span className="flex-1 truncate">{p.title}</span>
+                                            <Check
+                                                className={cn(
+                                                    'h-4 w-4',
+                                                    isSelected
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0',
+                                                )}
+                                            />
+                                            <span className="flex-1 truncate">
+                                                {p.title}
+                                            </span>
 
                                             <span
                                                 className={cn(
@@ -305,7 +367,9 @@ function EventCombobox({
                                                         : 'bg-amber-600/10 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
                                                 )}
                                             >
-                                                {hasVenue ? 'Has venue' : 'No venue yet'}
+                                                {hasVenue
+                                                    ? 'Has venue'
+                                                    : 'No venue yet'}
                                             </span>
                                         </div>
                                     </CommandItem>
@@ -320,10 +384,19 @@ function EventCombobox({
 }
 
 export default function VenueManagement(props: PageProps) {
-    const programmes: ProgrammeRow[] = React.useMemo(() => props.programmes ?? [], [props.programmes]);
-    const venues: VenueRow[] = React.useMemo(() => props.venues ?? [], [props.venues]);
+    const programmes: ProgrammeRow[] = React.useMemo(
+        () => props.programmes ?? [],
+        [props.programmes],
+    );
+    const venues: VenueRow[] = React.useMemo(
+        () => props.venues ?? [],
+        [props.venues],
+    );
 
-    const programmeById = React.useMemo(() => new Map(programmes.map((p) => [p.id, p])), [programmes]);
+    const programmeById = React.useMemo(
+        () => new Map(programmes.map((p) => [p.id, p])),
+        [programmes],
+    );
 
     const resolvedVenues = React.useMemo(() => {
         const toId = (val: unknown): number | null => {
@@ -334,17 +407,21 @@ export default function VenueManagement(props: PageProps) {
 
         return venues.map((v) => {
             // handle snake_case, camelCase, or missing
-            const rawProgrammeId = (v as any).programme_id ?? (v as any).programmeId ?? null;
+            const rawProgrammeId =
+                (v as any).programme_id ?? (v as any).programmeId ?? null;
             const programmeId = toId(rawProgrammeId) ?? toId(v.programme?.id);
 
             return {
                 ...v,
                 programme_id: programmeId,
-                programme: v.programme ?? (programmeId ? programmeById.get(programmeId) ?? null : null),
+                programme:
+                    v.programme ??
+                    (programmeId
+                        ? (programmeById.get(programmeId) ?? null)
+                        : null),
             };
         });
     }, [venues, programmeById]);
-
 
     // ✅ which programmes already have a venue (used to disable options in Add dialog)
     const programmesWithVenue = React.useMemo(() => {
@@ -361,20 +438,28 @@ export default function VenueManagement(props: PageProps) {
         return set;
     }, [resolvedVenues]);
 
-
     const [q, setQ] = React.useState('');
     const [eventFilter, setEventFilter] = React.useState<string>(() =>
         props.default_event_id ? String(props.default_event_id) : 'all',
     );
-    const [statusFilter, setStatusFilter] = React.useState<'all' | 'active' | 'inactive'>('all');
+    const [statusFilter, setStatusFilter] = React.useState<
+        'all' | 'active' | 'inactive'
+    >('all');
 
     const filtered = React.useMemo(() => {
         const query = q.trim().toLowerCase();
         return resolvedVenues.filter((v) => {
             const matchesQuery =
-                !query || `${v.name} ${v.address} ${v.programme?.title ?? ''}`.toLowerCase().includes(query);
-            const matchesEvent = eventFilter === 'all' || String(v.programme_id ?? '') === eventFilter;
-            const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? v.is_active : !v.is_active);
+                !query ||
+                `${v.name} ${v.address} ${v.programme?.title ?? ''}`
+                    .toLowerCase()
+                    .includes(query);
+            const matchesEvent =
+                eventFilter === 'all' ||
+                String(v.programme_id ?? '') === eventFilter;
+            const matchesStatus =
+                statusFilter === 'all' ||
+                (statusFilter === 'active' ? v.is_active : !v.is_active);
             return matchesQuery && matchesEvent && matchesStatus;
         });
     }, [resolvedVenues, q, eventFilter, statusFilter]);
@@ -385,7 +470,9 @@ export default function VenueManagement(props: PageProps) {
 
     // delete
     const [deleteOpen, setDeleteOpen] = React.useState(false);
-    const [deleteTarget, setDeleteTarget] = React.useState<VenueRow | null>(null);
+    const [deleteTarget, setDeleteTarget] = React.useState<VenueRow | null>(
+        null,
+    );
 
     const form = useForm<{
         programme_id: string;
@@ -403,7 +490,10 @@ export default function VenueManagement(props: PageProps) {
         is_active: true,
     });
 
-    const embedPreviewUrl = React.useMemo(() => extractIframeSrc(form.data.embed_url), [form.data.embed_url]);
+    const embedPreviewUrl = React.useMemo(
+        () => extractIframeSrc(form.data.embed_url),
+        [form.data.embed_url],
+    );
 
     function openAdd() {
         setEditing(null);
@@ -459,7 +549,10 @@ export default function VenueManagement(props: PageProps) {
             { is_active: !item.is_active },
             {
                 preserveScroll: true,
-                onSuccess: () => toast.success(`Venue ${item.is_active ? 'deactivated' : 'activated'}.`),
+                onSuccess: () =>
+                    toast.success(
+                        `Venue ${item.is_active ? 'deactivated' : 'activated'}.`,
+                    ),
                 onError: () => toast.error('Unable to update venue status.'),
             },
         );
@@ -506,7 +599,7 @@ export default function VenueManagement(props: PageProps) {
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
                             <div className="relative w-full sm:w-[360px]">
-                                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                                <Search className="pointer-events-none absolute top-2.5 left-3 h-4 w-4 text-slate-500" />
                                 <Input
                                     value={q}
                                     onChange={(e) => setQ(e.target.value)}
@@ -515,33 +608,51 @@ export default function VenueManagement(props: PageProps) {
                                 />
                             </div>
 
-                            <Select value={eventFilter} onValueChange={setEventFilter}>
+                            <Select
+                                value={eventFilter}
+                                onValueChange={setEventFilter}
+                            >
                                 <SelectTrigger className="w-full sm:w-[240px]">
                                     <SelectValue placeholder="Filter by event" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Events</SelectItem>
+                                    <SelectItem value="all">
+                                        All Events
+                                    </SelectItem>
                                     {programmes.map((p) => (
-                                        <SelectItem key={p.id} value={String(p.id)}>
+                                        <SelectItem
+                                            key={p.id}
+                                            value={String(p.id)}
+                                        >
                                             {p.title}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
 
-                            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+                            <Select
+                                value={statusFilter}
+                                onValueChange={(v) => setStatusFilter(v as any)}
+                            >
                                 <SelectTrigger className="w-full sm:w-[170px]">
                                     <SelectValue placeholder="Status" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All</SelectItem>
-                                    <SelectItem value="active">Active</SelectItem>
-                                    <SelectItem value="inactive">Inactive</SelectItem>
+                                    <SelectItem value="active">
+                                        Active
+                                    </SelectItem>
+                                    <SelectItem value="inactive">
+                                        Inactive
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        <Button onClick={openAdd} className={cn('w-full sm:w-auto', PRIMARY_BTN)}>
+                        <Button
+                            onClick={openAdd}
+                            className={cn('w-full sm:w-auto', PRIMARY_BTN)}
+                        >
                             <Plus className="mr-2 h-4 w-4" />
                             Add Venue
                         </Button>
@@ -551,7 +662,10 @@ export default function VenueManagement(props: PageProps) {
 
                     <div className="text-sm text-slate-600 dark:text-slate-400">
                         Showing{' '}
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{filtered.length}</span> item
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">
+                            {filtered.length}
+                        </span>{' '}
+                        item
                         {filtered.length === 1 ? '' : 's'}
                     </div>
 
@@ -567,12 +681,24 @@ export default function VenueManagement(props: PageProps) {
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-slate-50 dark:bg-slate-900/40">
-                                            <TableHead className="min-w-[260px]">Venue</TableHead>
-                                            <TableHead className="min-w-[260px]">Event</TableHead>
-                                            <TableHead className="min-w-[340px]">Address</TableHead>
-                                            <TableHead className="w-[140px]">Status</TableHead>
-                                            <TableHead className="w-[180px]">Updated</TableHead>
-                                            <TableHead className="w-[120px] text-right">Action</TableHead>
+                                            <TableHead className="min-w-[260px]">
+                                                Venue
+                                            </TableHead>
+                                            <TableHead className="min-w-[260px]">
+                                                Event
+                                            </TableHead>
+                                            <TableHead className="min-w-[340px]">
+                                                Address
+                                            </TableHead>
+                                            <TableHead className="w-[140px]">
+                                                Status
+                                            </TableHead>
+                                            <TableHead className="w-[180px]">
+                                                Updated
+                                            </TableHead>
+                                            <TableHead className="w-[120px] text-right">
+                                                Action
+                                            </TableHead>
                                         </TableRow>
                                     </TableHeader>
 
@@ -582,13 +708,17 @@ export default function VenueManagement(props: PageProps) {
                                                 <TableCell className="font-semibold text-slate-900 dark:text-slate-100">
                                                     <div className="flex items-center gap-2">
                                                         <MapPin className="h-4 w-4 text-slate-500" />
-                                                        <span className="truncate">{v.name}</span>
+                                                        <span className="truncate">
+                                                            {v.name}
+                                                        </span>
                                                     </div>
 
                                                     <div className="mt-1 flex flex-wrap items-center gap-2">
                                                         {v.google_maps_url ? (
                                                             <a
-                                                                href={v.google_maps_url}
+                                                                href={
+                                                                    v.google_maps_url
+                                                                }
                                                                 target="_blank"
                                                                 rel="noreferrer"
                                                                 className="inline-flex items-center gap-1 text-xs font-medium text-[#00359c] hover:underline"
@@ -597,13 +727,20 @@ export default function VenueManagement(props: PageProps) {
                                                                 Google Maps
                                                             </a>
                                                         ) : (
-                                                            <span className="text-xs text-slate-400">No Google Maps link</span>
+                                                            <span className="text-xs text-slate-400">
+                                                                No Google Maps
+                                                                link
+                                                            </span>
                                                         )}
 
                                                         {v.embed_url ? (
-                                                            <span className="text-xs text-slate-400">• Embed ready</span>
+                                                            <span className="text-xs text-slate-400">
+                                                                • Embed ready
+                                                            </span>
                                                         ) : (
-                                                            <span className="text-xs text-slate-400">• No embed</span>
+                                                            <span className="text-xs text-slate-400">
+                                                                • No embed
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </TableCell>
@@ -613,39 +750,72 @@ export default function VenueManagement(props: PageProps) {
                                                 </TableCell>
 
                                                 <TableCell className="text-slate-700 dark:text-slate-300">
-                                                    <div className="line-clamp-2">{v.address}</div>
+                                                    <div className="line-clamp-2">
+                                                        {v.address}
+                                                    </div>
                                                 </TableCell>
 
                                                 <TableCell>
-                                                    <StatusBadge active={v.is_active} />
+                                                    <StatusBadge
+                                                        active={v.is_active}
+                                                    />
                                                 </TableCell>
 
                                                 <TableCell className="text-slate-700 dark:text-slate-300">
-                                                    {formatDateTimeSafe(v.updated_at)}
+                                                    {formatDateTimeSafe(
+                                                        v.updated_at,
+                                                    )}
                                                 </TableCell>
 
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="rounded-full">
+                                                        <DropdownMenuTrigger
+                                                            asChild
+                                                        >
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="rounded-full"
+                                                            >
                                                                 <MoreHorizontal className="h-4 w-4" />
                                                             </Button>
                                                         </DropdownMenuTrigger>
 
-                                                        <DropdownMenuContent align="end" className="w-52">
-                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuItem onClick={() => openEdit(v)}>
+                                                        <DropdownMenuContent
+                                                            align="end"
+                                                            className="w-52"
+                                                        >
+                                                            <DropdownMenuLabel>
+                                                                Actions
+                                                            </DropdownMenuLabel>
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    openEdit(v)
+                                                                }
+                                                            >
                                                                 <Pencil className="mr-2 h-4 w-4" />
                                                                 Edit
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => toggleActive(v)}>
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    toggleActive(
+                                                                        v,
+                                                                    )
+                                                                }
+                                                            >
                                                                 <BadgeCheck className="mr-2 h-4 w-4" />
-                                                                {v.is_active ? 'Set Inactive' : 'Set Active'}
+                                                                {v.is_active
+                                                                    ? 'Set Inactive'
+                                                                    : 'Set Active'}
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem
                                                                 className="text-red-600 focus:text-red-600"
-                                                                onClick={() => requestDelete(v)}
+                                                                onClick={() =>
+                                                                    requestDelete(
+                                                                        v,
+                                                                    )
+                                                                }
                                                             >
                                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                                 Delete
@@ -666,12 +836,13 @@ export default function VenueManagement(props: PageProps) {
             {/* Add/Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-[980px]">
-
                     <DialogHeader>
-                        <DialogTitle>{editing ? 'Edit Venue' : 'Add Venue'}</DialogTitle>
+                        <DialogTitle>
+                            {editing ? 'Edit Venue' : 'Add Venue'}
+                        </DialogTitle>
                         <DialogDescription>
-                            Set venue details for a specific event, including Google Maps link and Embed URL.
-                          
+                            Set venue details for a specific event, including
+                            Google Maps link and Embed URL.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -681,91 +852,176 @@ export default function VenueManagement(props: PageProps) {
                             <div className="space-y-4">
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="space-y-1.5 sm:col-span-2">
-                                        <div className="text-sm font-medium">Event  <span className="text-[11px] font-semibold text-red-600"> *</span></div>
+                                        <div className="text-sm font-medium">
+                                            Event{' '}
+                                            <span className="text-[11px] font-semibold text-red-600">
+                                                {' '}
+                                                *
+                                            </span>
+                                        </div>
 
                                         {programmes?.length ? (
                                             <EventCombobox
                                                 programmes={programmes}
                                                 value={form.data.programme_id}
-                                                onChange={(v) => form.setData('programme_id', v)}
-                                                programmesWithVenue={programmesWithVenue}
-                                                editingProgrammeId={editing?.programme_id ?? null}
+                                                onChange={(v) =>
+                                                    form.setData(
+                                                        'programme_id',
+                                                        v,
+                                                    )
+                                                }
+                                                programmesWithVenue={
+                                                    programmesWithVenue
+                                                }
+                                                editingProgrammeId={
+                                                    editing?.programme_id ??
+                                                    null
+                                                }
                                             />
                                         ) : (
                                             <div className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
-                                                No record found, try adding events first.
+                                                No record found, try adding
+                                                events first.
                                             </div>
                                         )}
 
                                         {form.errors.programme_id ? (
-                                            <div className="text-xs text-red-600">{form.errors.programme_id}</div>
+                                            <div className="text-xs text-red-600">
+                                                {form.errors.programme_id}
+                                            </div>
                                         ) : null}
                                     </div>
 
                                     <div className="space-y-1.5 sm:col-span-2">
-                                        <div className="text-sm font-medium">Venue name <span className="text-[11px] font-semibold text-red-600"> *</span></div>
+                                        <div className="text-sm font-medium">
+                                            Venue name{' '}
+                                            <span className="text-[11px] font-semibold text-red-600">
+                                                {' '}
+                                                *
+                                            </span>
+                                        </div>
                                         <Input
                                             value={form.data.name}
-                                            onChange={(e) => form.setData('name', e.target.value)}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'name',
+                                                    e.target.value,
+                                                )
+                                            }
                                             placeholder="e.g. Commission on Higher Education (CHED)"
                                         />
-                                        {form.errors.name ? <div className="text-xs text-red-600">{form.errors.name}</div> : null}
+                                        {form.errors.name ? (
+                                            <div className="text-xs text-red-600">
+                                                {form.errors.name}
+                                            </div>
+                                        ) : null}
                                     </div>
 
                                     <div className="space-y-1.5 sm:col-span-2">
-                                        <div className="text-sm font-medium">Address</div>
+                                        <div className="text-sm font-medium">
+                                            Address
+                                        </div>
                                         <Textarea
                                             value={form.data.address}
-                                            onChange={(e) => form.setData('address', e.target.value)}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'address',
+                                                    e.target.value,
+                                                )
+                                            }
                                             placeholder="Full address shown on the public Venue page"
                                             className="min-h-[90px]"
                                         />
-                                        {form.errors.address ? <div className="text-xs text-red-600">{form.errors.address}</div> : null}
-                                    </div>
-
-                                    <div className="space-y-1.5 sm:col-span-2">
-                                        <div className="text-sm font-medium">Google Maps link (Open in Google Maps button)</div>
-                                        <Input
-                                            value={form.data.google_maps_url}
-                                            onChange={(e) => form.setData('google_maps_url', e.target.value)}
-                                            placeholder="https://maps.google.com/?q=... or share link"
-                                        />
-                                        {form.errors.google_maps_url ? (
-                                            <div className="text-xs text-red-600">{form.errors.google_maps_url}</div>
+                                        {form.errors.address ? (
+                                            <div className="text-xs text-red-600">
+                                                {form.errors.address}
+                                            </div>
                                         ) : null}
                                     </div>
 
                                     <div className="space-y-1.5 sm:col-span-2">
-                                        <div className="text-sm font-medium">Embed URL (iframe src)</div>
-                                        <Input
-                                            value={form.data.embed_url}
-                                            onChange={(e) => form.setData('embed_url', e.target.value)}
-                                            placeholder="https://www.google.com/maps/embed?pb=..."
-                                        />
-                                        <div className="text-xs text-slate-600 dark:text-slate-400">
-                                            Tip: In Google Maps → Share → <span className="font-medium">Embed a map</span> → copy the iframe
-                                            src URL.
+                                        <div className="text-sm font-medium">
+                                            Google Maps link (Open in Google
+                                            Maps button)
                                         </div>
-                                        {form.errors.embed_url ? <div className="text-xs text-red-600">{form.errors.embed_url}</div> : null}
+                                        <Input
+                                            value={form.data.google_maps_url}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'google_maps_url',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="https://maps.google.com/?q=... or share link"
+                                        />
+                                        {form.errors.google_maps_url ? (
+                                            <div className="text-xs text-red-600">
+                                                {form.errors.google_maps_url}
+                                            </div>
+                                        ) : null}
                                     </div>
 
                                     <div className="space-y-1.5 sm:col-span-2">
-                                        <div className="text-sm font-medium">Status</div>
+                                        <div className="text-sm font-medium">
+                                            Embed URL (iframe src)
+                                        </div>
+                                        <Input
+                                            value={form.data.embed_url}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'embed_url',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="https://www.google.com/maps/embed?pb=..."
+                                        />
+                                        <div className="text-xs text-slate-600 dark:text-slate-400">
+                                            Tip: In Google Maps → Share →{' '}
+                                            <span className="font-medium">
+                                                Embed a map
+                                            </span>{' '}
+                                            → copy the iframe src URL.
+                                        </div>
+                                        {form.errors.embed_url ? (
+                                            <div className="text-xs text-red-600">
+                                                {form.errors.embed_url}
+                                            </div>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-1.5 sm:col-span-2">
+                                        <div className="text-sm font-medium">
+                                            Status
+                                        </div>
                                         <Select
-                                            value={form.data.is_active ? 'active' : 'inactive'}
-                                            onValueChange={(v) => form.setData('is_active', v === 'active')}
+                                            value={
+                                                form.data.is_active
+                                                    ? 'active'
+                                                    : 'inactive'
+                                            }
+                                            onValueChange={(v) =>
+                                                form.setData(
+                                                    'is_active',
+                                                    v === 'active',
+                                                )
+                                            }
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select status" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="active">Active</SelectItem>
-                                                <SelectItem value="inactive">Inactive</SelectItem>
+                                                <SelectItem value="active">
+                                                    Active
+                                                </SelectItem>
+                                                <SelectItem value="inactive">
+                                                    Inactive
+                                                </SelectItem>
                                             </SelectContent>
                                         </Select>
 
                                         <div className="text-xs text-slate-600 dark:text-slate-400">
-                                            Inactive venues won’t show on public pages.
+                                            Inactive venues won’t show on public
+                                            pages.
                                         </div>
                                     </div>
                                 </div>
@@ -774,10 +1030,20 @@ export default function VenueManagement(props: PageProps) {
                             {/* RIGHT PREVIEW */}
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Map Preview</div>
+                                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                        Map Preview
+                                    </div>
                                     {form.data.google_maps_url ? (
-                                        <Button asChild variant="secondary" className="rounded-full">
-                                            <a href={form.data.google_maps_url} target="_blank" rel="noreferrer">
+                                        <Button
+                                            asChild
+                                            variant="secondary"
+                                            className="rounded-full"
+                                        >
+                                            <a
+                                                href={form.data.google_maps_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
                                                 <ExternalLink className="mr-2 h-4 w-4" />
                                                 Open in Google Maps
                                             </a>
@@ -785,24 +1051,44 @@ export default function VenueManagement(props: PageProps) {
                                     ) : null}
                                 </div>
 
-                                <MapPreview embedUrl={embedPreviewUrl} googleMapsUrl={form.data.google_maps_url} />
+                                <MapPreview
+                                    embedUrl={embedPreviewUrl}
+                                    googleMapsUrl={form.data.google_maps_url}
+                                />
 
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-200">
-                                    <div className="font-semibold">Public page will show</div>
+                                    <div className="font-semibold">
+                                        Public page will show
+                                    </div>
                                     <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-slate-600 dark:text-slate-300">
                                         <li>Venue name + address</li>
-                                        <li>Map embed (if allowed by browser/adblock)</li>
-                                        <li>“Open in Google Maps” button from your link</li>
+                                        <li>
+                                            Map embed (if allowed by
+                                            browser/adblock)
+                                        </li>
+                                        <li>
+                                            “Open in Google Maps” button from
+                                            your link
+                                        </li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
 
                         <DialogFooter className="gap-2 sm:gap-0">
-                            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={form.processing}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setDialogOpen(false)}
+                                disabled={form.processing}
+                            >
                                 Cancel
                             </Button>
-                            <Button type="submit" className={PRIMARY_BTN} disabled={form.processing}>
+                            <Button
+                                type="submit"
+                                className={PRIMARY_BTN}
+                                disabled={form.processing}
+                            >
                                 {editing ? 'Save changes' : 'Create'}
                             </Button>
                         </DialogFooter>
@@ -824,8 +1110,13 @@ export default function VenueManagement(props: PageProps) {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeleteOpen(false)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={confirmDelete}>
+                        <AlertDialogCancel onClick={() => setDeleteOpen(false)}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={confirmDelete}
+                        >
                             Delete
                         </AlertDialogAction>
                     </AlertDialogFooter>

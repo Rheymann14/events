@@ -134,12 +134,16 @@ Route::middleware(['auth'])->group(function () {
             ->name('transport-vehicles.destroy');
 
         Route::post('table-assignment/tables', [TableAssignmentController::class, 'storeTable'])->name('table-assignment.tables.store');
+        Route::patch('table-assignment/tables', [TableAssignmentController::class, 'updateTables'])
+            ->name('table-assignment.tables.bulk-update');
         Route::patch('table-assignment/tables/{participantTable}', [TableAssignmentController::class, 'updateTable'])->name('table-assignment.tables.update');
         Route::delete('table-assignment/tables/{participantTable}', [TableAssignmentController::class, 'destroyTable'])
             ->name('table-assignment.tables.destroy');
         Route::post('table-assignment/assignments', [TableAssignmentController::class, 'storeAssignments'])->name('table-assignment.assignments.store');
         Route::patch('table-assignment/assignments/{participantTableAssignment}', [TableAssignmentController::class, 'updateAssignment'])
             ->name('table-assignment.assignments.update');
+        Route::delete('table-assignment/assignments', [TableAssignmentController::class, 'destroyAssignments'])
+            ->name('table-assignment.assignments.bulk-destroy');
         Route::delete('table-assignment/assignments/{participantTableAssignment}', [TableAssignmentController::class, 'destroyAssignment'])
             ->name('table-assignment.assignments.destroy');
     });

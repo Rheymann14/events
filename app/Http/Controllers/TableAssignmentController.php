@@ -80,6 +80,7 @@ class TableAssignmentController extends Controller
                                     ? [
                                         'id' => $participant->id,
                                         'full_name' => $participant->name,
+                                        'display_id' => $participant->display_id,
                                         'position_title' => $participant->position_title,
                                         'country' => $participant->country
                                             ? [
@@ -271,6 +272,87 @@ class TableAssignmentController extends Controller
         }
 
         $participantTable->update($payload);
+
+        return back();
+    }
+
+    /**
+     * Save edits to several tables at once.
+     *
+     * The page keeps an editable draft per table, so an operator can retype a
+     * handful of capacities before saving any of them. Submitting one at a time
+     * reloaded the page and discarded the rest.
+     */
+    public function updateTables(Request $request)
+    {
+        $minimumCapacity = $this->isAdmin($request->user()) ? 0 : 1;
+
+        $validated = $request->validate([
+            'tables' => ['required', 'array', 'min:1'],
+            'tables.*.id' => ['required', 'integer', 'exists:participant_tables,id'],
+            'tables.*.table_number' => ['required', 'string', 'max:50'],
+            'tables.*.capacity' => ['required', 'integer', "min:{$minimumCapacity}"],
+        ]);
+
+        $rows = collect($validated['tables'])
+            ->keyBy(fn (array $row) => (int) $row['id']);
+
+        $tables = ParticipantTable::query()
+            ->whereIn('id', $rows->keys())
+            ->get();
+
+        if ($tables->count() !== $rows->count()) {
+            return back()->withErrors([
+                'tables' => 'Some tables no longer exist. Reload and try again.',
+            ]);
+        }
+
+        $programme = Programme::query()->find($tables->first()->programme_id);
+        if ($programme && ! $this->isProgrammeOpen($programme, now())) {
+            return back()->withErrors([
+                'tables' => 'This event is closed.',
+            ]);
+        }
+
+        // Names must stay unique per programme. Check the incoming batch against
+        // itself as well as the database, since two rows can be renamed at once
+        // and a per-row unique rule would not see the collision.
+        $names = $rows->map(fn (array $row) => trim((string) $row['table_number']));
+
+        foreach ($names->groupBy(fn (string $name) => Str::lower($name)) as $duplicates) {
+            if ($duplicates->count() > 1) {
+                return back()->withErrors([
+                    'tables' => sprintf('Table name "%s" is used more than once.', $duplicates->first()),
+                ]);
+            }
+        }
+
+        foreach ($tables as $table) {
+            $name = trim((string) $rows[$table->id]['table_number']);
+
+            $clashes = ParticipantTable::query()
+                ->where('programme_id', $table->programme_id)
+                ->whereNotIn('id', $rows->keys())
+                ->whereRaw('LOWER(table_number) = ?', [Str::lower($name)])
+                ->exists();
+
+            if ($clashes) {
+                return back()->withErrors([
+                    'tables' => sprintf('Table name "%s" is already taken.', $name),
+                ]);
+            }
+        }
+
+        DB::transaction(function () use ($tables, $rows) {
+            foreach ($tables as $table) {
+                $row = $rows[$table->id];
+
+                $table->update([
+                    'table_number' => trim((string) $row['table_number']),
+                    'capacity' => (int) $row['capacity'],
+                ]);
+            }
+        });
 
         return back();
     }
@@ -477,6 +559,53 @@ class TableAssignmentController extends Controller
         $participantTableAssignment->delete();
 
         $this->resequenceSeatNumbers($tableId);
+
+        return back();
+    }
+
+    public function destroyAssignments(Request $request)
+    {
+        $validated = $request->validate([
+            'assignment_ids' => ['required', 'array', 'min:1'],
+            'assignment_ids.*' => ['integer', 'exists:participant_table_assignments,id'],
+        ]);
+
+        $assignments = ParticipantTableAssignment::query()
+            ->with('programme')
+            ->whereIn('id', $validated['assignment_ids'])
+            ->get();
+
+        if ($assignments->isEmpty()) {
+            return back();
+        }
+
+        $now = now();
+
+        // One closed event anywhere in the selection blocks the whole request,
+        // so a bulk removal can never partially apply across events.
+        $hasClosedProgramme = $assignments->contains(
+            fn (ParticipantTableAssignment $assignment) => $assignment->programme
+                && ! $this->isProgrammeOpen($assignment->programme, $now)
+        );
+
+        if ($hasClosedProgramme) {
+            return back()->withErrors([
+                'assignment_ids' => 'This event is closed.',
+            ]);
+        }
+
+        $tableIds = $assignments
+            ->pluck('participant_table_id')
+            ->unique()
+            ->values();
+
+        ParticipantTableAssignment::query()
+            ->whereIn('id', $assignments->pluck('id'))
+            ->delete();
+
+        foreach ($tableIds as $tableId) {
+            $this->resequenceSeatNumbers((int) $tableId);
+        }
 
         return back();
     }

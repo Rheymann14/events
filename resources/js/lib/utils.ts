@@ -18,7 +18,11 @@ export function resolveUrl(url: NonNullable<InertiaLinkProps['href']>): string {
 }
 
 export function toDateOnlyTimestamp(date: Date): number {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    return new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+    ).getTime();
 }
 
 export type EventPhase = 'ongoing' | 'upcoming' | 'closed';

@@ -198,6 +198,14 @@ class LogActivity
                 : 'Updated table.';
         }
 
+        if ($routeName === 'table-assignment.tables.bulk-update') {
+            $count = count((array) $request->input('tables', []));
+
+            return $count > 0
+                ? sprintf('Updated %d table%s.', $count, $count === 1 ? '' : 's')
+                : 'Updated tables.';
+        }
+
         if ($routeName === 'table-assignment.tables.destroy') {
             $table = $request->route()?->parameter('participantTable');
             $tableNumber = $table?->table_number;
@@ -252,6 +260,16 @@ class LogActivity
             }
 
             return 'Removed table assignment.';
+        }
+
+        if ($routeName === 'table-assignment.assignments.bulk-destroy') {
+            $count = count((array) $request->input('assignment_ids', []));
+
+            // The rows are already deleted by the time this middleware runs,
+            // so only the submitted count is still resolvable here.
+            return $count > 0
+                ? sprintf('Removed %d participant%s from tables.', $count, $count === 1 ? '' : 's')
+                : 'Removed table assignments.';
         }
 
         if ($routeName === 'section-management.title') {

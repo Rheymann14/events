@@ -1,16 +1,13 @@
-import * as React from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import { send } from '@/routes/verification';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Form, Head, Link, usePage } from '@inertiajs/react';
+import * as React from 'react';
 
-import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
@@ -34,7 +31,10 @@ const FOOD_RESTRICTION_OPTIONS = [
 const ACCESSIBILITY_NEEDS_OPTIONS = [
     { value: 'wheelchair_access', label: 'Wheelchair access' },
     { value: 'sign_language_interpreter', label: 'Sign language interpreter' },
-    { value: 'assistive_technology_support', label: 'Assistive technology support' },
+    {
+        value: 'assistive_technology_support',
+        label: 'Assistive technology support',
+    },
     { value: 'other', label: 'Other accommodations' },
 ] as const;
 
@@ -47,8 +47,10 @@ export default function Profile({
 }) {
     const { auth } = usePage<SharedData>().props;
     const user = auth.user;
-    const [selectedFoodRestrictions, setSelectedFoodRestrictions] = React.useState<string[]>(() => user.food_restrictions ?? []);
-    const [selectedAccessibilityNeeds, setSelectedAccessibilityNeeds] = React.useState<string[]>(() => user.accessibility_needs ?? []);
+    const [selectedFoodRestrictions, setSelectedFoodRestrictions] =
+        React.useState<string[]>(() => user.food_restrictions ?? []);
+    const [selectedAccessibilityNeeds, setSelectedAccessibilityNeeds] =
+        React.useState<string[]>(() => user.accessibility_needs ?? []);
 
     const honorificLabels: Record<string, string> = {
         mr: 'Mr.',
@@ -79,12 +81,17 @@ export default function Profile({
         other: 'Other accommodations',
     };
 
-    const formatValue = (value?: string | number | null) => (value ? String(value) : '—');
-    const fullContactNumber = [user.contact_country_code, user.contact_number].filter(Boolean).join(' ');
+    const formatValue = (value?: string | number | null) =>
+        value ? String(value) : '—';
+    const fullContactNumber = [user.contact_country_code, user.contact_number]
+        .filter(Boolean)
+        .join(' ');
     const honorificTitle =
         user.honorific_title === 'other'
             ? user.honorific_other || 'Other'
-            : (user.honorific_title ? honorificLabels[user.honorific_title] : undefined);
+            : user.honorific_title
+              ? honorificLabels[user.honorific_title]
+              : undefined;
     const foodRestrictionLabels = (user.food_restrictions ?? [])
         .map((item) => foodRestrictionLabelMap[item] ?? item)
         .filter(Boolean);
@@ -94,13 +101,17 @@ export default function Profile({
 
     const toggleFoodRestriction = (value: string) => {
         setSelectedFoodRestrictions((prev) =>
-            prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value],
+            prev.includes(value)
+                ? prev.filter((item) => item !== value)
+                : [...prev, value],
         );
     };
 
     const toggleAccessibilityNeed = (value: string) => {
         setSelectedAccessibilityNeeds((prev) =>
-            prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value],
+            prev.includes(value)
+                ? prev.filter((item) => item !== value)
+                : [...prev, value],
         );
     };
 
@@ -163,8 +174,6 @@ export default function Profile({
                                     />
                                 </div>
 
-                         
-
                                 {mustVerifyEmail &&
                                     auth.user.email_verified_at === null && (
                                         <div>
@@ -215,8 +224,6 @@ export default function Profile({
                             </>
                         )}
                     </Form>
-
-               
                 </div>
 
                 {/* <DeleteUser /> */}

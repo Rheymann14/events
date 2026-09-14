@@ -1,11 +1,9 @@
-import * as React from 'react';
 import { Head } from '@inertiajs/react';
+import * as React from 'react';
 
-import HeadingSmall from '@/components/heading-small';
 import { type BreadcrumbItem } from '@/types';
 
 import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
 import { index as activityLog } from '@/routes/activity-log';
 
 import { Badge } from '@/components/ui/badge';
@@ -38,13 +36,12 @@ import {
     CheckCircle2,
     Clock,
     ExternalLink,
+    FileClock,
     Filter,
     Search,
     ShieldAlert,
     ShieldCheck,
     TriangleAlert,
-    User2,
-    FileClock,
     XCircle,
 } from 'lucide-react';
 
@@ -252,22 +249,21 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
             const matchesQuery = !q
                 ? true
                 : [
-                    row.page,
-                    row.user.name,
-                    row.user.role ?? '',
-                    row.description ?? '',
-                    row.activity,
-                    row.ip ?? '',
-                    row.device ?? '',
-                    row.timestamp,
-                ]
-                    .join(' ')
-                    .toLowerCase()
-                    .includes(q);
+                      row.page,
+                      row.user.name,
+                      row.user.role ?? '',
+                      row.description ?? '',
+                      row.activity,
+                      row.ip ?? '',
+                      row.device ?? '',
+                      row.timestamp,
+                  ]
+                      .join(' ')
+                      .toLowerCase()
+                      .includes(q);
 
             const matchesDate =
-                (!fromKey || rowKey >= fromKey) &&
-                (!toKey || rowKey <= toKey);
+                (!fromKey || rowKey >= fromKey) && (!toKey || rowKey <= toKey);
 
             return matchesStatus && matchesQuery && matchesDate;
         });
@@ -298,8 +294,7 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Activity Log" />
 
-
-             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="space-y-2">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex flex-col gap-1">
@@ -310,11 +305,10 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                                 </h1>
                             </div>
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                              View users activity log and history
+                                View users activity log and history
                             </p>
                         </div>
                     </div>
-
                 </div>
 
                 {/* Filters */}
@@ -323,22 +317,28 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                         {/* Row 1: From + To */}
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="grid gap-1.5">
-                                <Label className="text-xs text-slate-600 dark:text-slate-300">From</Label>
+                                <Label className="text-xs text-slate-600 dark:text-slate-300">
+                                    From
+                                </Label>
                                 <div className="relative">
-                                    <CalendarDays className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <CalendarDays className="pointer-events-none absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
                                     <Input
                                         type="date"
                                         value={from}
-                                        onChange={(e) => setFrom(e.target.value)}
+                                        onChange={(e) =>
+                                            setFrom(e.target.value)
+                                        }
                                         className="h-9 w-full rounded-xl pl-10"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid gap-1.5">
-                                <Label className="text-xs text-slate-600 dark:text-slate-300">To</Label>
+                                <Label className="text-xs text-slate-600 dark:text-slate-300">
+                                    To
+                                </Label>
                                 <div className="relative">
-                                    <CalendarDays className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <CalendarDays className="pointer-events-none absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
                                     <Input
                                         type="date"
                                         value={to}
@@ -352,26 +352,39 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                         {/* Row 2: Status + Search + Reset */}
                         <div className="grid gap-3 sm:grid-cols-12 sm:items-end">
                             <div className="grid gap-1.5 sm:col-span-3">
-                                <Label className="text-xs text-slate-600 dark:text-slate-300">Status</Label>
-                                <Select value={status} onValueChange={(v) => setStatus(v as any)}>
+                                <Label className="text-xs text-slate-600 dark:text-slate-300">
+                                    Status
+                                </Label>
+                                <Select
+                                    value={status}
+                                    onValueChange={(v) => setStatus(v as any)}
+                                >
                                     <SelectTrigger className="h-9 w-full rounded-xl">
                                         <SelectValue placeholder="All statuses" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">All</SelectItem>
-                                        <SelectItem value="success">Success</SelectItem>
-                                        <SelectItem value="failed">Failed</SelectItem>
+                                        <SelectItem value="success">
+                                            Success
+                                        </SelectItem>
+                                        <SelectItem value="failed">
+                                            Failed
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="grid gap-1.5 sm:col-span-7">
-                                <Label className="text-xs text-slate-600 dark:text-slate-300">Search</Label>
+                                <Label className="text-xs text-slate-600 dark:text-slate-300">
+                                    Search
+                                </Label>
                                 <div className="relative">
-                                    <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <Search className="pointer-events-none absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
                                     <Input
                                         value={query}
-                                        onChange={(e) => setQuery(e.target.value)}
+                                        onChange={(e) =>
+                                            setQuery(e.target.value)
+                                        }
                                         placeholder="Search page, user, activity, IP…"
                                         className="h-9 w-full rounded-xl pl-10"
                                     />
@@ -398,24 +411,23 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                         </div>
                     </div>
 
-
                     <Separator className="my-4" />
 
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300">
                         <div className="inline-flex items-center gap-2">
-                            <span className="font-medium text-slate-900 dark:text-slate-100">{totalRows}</span>
+                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                                {totalRows}
+                            </span>
                             <span>result(s)</span>
                             <span className="hidden sm:inline">•</span>
                             <span className="hidden sm:inline">
-                                Date range: <span className="font-medium">{from}</span> to{' '}
+                                Date range:{' '}
+                                <span className="font-medium">{from}</span> to{' '}
                                 <span className="font-medium">{to}</span>
                             </span>
                         </div>
-
-
                     </div>
                 </Card>
-
 
                 {/* Groups per day */}
                 <div className="space-y-6">
@@ -440,7 +452,10 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                                             {group.dayLabel}
                                         </p>
                                         <p className="text-xs text-slate-600 dark:text-slate-300">
-                                            {group.rows.length} entr{group.rows.length === 1 ? 'y' : 'ies'}
+                                            {group.rows.length} entr
+                                            {group.rows.length === 1
+                                                ? 'y'
+                                                : 'ies'}
                                         </p>
                                     </div>
 
@@ -473,7 +488,7 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                                                 <TableHead className="w-[10%] py-2 text-xs">
                                                     Status
                                                 </TableHead>
-                                                <TableHead className="w-[12%] py-2 text-xs text-right">
+                                                <TableHead className="w-[12%] py-2 text-right text-xs">
                                                     Timestamp
                                                 </TableHead>
                                             </TableRow>
@@ -500,7 +515,9 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
 
                                                                 {row.pageHref ? (
                                                                     <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                                                                        {row.pageHref}
+                                                                        {
+                                                                            row.pageHref
+                                                                        }
                                                                     </span>
                                                                 ) : null}
                                                             </div>
@@ -509,12 +526,15 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                                                             <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-300">
                                                                 {row.ip ? (
                                                                     <span className="rounded-md bg-slate-100 px-2 py-0.5 dark:bg-white/5">
-                                                                        IP: {row.ip}
+                                                                        IP:{' '}
+                                                                        {row.ip}
                                                                     </span>
                                                                 ) : null}
                                                                 {row.device ? (
                                                                     <span className="rounded-md bg-slate-100 px-2 py-0.5 dark:bg-white/5">
-                                                                        {row.device}
+                                                                        {
+                                                                            row.device
+                                                                        }
                                                                     </span>
                                                                 ) : null}
                                                             </div>
@@ -534,7 +554,10 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                                                                         'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200',
                                                                     )}
                                                                 >
-                                                                    {row.user.role}
+                                                                    {
+                                                                        row.user
+                                                                            .role
+                                                                    }
                                                                 </Badge>
                                                             ) : (
                                                                 <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -549,11 +572,17 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                                                         <Badge
                                                             className={cn(
                                                                 'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px]',
-                                                                activityBadgeClass(row.activity),
+                                                                activityBadgeClass(
+                                                                    row.activity,
+                                                                ),
                                                             )}
                                                         >
-                                                            {activityIcon(row.activity)}
-                                                            {formatActivity(row.activity)}
+                                                            {activityIcon(
+                                                                row.activity,
+                                                            )}
+                                                            {formatActivity(
+                                                                row.activity,
+                                                            )}
                                                         </Badge>
                                                     </TableCell>
 
@@ -570,21 +599,26 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                                                             className={cn(
                                                                 'rounded-full border px-2 py-0.5 text-[11px]',
                                                                 statusBadgeClass(
-                                                                    normalizeStatus(row.status),
+                                                                    normalizeStatus(
+                                                                        row.status,
+                                                                    ),
                                                                 ),
                                                             )}
                                                         >
-                                                            {normalizeStatus(row.status) ===
-                                                                'success'
+                                                            {normalizeStatus(
+                                                                row.status,
+                                                            ) === 'success'
                                                                 ? 'Success'
                                                                 : 'Failed'}
                                                         </Badge>
                                                     </TableCell>
 
                                                     {/* Timestamp */}
-                                                    <TableCell className="py-2 align-top text-right">
+                                                    <TableCell className="py-2 text-right align-top">
                                                         <span className="text-xs text-slate-600 dark:text-slate-300">
-                                                            {formatTimestamp(row.timestamp)}
+                                                            {formatTimestamp(
+                                                                row.timestamp,
+                                                            )}
                                                         </span>
                                                     </TableCell>
                                                 </TableRow>
@@ -597,7 +631,6 @@ export default function ActivityLog({ logs }: ActivityLogProps) {
                     )}
                 </div>
             </div>
-
         </AppLayout>
     );
 }

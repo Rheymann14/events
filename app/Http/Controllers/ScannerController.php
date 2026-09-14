@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ParticipantAttendance;
+use App\Models\ParticipantTableAssignment;
 use App\Models\Programme;
 use App\Models\User;
 use App\Support\EventDefaults;
@@ -124,6 +125,14 @@ class ScannerController extends Controller
 
         $profileImageUrl = $this->profileImageUrl($participant);
 
+        // At most one row per (programme_id, user_id) -- enforced by
+        // pt_assign_programme_user_unique -- so this lookup is exact.
+        $tableAssignment = ParticipantTableAssignment::query()
+            ->with('participantTable')
+            ->where('programme_id', $event->id)
+            ->where('user_id', $participant->id)
+            ->first();
+
         return response()->json([
             'ok' => true,
             'message' => $alreadyCheckedIn
@@ -155,6 +164,12 @@ class ScannerController extends Controller
                 'id' => $event->id,
                 'title' => $event->title,
             ],
+            'table_assignment' => $tableAssignment?->participantTable
+                ? [
+                    'table_number' => $tableAssignment->participantTable->table_number,
+                    'seat_number' => $tableAssignment->seat_number,
+                ]
+                : null,
             'already_checked_in' => $alreadyCheckedIn,
             'scanned_at' => $attendance?->scanned_at?->toISOString(),
         ]);
@@ -183,12 +198,20 @@ class ScannerController extends Controller
             ->when($term !== '', fn ($query) => $query->where(fn ($group) => $group
                 ->where('name', 'like', '%'.$term.'%')
                 ->orWhere('display_id', 'like', '%'.$term.'%')))
-            ->with(['participantAttendances' => fn ($query) => $query->where('programme_id', $eventId)])
+            // Eager loaded: this endpoint returns up to 50 rows, so resolving
+            // either relation lazily would be a 50-query N+1.
+            ->with([
+                'participantAttendances' => fn ($query) => $query->where('programme_id', $eventId),
+                'tableAssignments' => fn ($query) => $query
+                    ->where('programme_id', $eventId)
+                    ->with('participantTable'),
+            ])
             ->orderBy('name')
             ->limit(50)
             ->get()
             ->map(function (User $participant) {
                 $attendance = $participant->participantAttendances->first();
+                $seating = $participant->tableAssignments->first();
 
                 return [
                     'id' => $participant->id,
@@ -197,6 +220,12 @@ class ScannerController extends Controller
                     'profile_image_url' => $this->profileImageUrl($participant),
                     'checked_in' => (bool) $attendance,
                     'scanned_at' => $attendance?->scanned_at?->toISOString(),
+                    'table_assignment' => $seating?->participantTable
+                        ? [
+                            'table_number' => $seating->participantTable->table_number,
+                            'seat_number' => $seating->seat_number,
+                        ]
+                        : null,
                 ];
             })
             ->values();
